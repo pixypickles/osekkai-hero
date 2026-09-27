@@ -1,10 +1,12 @@
 const cv=document.querySelector("#game"),ctx=cv.getContext("2d");
 const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
 let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,chainPoints=0,GOAL=300,gameOver=false,cleared=false,playerClass=null;
+let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0;
+
 const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0,carry:null,jumps:0,grabHold:0,grabColorTick:0,floating:false};
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
 
-function makeSlime(type,hard=false){return{color:COLORS[type],hp:hard?4:2,hard,frozen:false}}
+function makeSlime(type,hard=false){return{color:type===-1?"#aeb4bf":COLORS[type],hp:hard?4:2,hard,frozen:false}}
 function topFree(x){for(let y=0;y<H;y++)if(board[y][x])return y-1;return H-1}
 function pairPos(p,part){return p.orient==="h"?{x:p.x+part,y:p.y}:{x:p.x,y:p.y+part}}
 function seedBoard(){
@@ -71,7 +73,7 @@ function resolve(){
   if(g.length>=4)groups.push(g);
  }
  if(!groups.length){chain=0;return}
- chain++;chainPoints+=25*chain;document.querySelector("#chainPoints").textContent=chainPoints;if(chainPoints>=GOAL){cleared=true;msg("STAGE CLEAR!");document.querySelector("#message").classList.add("clear");}
+ chain++;chainPoints+=25*chain;document.querySelector("#chainPoints").textContent=chainPoints;if(!bossMode&&chainPoints>=GOAL){finishStage();}
  groups.flat().forEach(([x,y])=>{board[y][x]=null;score+=10*chain;special=Math.min(100,special+3*chain)});
  setTimeout(()=>{gravity();resolve()},160);
 }
@@ -258,9 +260,9 @@ function jump(){
  if(hero.onGround||hero.grab){
    if(hero.grab?.kind==="pair"){
      let gp=getPair(hero.grab.id),side=hero.grab.side||hero.face||1;hero.grab=null;
-     hero.x=Math.max(.3,Math.min(W-.3,hero.x+side*.42));hero.y-=.12;hero.vy=-.0115;hero.stun=0;return;
+     hero.x=Math.max(.3,Math.min(W-.3,hero.x+side*.42));hero.y-=.12;hero.vy=-.0128;hero.stun=0;return;
    }
-   hero.grab=null;hero.vy=-.0115;
+   hero.grab=null;hero.vy=-.0128;
  }
 }
 function hitEffect(x,y,color="#fff"){
@@ -272,7 +274,7 @@ function slimeHurtEffect(x,y,color){
 function attack(){
  let charged=hero.charge>=75;hero.charge=0;
  if(charged&&special>=100){doSpecial();return}
- hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;
+ hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;if(playerClass==="hero"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(bossRectHit(hero.x+dx*1.1,hero.y+dy*1.1,.9)){bossDamage(1,"剣撃！");return}}
 
  if(playerClass==="mage"){
   let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}
@@ -340,10 +342,11 @@ function grab(){
  let cx=Math.floor(hero.x),cy=Math.floor(hero.y),candidates=[[cx+hero.face,cy],[cx+hero.face,cy-1],[cx+hero.face,cy+1],[cx+hero.face*2,cy],[cx,cy-1],[cx,cy],[cx-hero.face,cy],[cx,cy+1]];for(const [x,y] of candidates)if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){let side=hero.x<x+.5?-1:1;hero.grab={kind:"board",x,y,side};hero.vx=0;hero.vy=0;hero.x=x+.5+side*.52;hero.y=y+.18;return}
 }
 function kick(){
+ if(playerClass==="hero"&&bossMode&&bossRectHit(hero.x+hero.face*1.0,hero.y,.9)){hero.kickT=180;bossDamage(1,"蹴り！");return}
  hero.kickT=180;let dir=hero.face,hy=Math.floor(hero.y);
  if(playerClass==="mage"){
   let dir=hero.face;effects.push({x:hero.x,y:hero.y,t:360,max:360,type:"projectile",color:"#9de9ff",dx:dir,dy:0});
-  for(let r=.45;r<=4.5;r+=.25){let fx=hero.x+dir*r,fy=hero.y;
+  for(let r=.45;r<=4.5;r+=.25){let fx=hero.x+dir*r,fy=hero.y;if(bossRectHit(fx,fy,.55)){bossDamage(1,"アイスショット！");return}
    for(const p of [...pairs])for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;if(Math.abs(pairPos(p,part).x+.5-fx)<.38&&Math.abs(pairPos(p,part).y+.5-fy)<.42){let type=part===0?p.a:p.b,ty=Math.max(0,Math.min(H-1,Math.floor(p.y+part+.5)));if(!board[ty][p.x]){let s=makeSlime(type);s.frozen=true;board[ty][p.x]=s;if(part===0)p.a=null;else p.b=null;msg("凍結！")}return}}
    let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){board[ty][tx].frozen=true;msg("凍結！");return}
   }return;
@@ -373,10 +376,92 @@ function doSpecial(){
  for(const p of pairs){if(p.a!=null&&COLORS[p.a]===target)p.a=null;if(p.b!=null&&COLORS[p.b]===target)p.b=null}
  effects.push({x:hero.x,y:hero.y,t:520,max:520,type:"wave",color:target});gravity();resolve();msg(name);
 }
+
+function resetStageBoard(){
+ board=Array.from({length:H},()=>Array(W).fill(null));pairs=[];effects=[];
+ score=0;special=0;chain=0;chainPoints=0;cleared=false;gameOver=false;
+ hero.x=W/2;hero.y=H-1.2;hero.vx=0;hero.vy=0;hero.grab=null;hero.carry=null;
+ document.querySelector("#score").textContent=0;
+ let cp=document.querySelector("#chainPoints");if(cp)cp.textContent=0;
+ document.querySelector("#message").textContent="";
+ document.querySelector("#message").classList.remove("clear");
+}
+function updateStageHud(){
+ let s=document.querySelector("#stageText");if(s)s.textContent=bossMode?"BOSS":stage;
+ let bh=document.querySelector("#bossHud");if(bh)bh.style.display=bossMode?"inline":"none";
+ let hp=document.querySelector("#bossHpText");if(hp)hp.textContent=Math.max(0,bossHp);
+}
+function finishStage(){
+ if(cleared)return;cleared=true;
+ let result=document.querySelector("#stageResult"),info=document.querySelector("#stageInfo");
+ if(result)result.textContent=bossMode?"BOSS CLEAR!":"STAGE CLEAR!";
+ if(info)info.textContent=bossMode?"ボス撃破！ 次は通常ステージ1から再開します。":(stage>=3?"次はボス戦です。":"次は落下が少し激しくなります。");
+ document.querySelector("#stageMenu").style.display="flex";
+}
+function startNormalStage(n){
+ stage=n;bossMode=false;GOAL=300+(stage-1)*100;resetStageBoard();
+ // Start with a little material already on the field.
+ seedOpeningBoard();
+ updateStageHud();
+}
+function startBossStage(){
+ bossMode=true;bossHp=bossMaxHp=30;bossSpawnT=0;resetStageBoard();updateStageHud();msg("BOSS!");
+}
+function bossDamage(amount,label="HIT!"){
+ if(!bossMode||bossHp<=0)return false;
+ bossHp=Math.max(0,bossHp-amount);bossHitT=180;updateStageHud();msg(label);
+ if(bossHp<=0)finishStage();return true;
+}
+function bossRectHit(x,y,range=.75){
+ return bossMode && Math.abs(x-(W-.55))<range && Math.abs(y-(H*.48))<1.25;
+}
+function spawnBossSingle(){
+ // Single slimes, including colorless nuisance slimes.
+ let neutral=Math.random()<.22;
+ let type=neutral?-1:Math.floor(Math.random()*COLORS.length);
+ let p={id:pairId++,x:Math.floor(Math.random()*Math.max(1,W-2)),y:-1,a:type,b:null,hpA:neutral?3:2,hpB:0,rot:0,targetX:0,targetRot:0,aiT:999};
+ p.targetX=p.x;pairs.push(p);
+}
+function updateBoss(dt){
+ if(!bossMode)return;
+ bossSpawnT-=dt;if(bossSpawnT<=0){spawnBossSingle();bossSpawnT=Math.max(220,620-stage*25)}
+ if(bossHitT>0)bossHitT-=dt;
+ // Any falling/propelled slime touching boss damages it and disappears.
+ for(const p of [...pairs]){
+  for(const part of [0,1]){
+   let val=part===0?p.a:p.b;if(val==null)continue;
+   let px=p.x+.5,py=p.y+part+.5;
+   if(bossRectHit(px,py,.8)){bossDamage(val===-1?2:1,"スライム直撃！");if(part===0)p.a=null;else p.b=null}
+  }
+ }
+}
+function seedOpeningBoard(){
+ if(typeof makeSlime!=="function")return;
+ let cols=[0,1,2,3].filter(i=>COLORS[i]!=null),spots=[1,3,5,7].filter(x=>x<W);
+ for(let i=0;i<Math.min(cols.length,spots.length);i++){
+  let x=spots[i],c=cols[i],y=H-1;
+  if(!board[y][x])board[y][x]=makeSlime(c);
+  if(y-1>=0&&!board[y-1][x])board[y-1][x]=makeSlime(c);
+ }
+}
 function msg(t){let m=document.querySelector("#message");m.textContent=t;if(!gameOver)setTimeout(()=>m.textContent="",850)}
 function update(dt){effects.forEach(e=>e.t-=dt);effects=effects.filter(e=>e.t>0);if(gameOver||cleared||!playerClass)return;updatePairs(dt);updateHero(dt);fallSpeed=Math.min(.00145,.00075+score/9000000);document.querySelector("#score").textContent=score;document.querySelector("#chainPoints").textContent=chainPoints;document.querySelector("#specialText").textContent=Math.floor(special)+"%";document.querySelector("#specialBar").style.width=special+"%"}
+ updateBoss(dt);
 
-function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color;ctx.beginPath();ctx.roundRect(x+.055,y+.055,.89,.89,.36);ctx.fill();ctx.fillStyle="#202438";ctx.beginPath();ctx.arc(x+.32,y+.42,.055,0,Math.PI*2);ctx.arc(x+.68,y+.42,.055,0,Math.PI*2);ctx.fill();if(s.hard){ctx.strokeStyle="#e7e8f0";ctx.lineWidth=.065;ctx.beginPath();ctx.roundRect(x+.13,y+.13,.74,.64,.25);ctx.stroke()}if(s.frozen){ctx.fillStyle="rgba(190,238,255,.5)";ctx.beginPath();ctx.roundRect(x+.04,y+.04,.92,.9,.25);ctx.fill();ctx.strokeStyle="#e4fbff";ctx.lineWidth=.04;ctx.stroke()}}
+function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color||"#aeb4bf";ctx.beginPath();ctx.roundRect(x+.055,y+.055,.89,.89,.36);ctx.fill();ctx.fillStyle="#202438";ctx.beginPath();ctx.arc(x+.32,y+.42,.055,0,Math.PI*2);ctx.arc(x+.68,y+.42,.055,0,Math.PI*2);ctx.fill();if(s.hard){ctx.strokeStyle="#e7e8f0";ctx.lineWidth=.065;ctx.beginPath();ctx.roundRect(x+.13,y+.13,.74,.64,.25);ctx.stroke()}if(s.frozen){ctx.fillStyle="rgba(190,238,255,.5)";ctx.beginPath();ctx.roundRect(x+.04,y+.04,.92,.9,.25);ctx.fill();ctx.strokeStyle="#e4fbff";ctx.lineWidth=.04;ctx.stroke()}}
+
+function drawBoss(){
+ if(!bossMode)return;
+ let x=W-.58,y=H*.48;
+ ctx.save();ctx.translate(x,y);
+ let q=bossHitT>0?Math.sin(bossHitT*.08)*.06:0;ctx.scale(1+q,1-q);
+ ctx.fillStyle="#5d376f";ctx.beginPath();ctx.arc(0,0,.52,Math.PI,0);ctx.lineTo(.48,.5);ctx.lineTo(-.48,.5);ctx.closePath();ctx.fill();
+ ctx.fillStyle="#9a65b0";ctx.beginPath();ctx.arc(0,-.12,.34,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(-.12,-.16,.07,0,Math.PI*2);ctx.arc(.12,-.16,.07,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#222";ctx.beginPath();ctx.arc(-.1,-.15,.03,0,Math.PI*2);ctx.arc(.1,-.15,.03,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#e5bd4c";ctx.beginPath();ctx.moveTo(-.3,-.42);ctx.lineTo(-.18,-.7);ctx.lineTo(0,-.48);ctx.lineTo(.18,-.7);ctx.lineTo(.3,-.42);ctx.closePath();ctx.fill();
+ ctx.restore();
+}
 function drawHero(){
  let x=hero.x,y=hero.y,bob=hero.onGround&&hero.vx?Math.sin(hero.walk)*.035:0,f=hero.face;
  ctx.save();ctx.translate(x,y+bob);
@@ -463,7 +548,7 @@ function draw(){
  ctx.strokeStyle="#34394f";ctx.lineWidth=.025;for(let x=0;x<=W;x++){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<=H;y++){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x])slime(x,y,board[y][x]);
  for(const p of pairs){if(p.a!=null){let z=pairPos(p,0);slime(z.x,z.y,makeSlime(p.a))}if(p.b!=null){let z=pairPos(p,1);slime(z.x,z.y,makeSlime(p.b))}}
- drawEffects();drawHero();if(hero.carry)slime(hero.x+hero.face*.42-.5,hero.y-.95,hero.carry);ctx.restore();
+ drawBoss();drawEffects();drawHero();if(hero.carry)slime(hero.x+hero.face*.42-.5,hero.y-.95,hero.carry);ctx.restore();
 }
 function loop(t){let dt=Math.min(32,t-last);last=t;update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
 const CLASS_HELP={
@@ -486,8 +571,19 @@ document.querySelectorAll(".classBtn").forEach(b=>b.addEventListener("click",()=
 }));
 document.querySelector("#startBtn").addEventListener("click",()=>{
  if(!selectedClass)return;playerClass=selectedClass;hero.floating=playerClass==="mage";
- document.querySelector("#classSelect").style.display="none";setActionLabels();
+ document.querySelector("#classSelect").style.display="none";setActionLabels();startNormalStage(1);
  document.querySelector("#className").textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
+});
+
+document.querySelector("#nextStageBtn")?.addEventListener("click",()=>{
+ document.querySelector("#stageMenu").style.display="none";
+ if(bossMode){startNormalStage(1)}else if(stage>=3){startBossStage()}else{startNormalStage(stage+1)}
+});
+document.querySelector("#titleBtn")?.addEventListener("click",()=>{
+ document.querySelector("#stageMenu").style.display="none";bossMode=false;stage=1;resetStageBoard();updateStageHud();
+ selectedClass=null;playerClass=null;document.querySelector("#classSelect").style.display="flex";
+ document.querySelectorAll(".classBtn").forEach(x=>x.classList.remove("selected"));
+ document.querySelector("#startBtn").disabled=true;document.querySelector("#classHelp").textContent="職業をタップすると操作説明が表示されます。";
 });
 const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",z:"jump",x:"attack",c:"grab",k:"kick"};
 addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});

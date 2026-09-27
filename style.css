@@ -22,3 +22,8 @@ button{-webkit-tap-highlight-color:transparent;touch-action:none;}
 .startBtn:disabled{opacity:.35}
 .controls button[data-key]{touch-action:none;cursor:pointer}
 .controls{touch-action:none;overscroll-behavior:contain}
+
+.stageMenu .panel{text-align:center}
+#bossHud{font-weight:800}
+.bossFlash{animation:bossflash .15s linear}
+@keyframes bossflash{50%{filter:brightness(2)}}
