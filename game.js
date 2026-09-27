@@ -120,7 +120,7 @@ function updateGrabColorCharge(dt){
  if(hero.grabColorTick===dt||hero.grabColorTick>=480){nextHeroGrabColor();hero.grabColorTick=0}
 }
 function updateHero(dt){
- if(playerClass==="mage"&&hero.floating){
+ if(playerClass==="mage"){
   hero.grab=null;hero.onGround=false;
   let ax=(keys.right?1:0)-(keys.left?1:0),ay=(keys.down?1:0)-(keys.up?1:0);
   if(ax)hero.face=ax;
@@ -217,8 +217,22 @@ function updateHero(dt){
  if(hero.y>H){hero.y=H-1.5;hero.vy=0}
  if(keys.attack)hero.charge=Math.min(100,hero.charge+dt*.09);
 }
+function mageGustPush(){
+ let dir=hero.face;
+ effects.push({x:hero.x,y:hero.y,t:420,max:420,type:"wind",color:"#c8f2ff",dx:dir,dy:0});
+ // This version only affects falling slimes: first one hit is pushed one column.
+ for(let r=.45;r<=4.5;r+=.25){
+  let fx=hero.x+dir*r,fy=hero.y;
+  for(const p of pairs)for(const part of [0,1]){
+   if((part===0&&p.a==null)||(part===1&&p.b==null))continue;
+   if(Math.abs(p.x+.5-fx)<.4&&Math.abs(p.y+part+.5-fy)<.42){
+    let nx=p.x+dir;if(nx>=0&&nx<W){p.x=nx;msg("風押し！")}return;
+   }
+  }
+ }
+}
 function jump(){
- if(playerClass==="mage"){hero.floating=!hero.floating;hero.grab=null;if(hero.floating){hero.vx=0;hero.vy=0;msg("浮遊")}else{hero.vy=.001;msg("浮遊解除")}return}
+ if(playerClass==="mage"){mageGustPush();return}
  if(playerClass==="monk"){
    // Monk cannot jump from a grabbed slime. He gets a true double jump instead.
    if(hero.grab)return;
@@ -377,7 +391,11 @@ function drawHero(){
    ctx.fillStyle="#6ed9ff";ctx.beginPath();ctx.arc(f*.02,-.1,.065,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#e7c65b";ctx.lineWidth=.025;ctx.stroke();
    ctx.fillStyle="#222";ctx.fillRect(f*.07-.025,-.4,.05,.055);ctx.strokeStyle="#efc7a5";ctx.lineWidth=.11;ctx.beginPath();ctx.moveTo(-.2,-.05);ctx.lineTo(-.39,.08);ctx.moveTo(.2,-.05);ctx.lineTo(.39,.08);ctx.stroke();
    ctx.fillStyle="#223a83";ctx.beginPath();ctx.arc(-.39,.08,.075,0,Math.PI*2);ctx.arc(.39,.08,.075,0,Math.PI*2);ctx.fill();
-   if(hero.floating){ctx.strokeStyle="#9de9ff";ctx.lineWidth=.045;ctx.beginPath();ctx.ellipse(0,.55,.42,.11,0,0,Math.PI*2);ctx.stroke()}
+   // Magic carpet keeps the mage visibly airborne.
+   ctx.fillStyle="#713d9a";ctx.beginPath();ctx.moveTo(-.43,.45);ctx.lineTo(.43,.45);ctx.lineTo(.32,.58);ctx.lineTo(-.34,.58);ctx.closePath();ctx.fill();
+   ctx.strokeStyle="#e7c65b";ctx.lineWidth=.035;ctx.beginPath();ctx.moveTo(-.38,.48);ctx.lineTo(.37,.48);ctx.stroke();
+   ctx.fillStyle="#e7c65b";ctx.beginPath();ctx.arc(-.38,.55,.035,0,Math.PI*2);ctx.arc(.37,.55,.035,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle="#9de9ff";ctx.lineWidth=.035;ctx.beginPath();ctx.ellipse(0,.63,.36,.08,0,0,Math.PI*2);ctx.stroke()
  }else{
    // Hero: red-based outfit.
    ctx.fillStyle="#8f2638";ctx.beginPath();ctx.moveTo(-f*.12,-.18);ctx.lineTo(-f*.42,.38);ctx.lineTo(-f*.08,.3);ctx.closePath();ctx.fill();
@@ -425,7 +443,29 @@ function draw(){
  drawEffects();drawHero();if(hero.carry)slime(hero.x+hero.face*.42-.5,hero.y-.95,hero.carry);ctx.restore();
 }
 function loop(t){let dt=Math.min(32,t-last);last=t;update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
-document.querySelectorAll(".classBtn").forEach(b=>b.addEventListener("click",()=>{playerClass=b.dataset.class;document.querySelector("#classSelect").style.display="none";document.querySelector("#className").textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");}));
+const CLASS_HELP={
+ hero:"勇者｜攻撃：剣（上下左右）／跳：ジャンプ／掴：スライム操作・長押しで色変化／蹴：1マス移動／チャージ：赤全消去",
+ monk:"モンク｜攻撃：パンチ（横=ダルマ落とし・上=アッパー・下=破壊）／跳：2段ジャンプ／掴：持ち運び／蹴：端まで吹き飛ばす／チャージ：緑全消去",
+ mage:"魔法使い｜常時浮遊・方向キーで滑走／炎：上下左右ファイアボール／氷：正面アイスショット／風替：上下交換／風押：落下中スライムを横1列押す／チャージ：青全消去＋解凍"
+};
+let selectedClass=null;
+function setActionLabels(){
+ const labels=playerClass==="hero"?{grab:"掴",jump:"跳",attack:"剣",kick:"蹴"}:
+ playerClass==="monk"?{grab:"持",jump:"二段",attack:"拳",kick:"蹴"}:
+ {grab:"風替",jump:"風押",attack:"炎",kick:"氷"};
+ for(const [k,v] of Object.entries(labels)){let el=document.querySelector('[data-key="'+k+'"]');if(el)el.textContent=v}
+}
+document.querySelectorAll(".classBtn").forEach(b=>b.addEventListener("click",()=>{
+ selectedClass=b.dataset.class;
+ document.querySelectorAll(".classBtn").forEach(x=>x.classList.toggle("selected",x===b));
+ document.querySelector("#classHelp").textContent=CLASS_HELP[selectedClass];
+ document.querySelector("#startBtn").disabled=false;
+}));
+document.querySelector("#startBtn").addEventListener("click",()=>{
+ if(!selectedClass)return;playerClass=selectedClass;hero.floating=playerClass==="mage";
+ document.querySelector("#classSelect").style.display="none";setActionLabels();
+ document.querySelector("#className").textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
+});
 const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",z:"jump",x:"attack",c:"grab",k:"kick"};
 addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
 addEventListener("keyup",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(k==="attack")attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}});

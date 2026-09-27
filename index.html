@@ -2,10 +2,16 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>転生したら落ちゲーの中でした。Prototype v16</title><link rel="stylesheet" href="style.css">
+<title>転生したら落ちゲーの中でした。Prototype v17</title><link rel="stylesheet" href="style.css">
 </head>
-<body><div id="classSelect" class="overlay"><div class="panel"><h2>職業を選択</h2><button data-class="hero" class="classBtn">⚔️ 勇者<small>赤装備 / 通常スライム一撃 / 紅蓮斬：赤を全消去</small></button><button data-class="monk" class="classBtn">👊 モンク<small>緑の道着＋ズボン / 2段ジャンプ / 上下パンチ / 翠気功波：緑を全消去</small></button><button data-class="mage" class="classBtn">🪄 魔法使い<small>青装備 / 炎・氷・風 / 浮遊 / 蒼氷解放：青を全消去＋解凍</small></button></div></div><main>
-<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v16</small></div>
+<body><div id="classSelect" class="overlay"><div class="panel"><h2>職業を選択</h2>
+<button data-class="hero" class="classBtn">⚔️ 勇者<small>タップで操作説明</small></button>
+<button data-class="monk" class="classBtn">👊 モンク<small>タップで操作説明</small></button>
+<button data-class="mage" class="classBtn">🪄 魔法使い<small>タップで操作説明</small></button>
+<div id="classHelp" class="classHelp">職業をタップすると操作説明が表示されます。</div>
+<button id="startBtn" class="startBtn" disabled>この職業で開始</button>
+</div></div><main>
+<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v17</small></div>
 <div class="hud"><span>連鎖P <b id="chainPoints">0</b>/<b>300</b></span><span>SCORE <b id="score">0</b></span><span>必殺 <b id="specialText">0%</b></span></div>
 <div class="gauge"><div id="specialBar"></div></div>
 <canvas id="game" width="360" height="630"></canvas><div id="message"></div>

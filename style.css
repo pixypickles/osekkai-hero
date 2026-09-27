@@ -15,3 +15,8 @@ html,body,main,canvas,.controls,.dpad,.actions,button,.hud,.title,.help,#classNa
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
 }
 button{-webkit-tap-highlight-color:transparent;touch-action:none;}
+
+.classBtn.selected{outline:3px solid #f0d76b;transform:translateY(-1px)}
+.classHelp{min-height:92px;background:#171b2b;border:1px solid #59627e;border-radius:12px;padding:10px;margin:10px 0;font-size:12px;line-height:1.55;text-align:left}
+.startBtn{width:100%;padding:13px;border-radius:14px;font-size:18px;font-weight:800;background:#d8b94c;color:#171717}
+.startBtn:disabled{opacity:.35}
