@@ -1,7 +1,7 @@
 const cv=document.querySelector("#game"),ctx=cv.getContext("2d");
 const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
-let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,gameOver=false;
-const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0};
+let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,chainPoints=0,GOAL=300,gameOver=false,cleared=false,playerClass=null;
+const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0,carry:null};
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
 
 function makeSlime(type,hard=false){return{color:COLORS[type],hp:hard?4:2,hard}}
@@ -67,8 +67,8 @@ function resolve(){
   while(q.length){let [cx,cy]=q.pop();g.push([cx,cy]);for(const[dX,dY]of[[1,0],[-1,0],[0,1],[0,-1]]){let nx=cx+dX,ny=cy+dY;if(nx>=0&&nx<W&&ny>=0&&ny<H&&!vis[ny][nx]&&board[ny][nx]?.color===col){vis[ny][nx]=true;q.push([nx,ny])}}}
   if(g.length>=4)groups.push(g);
  }
- if(!groups.length){chain=0;document.querySelector("#chain").textContent=0;return}
- chain++;document.querySelector("#chain").textContent=chain;
+ if(!groups.length){chain=0;return}
+ chain++;chainPoints+=25*chain;document.querySelector("#chainPoints").textContent=chainPoints;if(chainPoints>=GOAL){cleared=true;msg("STAGE CLEAR!");document.querySelector("#message").classList.add("clear");}
  groups.flat().forEach(([x,y])=>{board[y][x]=null;score+=10*chain;special=Math.min(100,special+3*chain)});
  setTimeout(()=>{gravity();resolve()},160);
 }
@@ -177,10 +177,10 @@ function jump(){
      hero.grab=null;
      // Push away from the falling slime before applying jump velocity.
      hero.x=Math.max(.3,Math.min(W-.3,hero.x+side*.42));
-     hero.y-=.12;hero.vy=-.0115;hero.stun=0;
+     hero.y-=.12;hero.vy=playerClass==="monk"?-.0142:-.0115;hero.stun=0;
      return;
    }
-   hero.grab=null;hero.vy=-.0115;
+   hero.grab=null;hero.vy=playerClass==="monk"?-.0142:-.0115;
  }
 }
 function hitEffect(x,y,color="#fff"){
@@ -190,82 +190,51 @@ function slimeHurtEffect(x,y,color){
  effects.push({x,y,t:280,max:280,type:"slime",color});
 }
 function attack(){
- let wasCharged=hero.charge>=75;hero.charge=0;
- if(wasCharged&&special>=100){doSpecial();return}
- let power=wasCharged?4:1;
- let dx=hero.face,dy=0,dir=hero.face>0?"right":"left";
- if(keys.up){dx=0;dy=-1;dir="up"}else if(keys.down){dx=0;dy=1;dir="down"}
- hero.attackDir=dir;hero.attackPower=power;hero.attackT=150;
-
- // Precise thrust: narrow line, 1 cell normally / 2 cells when charged.
- let reach=power>=4?2.05:1.15;
- let hx=hero.x,hy=hero.y;
- // Falling slimes get priority if they lie on the thrust line.
- for(const p of pairs){
-   for(const part of [0,1]){
-     if((part===0&&p.a==null)||(part===1&&p.b==null))continue;
-     let px=p.x+.5,py=p.y+part+.5;
-     let along=(px-hx)*dx+(py-hy)*dy,perp=Math.abs((px-hx)*(-dy)+(py-hy)*dx);
-     if(along>0&&along<=reach&&perp<.42){
-       let key=part===0?"hpA":"hpB";p[key]-=power;hitEffect(px,py);slimeHurtEffect(px,py,COLORS[part===0?p.a:p.b]);
-       if(p[key]<=0){if(part===0)p.a=null;else p.b=null;score+=5;msg("空中撃破！");if(p.a==null&&p.b==null)pairs=pairs.filter(q=>q!==p)}
-       return;
-     }
-   }
+ let charged=hero.charge>=75;hero.charge=0;
+ if(playerClass==="hero"&&charged&&special>=100){doSpecial();return}
+ hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;
+ if(playerClass==="monk"){
+   let dir=hero.face,ty=Math.floor(hero.y),tx=Math.floor(hero.x+dir*.82);
+   let best=null;for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let d=Math.hypot(p.x+.5-hero.x,p.y+part+.5-hero.y);if(d<1.25&&(!best||d<best.d))best={p,part,d}}
+   if(best){let nx=best.p.x+dir,blocked=nx<0||nx>=W||pairs.some(q=>q!==best.p&&q.x===nx&&Math.abs(q.y-best.p.y)<1.2);if(blocked){if(best.part===0)best.p.a=null;else best.p.b=null}else best.p.x=nx;hitEffect(best.p.x+.5,best.p.y+best.part+.5);return}
+   if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){let nx=tx+dir,m=board[ty][tx];board[ty][tx]=null;if(nx>=0&&nx<W&&!board[ty][nx])board[ty][nx]=m;hitEffect(tx+.5,ty+.5);gravity();resolve()}return;
  }
- for(let r=.55;r<=reach;r+=.45){
-   let tx=Math.floor(hx+dx*r),ty=Math.floor(hy+dy*r);
-   if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){
-     let hc=board[ty][tx].color;board[ty][tx].hp-=power;hitEffect(tx+.5,ty+.5);slimeHurtEffect(tx+.5,ty+.5,hc);
-     if(board[ty][tx].hp<=0){board[ty][tx]=null;score+=5;gravity();resolve()}
-     return;
-   }
- }
+ let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}
+ let reach=charged?2.05:1.15,hx=hero.x,hy=hero.y,power=charged?4:2;
+ for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let px=p.x+.5,py=p.y+part+.5,along=(px-hx)*dx+(py-hy)*dy,perp=Math.abs((px-hx)*(-dy)+(py-hy)*dx);if(along>0&&along<=reach&&perp<.42){let key=part===0?"hpA":"hpB";p[key]-=power;hitEffect(px,py);slimeHurtEffect(px,py,COLORS[part===0?p.a:p.b]);if(p[key]<=0){if(part===0)p.a=null;else p.b=null;score+=5}return}}
+ for(let r=.55;r<=reach;r+=.45){let tx=Math.floor(hx+dx*r),ty=Math.floor(hy+dy*r);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){let hc=board[ty][tx].color;board[ty][tx].hp-=power;hitEffect(tx+.5,ty+.5);slimeHurtEffect(tx+.5,ty+.5,hc);if(board[ty][tx].hp<=0){board[ty][tx]=null;score+=5;gravity();resolve()}return}}
 }
 function grab(){
  hero.grabT=220;
+ if(playerClass==="monk"){
+   if(hero.carry){let tx=Math.max(0,Math.min(W-1,Math.floor(hero.x+hero.face*.7))),ty=Math.max(0,Math.min(H-1,Math.floor(hero.y)));if(!board[ty][tx]){board[ty][tx]=hero.carry;hero.carry=null;gravity();resolve()}return}
+   let best=null;for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let d=Math.hypot(p.x+.5-hero.x,p.y+part+.5-hero.y);if(d<1.55&&(!best||d<best.d))best={p,part,d}}
+   if(best){let type=best.part===0?best.p.a:best.p.b;if(best.part===0)best.p.a=null;else best.p.b=null;hero.carry=makeSlime(type);return}
+   let cx=Math.floor(hero.x),cy=Math.floor(hero.y),cand=[[cx+hero.face,cy],[cx+hero.face,cy-1],[cx,cy-1],[cx,cy]];for(const [x,y] of cand)if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){hero.carry=board[y][x];board[y][x]=null;gravity();resolve();return}return;
+ }
  if(hero.grab){hero.grab=null;return}
- // Falling slimes can be caught in mid-air if close enough.
- let best=null;
- for(const p of pairs)for(const part of [0,1]){
-   if((part===0&&p.a==null)||(part===1&&p.b==null))continue;
-   let px=p.x+.5,py=p.y+part+.5,d=Math.hypot(px-hero.x,py-hero.y);
-   if(d<1.55&&(!best||d<best.d))best={p,part,d};
- }
- if(best){let side=hero.x<best.p.x+.5?-1:1;hero.grab={kind:"pair",id:best.p.id,part:best.part,side};hero.vy=0;msg("ガシッ！");return}
- let cx=Math.floor(hero.x),cy=Math.floor(hero.y),candidates=[[cx+hero.face,cy],[cx+hero.face,cy-1],[cx+hero.face,cy+1],[cx+hero.face*2,cy],[cx,cy-1],[cx,cy],[cx-hero.face,cy],[cx,cy+1]];
- for(const [x,y] of candidates)if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){
-   let side=hero.x<x+.5?-1:1;hero.grab={kind:"board",x,y,side};hero.vx=0;hero.vy=0;hero.x=x+.5+side*.52;hero.y=y+.18;msg("ガシッ！");return;
- }
+ let best=null;for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let d=Math.hypot(p.x+.5-hero.x,p.y+part+.5-hero.y);if(d<1.55&&(!best||d<best.d))best={p,part,d}}
+ if(best){let side=hero.x<best.p.x+.5?-1:1;hero.grab={kind:"pair",id:best.p.id,part:best.part,side};hero.vy=0;return}
+ let cx=Math.floor(hero.x),cy=Math.floor(hero.y),candidates=[[cx+hero.face,cy],[cx+hero.face,cy-1],[cx+hero.face,cy+1],[cx+hero.face*2,cy],[cx,cy-1],[cx,cy],[cx-hero.face,cy],[cx,cy+1]];for(const [x,y] of candidates)if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){let side=hero.x<x+.5?-1:1;hero.grab={kind:"board",x,y,side};hero.vx=0;hero.vy=0;hero.x=x+.5+side*.52;hero.y=y+.18;return}
 }
 function kick(){
- hero.kickT=180;
- let dir=hero.face,hy=Math.floor(hero.y);
- // Kick a falling slime sideways one column, even while airborne.
- let target=null,best=9;
- for(const p of pairs)for(const part of [0,1]){
-   if((part===0&&p.a==null)||(part===1&&p.b==null))continue;
-   let d=Math.hypot((p.x+.5)-hero.x,(p.y+part+.5)-hero.y);
-   if(d<1.18&&d<best){target=p;best=d}
+ hero.kickT=180;let dir=hero.face,hy=Math.floor(hero.y);
+ if(playerClass==="monk"){
+   let best=null;for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let d=Math.hypot(p.x+.5-hero.x,p.y+part+.5-hero.y);if(d<1.2&&(!best||d<best.d))best={p,part,d}}
+   if(best){let nx=best.p.x;if(nx+dir<0||nx+dir>=W){if(best.part===0)best.p.a=null;else best.p.b=null;return}while(nx+dir>=0&&nx+dir<W&&!board[Math.max(0,Math.floor(best.p.y+best.part))]?.[nx+dir])nx+=dir;if(nx===best.p.x){if(best.part===0)best.p.a=null;else best.p.b=null}else best.p.x=nx;return}
+   let tx=Math.floor(hero.x+dir*.82),ty=hy;if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){let m=board[ty][tx],nx=tx;board[ty][tx]=null;if(nx+dir<0||nx+dir>=W||board[ty][nx+dir]){}else{while(nx+dir>=0&&nx+dir<W&&!board[ty][nx+dir])nx+=dir;board[ty][nx]=m}gravity();resolve()}return;
  }
- if(target){
-   let nx=target.x+dir;
-   if(nx>=0&&nx<W&&!board[Math.max(0,Math.floor(target.y+1))]?.[nx]){
-     target.x=nx;msg("キック！");return;
-   }
- }
- // Settled slime: only if nothing is stacked on top. It moves exactly one cell.
- let tx=Math.floor(hero.x+dir*.8),ty=hy;
- if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]&&!board[ty-1]?.[tx]){
-   let nx=tx+dir;if(nx>=0&&nx<W&&!board[ty][nx]){
-     board[ty][nx]=board[ty][tx];board[ty][tx]=null;
-     gravity();resolve();msg("キック！");
-   }
- }
+ let target=null,best=9;for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let d=Math.hypot((p.x+.5)-hero.x,(p.y+part+.5)-hero.y);if(d<1.18&&d<best){target=p;best=d}}if(target){let nx=target.x+dir;if(nx>=0&&nx<W)target.x=nx;return}
+ let tx=Math.floor(hero.x+dir*.8),ty=hy;if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]&&!board[ty-1]?.[tx]){let nx=tx+dir;if(nx>=0&&nx<W&&!board[ty][nx]){board[ty][nx]=board[ty][tx];board[ty][tx]=null;gravity();resolve()}}
 }
-function doSpecial(){if(special<100)return;special=0;let cx=Math.floor(hero.x),cy=Math.floor(hero.y),a=[];for(let d=-2;d<=2;d++)a.push([cx+d,cy],[cx,cy+d]);for(const[dX,dY]of[[-1,-1],[1,-1],[-1,1],[1,1]])a.push([cx+dX,cy+dY]);a.forEach(([x,y])=>{if(x>=0&&x<W&&y>=0&&y<H)board[y][x]=null});gravity();resolve();msg("おせっかい十字斬り！")}
+function doSpecial(){
+ if(special<100||playerClass!=="hero")return;special=0;let red=COLORS[1];
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]?.color===red)board[y][x]=null;
+ for(const p of pairs){if(p.a!=null&&COLORS[p.a]===red)p.a=null;if(p.b!=null&&COLORS[p.b]===red)p.b=null}
+ gravity();resolve();msg("紅蓮斬！ 赤を一掃！");
+}
 function msg(t){let m=document.querySelector("#message");m.textContent=t;if(!gameOver)setTimeout(()=>m.textContent="",850)}
-function update(dt){effects.forEach(e=>e.t-=dt);effects=effects.filter(e=>e.t>0);if(gameOver)return;updatePairs(dt);updateHero(dt);fallSpeed=Math.min(.00145,.00075+score/9000000);document.querySelector("#score").textContent=score;document.querySelector("#specialText").textContent=Math.floor(special)+"%";document.querySelector("#specialBar").style.width=special+"%"}
+function update(dt){effects.forEach(e=>e.t-=dt);effects=effects.filter(e=>e.t>0);if(gameOver||cleared||!playerClass)return;updatePairs(dt);updateHero(dt);fallSpeed=Math.min(.00145,.00075+score/9000000);document.querySelector("#score").textContent=score;document.querySelector("#chainPoints").textContent=chainPoints;document.querySelector("#specialText").textContent=Math.floor(special)+"%";document.querySelector("#specialBar").style.width=special+"%"}
 
 function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color;ctx.beginPath();ctx.roundRect(x+.055,y+.055,.89,.89,.36);ctx.fill();ctx.fillStyle="#202438";ctx.beginPath();ctx.arc(x+.32,y+.42,.055,0,Math.PI*2);ctx.arc(x+.68,y+.42,.055,0,Math.PI*2);ctx.fill();if(s.hard){ctx.strokeStyle="#e7e8f0";ctx.lineWidth=.065;ctx.beginPath();ctx.roundRect(x+.13,y+.13,.74,.64,.25);ctx.stroke()}}
 function drawHero(){
@@ -350,9 +319,10 @@ function draw(){
  ctx.strokeStyle="#34394f";ctx.lineWidth=.025;for(let x=0;x<=W;x++){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<=H;y++){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x])slime(x,y,board[y][x]);
  for(const p of pairs){if(p.a!=null)slime(p.x,p.y,makeSlime(p.a));if(p.b!=null)slime(p.x,p.y+1,makeSlime(p.b))}
- drawEffects();drawHero();ctx.restore();
+ drawEffects();drawHero();if(hero.carry)slime(hero.x+hero.face*.42-.5,hero.y-.95,hero.carry);ctx.restore();
 }
 function loop(t){let dt=Math.min(32,t-last);last=t;update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+document.querySelectorAll(".classBtn").forEach(b=>b.addEventListener("click",()=>{playerClass=b.dataset.class;document.querySelector("#classSelect").style.display="none";document.querySelector("#className").textContent="職業: "+(playerClass==="hero"?"勇者（必殺：赤一掃）":"モンク");}));
 const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",z:"jump",x:"attack",c:"grab",k:"kick"};
 addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
 addEventListener("keyup",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(k==="attack")attack();keys[k]=false});

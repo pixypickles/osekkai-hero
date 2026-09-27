@@ -7,3 +7,5 @@ button:active,.pressed{transform:translateY(2px);box-shadow:0 1px #292d3e}.dpad{
 .actions{display:grid;grid-template-columns:repeat(2,48px);gap:6px}.actions button{width:48px;height:48px}
 .help{font-size:9px;color:#939ab7;margin:0 4px}#message{position:absolute;top:43%;left:50%;transform:translate(-50%,-50%);font-weight:900;font-size:25px;text-shadow:0 3px 3px #000;pointer-events:none}
 .actions .kick{background:#6f6a45}
+
+.overlay{position:fixed;inset:0;background:rgba(10,12,22,.92);z-index:10;display:flex;align-items:center;justify-content:center}.panel{background:#272c43;border:2px solid #667096;border-radius:18px;padding:18px;width:min(360px,90vw)}.panel h2{margin:0 0 15px}.classBtn{display:block;width:100%;height:auto;border-radius:14px;margin:12px 0;padding:14px;font-size:20px}.classBtn small{display:block;font-size:11px;margin-top:6px;color:#e2e5f0}#className{font-size:10px;margin:0;color:#cbd1e8}.clear{font-size:32px!important}
