@@ -419,7 +419,7 @@ function spawnBossSingle(){
  // Single slimes, including colorless nuisance slimes.
  let neutral=Math.random()<.22;
  let type=neutral?-1:Math.floor(Math.random()*COLORS.length);
- let p={id:pairId++,x:Math.floor(Math.random()*Math.max(1,W-2)),y:-1,a:type,b:null,hpA:neutral?3:2,hpB:0,rot:0,targetX:0,targetRot:0,aiT:999};
+ let p={id:(Date.now()+Math.random()),x:Math.floor(Math.random()*Math.max(1,W-2)),y:-1,a:type,b:null,hpA:neutral?3:2,hpB:0,rot:0,targetX:0,targetRot:0,aiT:999};
  p.targetX=p.x;pairs.push(p);
 }
 function updateBoss(dt){
@@ -436,12 +436,13 @@ function updateBoss(dt){
  }
 }
 function seedOpeningBoard(){
- if(typeof makeSlime!=="function")return;
- let cols=[0,1,2,3].filter(i=>COLORS[i]!=null),spots=[1,3,5,7].filter(x=>x<W);
- for(let i=0;i<Math.min(cols.length,spots.length);i++){
-  let x=spots[i],c=cols[i],y=H-1;
-  if(!board[y][x])board[y][x]=makeSlime(c);
-  if(y-1>=0&&!board[y-1][x])board[y-1][x]=makeSlime(c);
+ if(!board||!board.length||typeof makeSlime!=="function")return;
+ let usable=Math.min(4,COLORS.length), xs=[];
+ for(let i=0;i<usable;i++)xs.push(Math.max(0,Math.min(W-1,1+i*2)));
+ for(let i=0;i<xs.length;i++){
+  let x=xs[i],y=H-1;
+  if(board[y]&&!board[y][x])board[y][x]=makeSlime(i);
+  if(y-1>=0&&board[y-1]&&!board[y-1][x])board[y-1][x]=makeSlime(i);
  }
 }
 function msg(t){let m=document.querySelector("#message");m.textContent=t;if(!gameOver)setTimeout(()=>m.textContent="",850)}
@@ -571,7 +572,8 @@ document.querySelectorAll(".classBtn").forEach(b=>b.addEventListener("click",()=
 }));
 document.querySelector("#startBtn").addEventListener("click",()=>{
  if(!selectedClass)return;playerClass=selectedClass;hero.floating=playerClass==="mage";
- document.querySelector("#classSelect").style.display="none";setActionLabels();startNormalStage(1);
+ document.querySelector("#classSelect").style.display="none";setActionLabels();
+ try{startNormalStage(1)}catch(err){console.error(err);resetStageBoard();updateStageHud();}
  document.querySelector("#className").textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
 });
 

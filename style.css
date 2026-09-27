@@ -27,3 +27,5 @@ button{-webkit-tap-highlight-color:transparent;touch-action:none;}
 #bossHud{font-weight:800}
 .bossFlash{animation:bossflash .15s linear}
 @keyframes bossflash{50%{filter:brightness(2)}}
+
+#classSelect .classBtn,#classSelect .startBtn{pointer-events:auto;touch-action:manipulation;position:relative;z-index:12}
