@@ -250,7 +250,7 @@ function attack(){
   effects.push({x:hero.x,y:hero.y,t:360,max:360,type:"projectile",color:"#ff8a3d",dx,dy});
   for(let r=.45;r<=4.5;r+=.25){let fx=hero.x+dx*r,fy=hero.y+dy*r;
    for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;if(Math.abs(p.x+.5-fx)<.38&&Math.abs(p.y+part+.5-fy)<.38){if(part===0)p.a=null;else p.b=null;hitEffect(p.x+.5,p.y+part+.5,"#ff8a3d");return}}
-   let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){board[ty][tx]=null;hitEffect(tx+.5,ty+.5,"#ff8a3d");gravity();resolve();return}
+   let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){hitEffect(tx+.5,ty+.5,"#ff8a3d");if(board[ty][tx].frozen){board[ty][tx].frozen=false;msg("解凍！");gravity();resolve();return}board[ty][tx]=null;gravity();resolve();return}
   }return;
  }
  if(playerClass==="monk"){
@@ -367,10 +367,16 @@ function drawHero(){
    if(hero.attackT>0){ctx.strokeStyle="#e6c09d";ctx.lineWidth=.15;ctx.beginPath();ctx.moveTo(0,-.05);ctx.lineTo(pdx*(.32+.42*punch),-.05+pdy*(.48+.3*punch));ctx.stroke()}
    if(hero.grabT>0&&!hero.grab&&!hero.carry){let gp=Math.sin((1-hero.grabT/220)*Math.PI),reach=.28+.28*gp;ctx.strokeStyle="#e6c09d";ctx.lineWidth=.115;ctx.beginPath();ctx.moveTo(f*.18,-.08);ctx.lineTo(f*reach,-.12);ctx.stroke();ctx.fillStyle="#e6c09d";ctx.beginPath();ctx.arc(f*(reach+.07),-.12,.085,0,Math.PI*2);ctx.fill()}
  }else if(playerClass==="mage"){
-   ctx.fillStyle="#315eb9";ctx.beginPath();ctx.moveTo(-.3,-.18);ctx.lineTo(.3,-.18);ctx.lineTo(.38,.48);ctx.lineTo(-.38,.48);ctx.closePath();ctx.fill();
-   ctx.fillStyle="#86baff";ctx.fillRect(-.28,.08,.56,.07);ctx.fillStyle="#efc7a5";ctx.beginPath();ctx.arc(0,-.38,.23,0,Math.PI*2);ctx.fill();
-   ctx.fillStyle="#233f86";ctx.beginPath();ctx.moveTo(-.34,-.55);ctx.lineTo(.34,-.55);ctx.lineTo(.05,-1.02);ctx.closePath();ctx.fill();ctx.fillRect(-.4,-.57,.8,.08);
-   ctx.fillStyle="#222";ctx.fillRect(f*.07-.025,-.4,.05,.055);ctx.strokeStyle="#efc7a5";ctx.lineWidth=.11;ctx.beginPath();ctx.moveTo(-.2,-.05);ctx.lineTo(-.38,.08);ctx.moveTo(.2,-.05);ctx.lineTo(.38,.08);ctx.stroke();
+   ctx.fillStyle="#223a83";ctx.beginPath();ctx.moveTo(-.31,-.14);ctx.lineTo(.31,-.14);ctx.lineTo(.42,.5);ctx.lineTo(-.42,.5);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#315eb9";ctx.beginPath();ctx.moveTo(-.25,-.12);ctx.lineTo(.25,-.12);ctx.lineTo(.28,.43);ctx.lineTo(-.28,.43);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#76a9f2";ctx.beginPath();ctx.moveTo(-.27,-.15);ctx.lineTo(.05,-.15);ctx.lineTo(-.08,.1);ctx.lineTo(-.32,.04);ctx.closePath();ctx.fill();
+   ctx.strokeStyle="#e7c65b";ctx.lineWidth=.035;ctx.beginPath();ctx.moveTo(-.3,.43);ctx.lineTo(.3,.43);ctx.moveTo(-.27,.08);ctx.lineTo(.27,.08);ctx.stroke();
+   ctx.fillStyle="#efc7a5";ctx.beginPath();ctx.arc(0,-.38,.23,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#172d69";ctx.beginPath();ctx.moveTo(-.35,-.56);ctx.lineTo(.35,-.56);ctx.lineTo(.08,-1.03);ctx.lineTo(-.03,-.83);ctx.lineTo(-.13,-.98);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#315eb9";ctx.fillRect(-.41,-.59,.82,.085);ctx.strokeStyle="#e7c65b";ctx.lineWidth=.03;ctx.beginPath();ctx.moveTo(-.38,-.56);ctx.lineTo(.38,-.56);ctx.stroke();
+   ctx.fillStyle="#6ed9ff";ctx.beginPath();ctx.arc(f*.02,-.1,.065,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#e7c65b";ctx.lineWidth=.025;ctx.stroke();
+   ctx.fillStyle="#222";ctx.fillRect(f*.07-.025,-.4,.05,.055);ctx.strokeStyle="#efc7a5";ctx.lineWidth=.11;ctx.beginPath();ctx.moveTo(-.2,-.05);ctx.lineTo(-.39,.08);ctx.moveTo(.2,-.05);ctx.lineTo(.39,.08);ctx.stroke();
+   ctx.fillStyle="#223a83";ctx.beginPath();ctx.arc(-.39,.08,.075,0,Math.PI*2);ctx.arc(.39,.08,.075,0,Math.PI*2);ctx.fill();
    if(hero.floating){ctx.strokeStyle="#9de9ff";ctx.lineWidth=.045;ctx.beginPath();ctx.ellipse(0,.55,.42,.11,0,0,Math.PI*2);ctx.stroke()}
  }else{
    // Hero: red-based outfit.
