@@ -220,7 +220,7 @@ function updateHero(dt){
 function mageGustPush(){
  let dir=hero.face;
  effects.push({x:hero.x,y:hero.y,t:420,max:420,type:"wind",color:"#c8f2ff",dx:dir,dy:0});
- // This version only affects falling slimes: first one hit is pushed one column.
+ // Falling pair: push the whole falling piece one column.
  for(let r=.45;r<=4.5;r+=.25){
   let fx=hero.x+dir*r,fy=hero.y;
   for(const p of pairs)for(const part of [0,1]){
@@ -228,6 +228,18 @@ function mageGustPush(){
    if(Math.abs(p.x+.5-fx)<.4&&Math.abs(p.y+part+.5-fy)<.42){
     let nx=p.x+dir;if(nx>=0&&nx<W){p.x=nx;msg("風押し！")}return;
    }
+  }
+  // Settled stack: top slime -> 1, second from top -> top two, third or lower -> too heavy.
+  let tx=Math.floor(fx),ty=Math.floor(fy);
+  if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){
+   let above=0;for(let yy=ty-1;yy>=0&&board[yy][tx];yy--)above++;
+   if(above>=2){msg("重くて動かない！");return}
+   let nx=tx+dir;if(nx<0||nx>=W){msg("動かせない！");return}
+   let top=ty-above;
+   for(let yy=top;yy<=ty;yy++)if(board[yy][nx]){msg("動かせない！");return}
+   let moved=[];for(let yy=top;yy<=ty;yy++){moved.push([yy,board[yy][tx]]);board[yy][tx]=null}
+   for(const [yy,v] of moved)board[yy][nx]=v;
+   gravity();resolve();msg(above===0?"風押し！":"風押し・2個！");return;
   }
  }
 }
@@ -339,7 +351,16 @@ function kick(){
    let tx=Math.floor(hero.x+dir*.82),ty=hy;if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){let m=board[ty][tx],nx=tx;board[ty][tx]=null;if(nx+dir<0||nx+dir>=W||board[ty][nx+dir]){}else{while(nx+dir>=0&&nx+dir<W&&!board[ty][nx+dir])nx+=dir;board[ty][nx]=m}gravity();resolve()}return;
  }
  let target=null,best=9;for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let d=Math.hypot((p.x+.5)-hero.x,(p.y+part+.5)-hero.y);if(d<1.18&&d<best){target=p;best=d}}if(target){let nx=target.x+dir;if(nx>=0&&nx<W)target.x=nx;return}
- let tx=Math.floor(hero.x+dir*.8),ty=hy;if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]&&!board[ty-1]?.[tx]){let nx=tx+dir;if(nx>=0&&nx<W&&!board[ty][nx]){board[ty][nx]=board[ty][tx];board[ty][tx]=null;gravity();resolve()}}
+ let tx=Math.floor(hero.x+dir*.8),ty=hy;
+ if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){
+  let above=0;for(let yy=ty-1;yy>=0&&board[yy][tx];yy--)above++;
+  if(above>=2){msg("重くて蹴れない！");return}
+  let nx=tx+dir;if(nx<0||nx>=W)return;
+  let top=ty-above;for(let yy=top;yy<=ty;yy++)if(board[yy][nx])return;
+  let moved=[];for(let yy=top;yy<=ty;yy++){moved.push([yy,board[yy][tx]]);board[yy][tx]=null}
+  for(const [yy,v] of moved)board[yy][nx]=v;
+  gravity();resolve();msg(above===0?"キック！":"2段キック！");
+ }
 }
 function doSpecial(){
  if(special<100)return;special=0;
@@ -391,11 +412,10 @@ function drawHero(){
    ctx.fillStyle="#6ed9ff";ctx.beginPath();ctx.arc(f*.02,-.1,.065,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#e7c65b";ctx.lineWidth=.025;ctx.stroke();
    ctx.fillStyle="#222";ctx.fillRect(f*.07-.025,-.4,.05,.055);ctx.strokeStyle="#efc7a5";ctx.lineWidth=.11;ctx.beginPath();ctx.moveTo(-.2,-.05);ctx.lineTo(-.39,.08);ctx.moveTo(.2,-.05);ctx.lineTo(.39,.08);ctx.stroke();
    ctx.fillStyle="#223a83";ctx.beginPath();ctx.arc(-.39,.08,.075,0,Math.PI*2);ctx.arc(.39,.08,.075,0,Math.PI*2);ctx.fill();
-   // Magic carpet keeps the mage visibly airborne.
-   ctx.fillStyle="#713d9a";ctx.beginPath();ctx.moveTo(-.43,.45);ctx.lineTo(.43,.45);ctx.lineTo(.32,.58);ctx.lineTo(-.34,.58);ctx.closePath();ctx.fill();
-   ctx.strokeStyle="#e7c65b";ctx.lineWidth=.035;ctx.beginPath();ctx.moveTo(-.38,.48);ctx.lineTo(.37,.48);ctx.stroke();
-   ctx.fillStyle="#e7c65b";ctx.beginPath();ctx.arc(-.38,.55,.035,0,Math.PI*2);ctx.arc(.37,.55,.035,0,Math.PI*2);ctx.fill();
-   ctx.strokeStyle="#9de9ff";ctx.lineWidth=.035;ctx.beginPath();ctx.ellipse(0,.63,.36,.08,0,0,Math.PI*2);ctx.stroke()
+   // No platform: the robe and feet bob at different heights so the mage reads as hovering, not standing.
+   let hover=Math.sin(performance.now()/180)*.035;
+   ctx.strokeStyle="#172d69";ctx.lineWidth=.105;ctx.beginPath();ctx.moveTo(-.11,.39);ctx.lineTo(-.16,.53+hover);ctx.moveTo(.11,.39);ctx.lineTo(.16,.49-hover*.55);ctx.stroke();
+   ctx.strokeStyle="#6faeea";ctx.lineWidth=.025;ctx.globalAlpha=.55;ctx.beginPath();ctx.arc(-.15,.59+hover,.10,Math.PI*.1,Math.PI*.9);ctx.stroke();ctx.beginPath();ctx.arc(.16,.56-hover*.55,.08,Math.PI*.1,Math.PI*.9);ctx.stroke();ctx.globalAlpha=1
  }else{
    // Hero: red-based outfit.
    ctx.fillStyle="#8f2638";ctx.beginPath();ctx.moveTo(-f*.12,-.18);ctx.lineTo(-f*.42,.38);ctx.lineTo(-f*.08,.3);ctx.closePath();ctx.fill();
@@ -469,4 +489,4 @@ document.querySelector("#startBtn").addEventListener("click",()=>{
 const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",z:"jump",x:"attack",c:"grab",k:"kick"};
 addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
 addEventListener("keyup",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(k==="attack")attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}});
-document.querySelectorAll("button").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack")attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}b.classList.remove("pressed")};b.addEventListener("pointerdown",down);b.addEventListener("pointerup",up);b.addEventListener("pointercancel",up)});
+document.querySelectorAll("button[data-key]").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack"&&keys[k])attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}b.classList.remove("pressed");try{if(b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId)}catch(_){}};b.addEventListener("pointerdown",down,{passive:false});b.addEventListener("pointerup",up,{passive:false});b.addEventListener("pointercancel",up,{passive:false});});

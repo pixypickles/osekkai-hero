@@ -20,3 +20,5 @@ button{-webkit-tap-highlight-color:transparent;touch-action:none;}
 .classHelp{min-height:92px;background:#171b2b;border:1px solid #59627e;border-radius:12px;padding:10px;margin:10px 0;font-size:12px;line-height:1.55;text-align:left}
 .startBtn{width:100%;padding:13px;border-radius:14px;font-size:18px;font-weight:800;background:#d8b94c;color:#171717}
 .startBtn:disabled{opacity:.35}
+.controls button[data-key]{touch-action:none;cursor:pointer}
+.controls{touch-action:none;overscroll-behavior:contain}
