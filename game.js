@@ -1,7 +1,7 @@
 const cv=document.querySelector("#game"),ctx=cv.getContext("2d");
 const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
 let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,gameOver=false;
-const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0};
+const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0};
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
 
 function makeSlime(type,hard=false){return{color:COLORS[type],hp:hard?4:2,hard}}
@@ -87,7 +87,7 @@ function heroHitsPair(nx,ny){
 function getPair(id){return pairs.find(p=>p.id===id)}
 function updateHero(dt){
  if(hero.stun>0){hero.stun-=dt;return}
- if(hero.attackT>0)hero.attackT=Math.max(0,hero.attackT-dt);if(hero.kickT>0)hero.kickT=Math.max(0,hero.kickT-dt);if(hero.grabT>0)hero.grabT=Math.max(0,hero.grabT-dt);if(hero.squashT>0)hero.squashT=Math.max(0,hero.squashT-dt);
+ if(hero.attackT>0)hero.attackT=Math.max(0,hero.attackT-dt);if(hero.kickT>0)hero.kickT=Math.max(0,hero.kickT-dt);if(hero.grabT>0)hero.grabT=Math.max(0,hero.grabT-dt);if(hero.squashT>0)hero.squashT=Math.max(0,hero.squashT-dt);if(hero.squeezeT>0)hero.squeezeT=Math.max(0,hero.squeezeT-dt);
 
  // Board grab remains a hanging/dragging action.
  if(hero.grab?.kind==="board"){
@@ -145,11 +145,23 @@ function updateHero(dt){
    // Knock him sideways, briefly stun him, and keep him below the falling object.
    let heroTop=hero.y-hero.h/2;
    if(hero.vy>=-.001 && (ph.r.b<=heroTop+.28 || (ph.p.y+ph.part)<hero.y-.28)){
-     let escape=hero.x<(ph.p.x+.5)?-1:1;
-     let tryX=hero.x+escape*.72;
-     if(solidAt(tryX,hero.y))escape*=-1;
-     hero.x=Math.max(.3,Math.min(W-.3,hero.x+escape*.62));
-     hero.vy=-.0028;hero.stun=360;hero.squashT=260;hero.grab=null;
+     let leftBlocked=solidAt(hero.x-.62,hero.y),rightBlocked=solidAt(hero.x+.62,hero.y);
+     hero.grab=null;hero.stun=0;hero.squashT=0;hero.squeezeT=320;
+     if(leftBlocked&&rightBlocked){
+       // Boxed on both sides: squeeze upward through the nearest open space.
+       hero.squeezeDir=2;
+       let targetY=hero.y;
+       for(let sy=Math.floor(hero.y)-1;sy>=0;sy--){
+         if(!solidAt(hero.x,sy)){targetY=sy+.45;break}
+       }
+       hero.y=targetY;hero.vy=-.002;
+     }else{
+       // Normal crush: ooze smoothly out to whichever side is open.
+       let escape=!leftBlocked&&rightBlocked?-1:leftBlocked&&!rightBlocked?1:(hero.x<(ph.p.x+.5)?-1:1);
+       hero.squeezeDir=escape;
+       hero.x=Math.max(.3,Math.min(W-.3,hero.x+escape*.68));
+       hero.vy=0;
+     }
    }else if(hero.vy>0){hero.y=ph.r.t-hero.h/2;hero.vy=0;hero.onGround=true}
    else if(hero.vy<0){hero.y=ph.r.b+hero.h/2;hero.vy=.0015}
  }else if(hero.vy>=0&&solidAt(hero.x,ny+hero.h/2)){
@@ -259,7 +271,11 @@ function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color;ctx.beginPath();ctx.r
 function drawHero(){
  let x=hero.x,y=hero.y,bob=hero.onGround&&hero.vx?Math.sin(hero.walk)*.035:0,f=hero.face;
  ctx.save();ctx.translate(x,y+bob);
- if(hero.squashT>0){let q=Math.sin((hero.squashT/260)*Math.PI);ctx.scale(1+.55*q,1-.68*q);ctx.translate(0,.24*q);}
+ if(hero.squeezeT>0){
+   let q=Math.sin((hero.squeezeT/320)*Math.PI);
+   if(hero.squeezeDir===2){ctx.scale(1-.42*q,1+.55*q);ctx.translate(0,-.18*q)}
+   else{ctx.scale(1+.42*q,1-.36*q);ctx.translate(-hero.squeezeDir*.12*q,.12*q)}
+ }
  ctx.fillStyle="#b83e55";ctx.beginPath();ctx.moveTo(-f*.12,-.18);ctx.lineTo(-f*.42,.38);ctx.lineTo(-f*.08,.3);ctx.closePath();ctx.fill();
  let step=hero.vx?Math.sin(hero.walk)*.12:0;
  ctx.strokeStyle="#d8dce8";ctx.lineWidth=.12;ctx.beginPath();
@@ -286,7 +302,7 @@ function drawHero(){
 
  // Grab button visibly reaches a hand toward the facing direction.
  if(hero.grabT>0&&!hero.grab){
-   let gp=Math.sin((1-hero.grabT/220)*Math.PI),reach=.35+.55*gp;
+   let gp=Math.sin((1-hero.grabT/220)*Math.PI),reach=.28+.28*gp;
    ctx.strokeStyle="#f0c6a2";ctx.lineWidth=.115;ctx.beginPath();ctx.moveTo(f*.18,-.08);ctx.lineTo(f*reach,-.12);ctx.stroke();
    ctx.fillStyle="#f0c6a2";ctx.beginPath();ctx.arc(f*(reach+.07),-.12,.085,0,Math.PI*2);ctx.fill();
  }
