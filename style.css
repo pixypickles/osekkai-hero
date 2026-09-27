@@ -4,6 +4,6 @@ main{max-width:430px;margin:auto;text-align:center;height:100vh}.title{font-weig
 canvas{background:#24283b;border:2px solid #565d80;max-height:67vh;max-width:95vw}.controls{display:flex;justify-content:space-between;align-items:center;padding:5px 10px;gap:8px}
 button{border:0;border-radius:50%;width:50px;height:50px;font-size:17px;font-weight:800;background:#59617f;color:#fff;box-shadow:0 3px #292d3e}
 button:active,.pressed{transform:translateY(2px);box-shadow:0 1px #292d3e}.dpad{position:relative;width:150px;height:112px}.dpad button{position:absolute;width:47px;height:47px}.dpad .up{left:51px;top:0}.dpad .left{left:2px;top:52px}.dpad .down{left:51px;top:52px}.dpad .right{left:100px;top:52px}
-.actions{display:grid;grid-template-columns:repeat(3,46px);gap:5px}.actions button{width:46px;height:46px}.actions .special{background:#a84b63;font-size:12px}
+.actions{display:grid;grid-template-columns:repeat(2,48px);gap:6px}.actions button{width:48px;height:48px}
 .help{font-size:9px;color:#939ab7;margin:0 4px}#message{position:absolute;top:43%;left:50%;transform:translate(-50%,-50%);font-weight:900;font-size:25px;text-shadow:0 3px 3px #000;pointer-events:none}
-.actions .kick{background:#6f6a45}.actions .special{grid-column:2/4;width:97px;border-radius:24px}
+.actions .kick{background:#6f6a45}

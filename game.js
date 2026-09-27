@@ -1,7 +1,7 @@
 const cv=document.querySelector("#game"),ctx=cv.getContext("2d");
 const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
 let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,gameOver=false;
-const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1};
+const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0};
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075;
 
 function makeSlime(type,hard=false){return{color:COLORS[type],hp:hard?4:2,hard}}
@@ -87,7 +87,7 @@ function heroHitsPair(nx,ny){
 function getPair(id){return pairs.find(p=>p.id===id)}
 function updateHero(dt){
  if(hero.stun>0){hero.stun-=dt;return}
- if(hero.attackT>0)hero.attackT=Math.max(0,hero.attackT-dt);
+ if(hero.attackT>0)hero.attackT=Math.max(0,hero.attackT-dt);if(hero.kickT>0)hero.kickT=Math.max(0,hero.kickT-dt);
 
  // Board grab remains a hanging/dragging action.
  if(hero.grab?.kind==="board"){
@@ -144,7 +144,7 @@ function updateHero(dt){
    // If a falling slime hits the hero from above, don't teleport the hero onto it.
    // Knock him sideways, briefly stun him, and keep him below the falling object.
    let heroTop=hero.y-hero.h/2;
-   if(ph.r.b<=heroTop+.28 || (ph.p.y+ph.part)<hero.y-.2){
+   if(hero.vy>=-.001 && (ph.r.b<=heroTop+.28 || (ph.p.y+ph.part)<hero.y-.28)){
      let escape=hero.x<(ph.p.x+.5)?-1:1;
      let tryX=hero.x+escape*.72;
      if(solidAt(tryX,hero.y))escape*=-1;
@@ -160,13 +160,21 @@ function updateHero(dt){
 }
 function jump(){
  if(hero.onGround||hero.grab){
-   if(hero.grab?.kind==="pair")hero.grab=null;
-   hero.vy=-.0115;
-   if(hero.grab?.kind==="board")hero.grab=null;
+   if(hero.grab?.kind==="pair"){
+     let gp=getPair(hero.grab.id),side=hero.grab.side||hero.face||1;
+     hero.grab=null;
+     // Push away from the falling slime before applying jump velocity.
+     hero.x=Math.max(.3,Math.min(W-.3,hero.x+side*.42));
+     hero.y-=.12;hero.vy=-.0115;hero.stun=0;
+     return;
+   }
+   hero.grab=null;hero.vy=-.0115;
  }
 }
 function attack(){
- let power=hero.charge>=75?4:1;hero.charge=0;
+ let wasCharged=hero.charge>=75;hero.charge=0;
+ if(wasCharged&&special>=100){doSpecial();return}
+ let power=wasCharged?4:1;
  let dx=hero.face,dy=0,dir=hero.face>0?"right":"left";
  if(keys.up){dx=0;dy=-1;dir="up"}else if(keys.down){dx=0;dy=1;dir="down"}
  hero.attackDir=dir;hero.attackPower=power;hero.attackT=150;
@@ -212,6 +220,7 @@ function grab(){
  }
 }
 function kick(){
+ hero.kickT=180;
  let dir=hero.face,hy=Math.floor(hero.y);
  // Kick a falling slime sideways one column, even while airborne.
  let target=null,best=9;
@@ -244,8 +253,25 @@ function drawHero(){
  let x=hero.x,y=hero.y,bob=hero.onGround&&hero.vx?Math.sin(hero.walk)*.035:0,f=hero.face;
  ctx.save();ctx.translate(x,y+bob);
  ctx.fillStyle="#b83e55";ctx.beginPath();ctx.moveTo(-f*.12,-.18);ctx.lineTo(-f*.42,.38);ctx.lineTo(-f*.08,.3);ctx.closePath();ctx.fill();
- let step=hero.vx?Math.sin(hero.walk)*.12:0;ctx.strokeStyle="#d8dce8";ctx.lineWidth=.12;ctx.beginPath();ctx.moveTo(-.11,.25);ctx.lineTo(-.14+step,.48);ctx.moveTo(.11,.25);ctx.lineTo(.14-step,.48);ctx.stroke();
- ctx.strokeStyle="#49382f";ctx.lineWidth=.13;ctx.beginPath();ctx.moveTo(-.14+step,.48);ctx.lineTo(-.24+step,.49);ctx.moveTo(.14-step,.48);ctx.lineTo(.24-step,.49);ctx.stroke();
+ let step=hero.vx?Math.sin(hero.walk)*.12:0;
+ ctx.strokeStyle="#d8dce8";ctx.lineWidth=.12;ctx.beginPath();
+ if(hero.kickT>0){
+   let kp=Math.sin((1-hero.kickT/180)*Math.PI),kf=hero.face;
+   ctx.moveTo(-kf*.07,.24);ctx.lineTo(-kf*.12,.48);
+   ctx.moveTo(kf*.08,.24);ctx.lineTo(kf*(.28+.38*kp),.28-.04*kp);
+ }else{
+   ctx.moveTo(-.11,.25);ctx.lineTo(-.14+step,.48);ctx.moveTo(.11,.25);ctx.lineTo(.14-step,.48);
+ }
+ ctx.stroke();
+ ctx.strokeStyle="#49382f";ctx.lineWidth=.13;ctx.beginPath();
+ if(hero.kickT>0){
+   let kp=Math.sin((1-hero.kickT/180)*Math.PI),kf=hero.face;
+   ctx.moveTo(-kf*.12,.48);ctx.lineTo(-kf*.23,.49);
+   let fx=kf*(.28+.38*kp),fy=.28-.04*kp;ctx.moveTo(fx,fy);ctx.lineTo(fx+kf*.15,fy);
+ }else{
+   ctx.moveTo(-.14+step,.48);ctx.lineTo(-.24+step,.49);ctx.moveTo(.14-step,.48);ctx.lineTo(.24-step,.49);
+ }
+ ctx.stroke();
  ctx.fillStyle="#4e78d5";ctx.fillRect(-.23,-.18,.46,.48);ctx.fillStyle="#d9b84c";ctx.fillRect(-.23,.11,.46,.07);
  ctx.fillStyle="#f0c6a2";ctx.beginPath();ctx.arc(0,-.38,.25,0,Math.PI*2);ctx.fill();ctx.fillStyle="#5b3a2a";ctx.beginPath();ctx.arc(-.03,-.47,.23,Math.PI,Math.PI*2);ctx.lineTo(.2,-.4);ctx.lineTo(.08,-.5);ctx.lineTo(-.02,-.39);ctx.lineTo(-.12,-.51);ctx.lineTo(-.24,-.4);ctx.fill();
  ctx.fillStyle="#222";ctx.fillRect(f*.08-.025,-.4,.05,.055);
@@ -265,9 +291,7 @@ function drawHero(){
  ctx.lineTo(neckX-px*bladeHalf,neckY-py*bladeHalf);
  ctx.closePath();ctx.fill();
  ctx.strokeStyle="#cda64b";ctx.lineWidth=.07;ctx.beginPath();ctx.moveTo(handX-dy*.12,handY+dx*.12);ctx.lineTo(handX+dy*.12,handY-dx*.12);ctx.stroke();
- if(hero.attackT>0){
-   ctx.strokeStyle="rgba(255,245,185,.75)";ctx.lineWidth=.06;ctx.beginPath();ctx.moveTo(handX+dx*.25,handY+dy*.25);ctx.lineTo(tipx+dx*.18,tipy+dy*.18);ctx.stroke();
- }
+
  if(hero.grab){
    ctx.strokeStyle="#ffe071";ctx.lineWidth=.055;ctx.setLineDash([.08,.06]);ctx.beginPath();ctx.moveTo(0,-.15);
    if(hero.grab.kind==="pair"&&getPair(hero.grab.id)){let gp=getPair(hero.grab.id),py=gp.y+hero.grab.part+.5;ctx.lineTo(gp.x+.5-hero.x,py-hero.y)}
@@ -285,7 +309,7 @@ function draw(){
  drawHero();ctx.restore();
 }
 function loop(t){let dt=Math.min(32,t-last);last=t;update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
-const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",z:"jump",x:"attack",c:"grab",k:"kick",v:"special"};
-addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();if(k==="special"&&!e.repeat)doSpecial()});
+const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",z:"jump",x:"attack",c:"grab",k:"kick"};
+addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
 addEventListener("keyup",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(k==="attack")attack();keys[k]=false});
-document.querySelectorAll("button").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();if(k==="special")doSpecial()};const up=e=>{e.preventDefault();if(k==="attack")attack();keys[k]=false;b.classList.remove("pressed")};b.addEventListener("pointerdown",down);b.addEventListener("pointerup",up);b.addEventListener("pointercancel",up)});
+document.querySelectorAll("button").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack")attack();keys[k]=false;b.classList.remove("pressed")};b.addEventListener("pointerdown",down);b.addEventListener("pointerup",up);b.addEventListener("pointercancel",up)});
