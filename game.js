@@ -564,16 +564,11 @@ function setActionLabels(){
  {grab:"風替",jump:"風押",attack:"炎",kick:"氷"};
  for(const [k,v] of Object.entries(labels)){let el=document.querySelector('[data-key="'+k+'"]');if(el)el.textContent=v}
 }
-document.querySelectorAll(".classBtn").forEach(b=>b.addEventListener("click",()=>{
- selectedClass=b.dataset.class;
- document.querySelectorAll(".classBtn").forEach(x=>x.classList.toggle("selected",x===b));
- document.querySelector("#classHelp").textContent=CLASS_HELP[selectedClass];
- document.querySelector("#startBtn").disabled=false;
-}));
-document.querySelector("#startBtn").addEventListener("click",()=>{
- if(!selectedClass)return;playerClass=selectedClass;hero.floating=playerClass==="mage";
+window.addEventListener("jobstart",e=>{
+ const job=e.detail&&e.detail.job;if(!job)return;
+ selectedClass=job;playerClass=job;hero.floating=playerClass==="mage";
  document.querySelector("#classSelect").style.display="none";setActionLabels();
- try{startNormalStage(1)}catch(err){console.error(err);resetStageBoard();updateStageHud();}
+ try{startNormalStage(1)}catch(err){console.error(err);resetStageBoard();updateStageHud()}
  document.querySelector("#className").textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
 });
 
@@ -583,7 +578,7 @@ document.querySelector("#nextStageBtn")?.addEventListener("click",()=>{
 });
 document.querySelector("#titleBtn")?.addEventListener("click",()=>{
  document.querySelector("#stageMenu").style.display="none";bossMode=false;stage=1;resetStageBoard();updateStageHud();
- selectedClass=null;playerClass=null;document.querySelector("#classSelect").style.display="flex";
+ selectedClass=null;playerClass=null;window.pendingClass=null;document.querySelector("#classSelect").style.display="flex";
  document.querySelectorAll(".classBtn").forEach(x=>x.classList.remove("selected"));
  document.querySelector("#startBtn").disabled=true;document.querySelector("#classHelp").textContent="職業をタップすると操作説明が表示されます。";
 });

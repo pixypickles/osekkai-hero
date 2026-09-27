@@ -2,21 +2,39 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>転生したら落ちゲーの中でした。Prototype v21.1</title><link rel="stylesheet" href="style.css">
-</head>
+<title>転生したら落ちゲーの中でした。Prototype v21.2</title><link rel="stylesheet" href="style.css">
+<script>
+window.pendingClass=null;
+window.CLASS_HELP_SAFE={
+ hero:"勇者｜剣：上下左右攻撃／跳：ジャンプ／掴：掴み・長押し色変更／蹴：最大2段押し／チャージ：赤全消去",
+ monk:"モンク｜拳：横ダルマ落とし・上アッパー・下破壊／二段：2段ジャンプ／持：持ち運び／蹴：吹き飛ばし／チャージ：緑全消去",
+ mage:"魔法使い｜常時浮遊／炎：ファイアボール／氷：アイスショット／風替：上下交換／風押：スライムを横へ押す／チャージ：青全消去＋解凍"
+};
+window.selectJob=function(job,el){
+ window.pendingClass=job;
+ document.querySelectorAll("#classSelect .classBtn[data-class]").forEach(function(x){x.classList.toggle("selected",x===el);});
+ var help=document.getElementById("classHelp"),start=document.getElementById("startBtn");
+ if(help)help.textContent=window.CLASS_HELP_SAFE[job]||"";
+ if(start)start.disabled=false;
+};
+window.startSelectedJob=function(){
+ if(!window.pendingClass)return;
+ window.dispatchEvent(new CustomEvent("jobstart",{detail:{job:window.pendingClass}}));
+};
+</script></head>
 <body><div id="classSelect" class="overlay"><div class="panel"><h2>職業を選択</h2>
-<button data-class="hero" class="classBtn">⚔️ 勇者<small>タップで操作説明</small></button>
-<button data-class="monk" class="classBtn">👊 モンク<small>タップで操作説明</small></button>
-<button data-class="mage" class="classBtn">🪄 魔法使い<small>タップで操作説明</small></button>
+<button type="button" data-class="hero" class="classBtn" onclick="selectJob('hero',this)">⚔️ 勇者<small>タップで操作説明</small></button>
+<button type="button" data-class="monk" class="classBtn" onclick="selectJob('monk',this)">👊 モンク<small>タップで操作説明</small></button>
+<button type="button" data-class="mage" class="classBtn" onclick="selectJob('mage',this)">🪄 魔法使い<small>タップで操作説明</small></button>
 <div id="classHelp" class="classHelp">職業をタップすると操作説明が表示されます。</div>
-<button id="startBtn" class="startBtn" disabled>この職業で開始</button>
+<button type="button" id="startBtn" class="startBtn" onclick="startSelectedJob()" disabled>この職業で開始</button>
 </div></div><div id="stageMenu" class="overlay stageMenu" style="display:none"><div class="panel">
 <h2 id="stageResult">STAGE CLEAR!</h2>
 <p id="stageInfo">次は少し難しくなります。</p>
 <button id="nextStageBtn" class="startBtn">次のステージへ</button>
 <button id="titleBtn" class="classBtn">タイトルへ戻る</button>
 </div></div><main>
-<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v21.1</small></div>
+<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v21.2</small></div>
 <div class="hud"><span>STAGE <b id="stageText">1</b></span><span>連鎖P <b id="chainPoints">0</b>/<b>300</b></span><span>SCORE <b id="score">0</b></span><span>必殺 <b id="specialText">0%</b></span><span id="bossHud" style="display:none">BOSS <b id="bossHpText">30</b></span></div>
 <div class="gauge"><div id="specialBar"></div></div>
 <canvas id="game" width="360" height="630"></canvas><div id="message"></div>
