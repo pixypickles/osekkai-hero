@@ -16,16 +16,26 @@ function spawnPair(){let a=Math.floor(Math.random()*4),b=Math.floor(Math.random(
 function blocked(x,y){let iy=Math.floor(y+.5);return iy>=H||(iy>=0&&board[iy][x])}
 function updatePair(dt){
  if(!pair)spawnPair();
+ if(hero.grab?.kind==="pair"){
+   // The hero is physically holding one cell of the falling pair.
+   // Keep the pair attached near the hero until released/jumped.
+   let off=hero.grab.part===0?0:1;
+   pair.x=Math.max(0,Math.min(W-1,Math.floor(hero.x)));
+   pair.y=hero.y-.95-off;
+   return;
+ }
  let next=pair.y+fallSpeed*dt;
- // vertical 2-piece: bottom slime is y+1
  if(blocked(pair.x,next+1)){settlePair()}else pair.y=next;
 }
 function settlePair(){
  let x=pair.x,y=topFree(x);if(y<1){gameOver=true;msg("GAME OVER");return}
  let hardChance=score>700?Math.min(.25,.06+score/9000):0;
- board[y][x]=makeSlime(pair.a,Math.random()<hardChance);
- board[y-1][x]=makeSlime(pair.b,Math.random()<hardChance);
- pair=null;resolve();
+ if(pair.a!=null)board[y][x]=makeSlime(pair.a,Math.random()<hardChance);
+ if(pair.b!=null){
+   let yy=pair.a!=null?y-1:y;
+   if(yy>=0)board[yy][x]=makeSlime(pair.b,Math.random()<hardChance);
+ }
+ pair=null;hero.grab=null;resolve();
 }
 function resolve(){
  let groups=[],vis=Array.from({length:H},()=>Array(W).fill(false));
@@ -45,19 +55,17 @@ function updateHero(dt){
  if(hero.stun>0){hero.stun-=dt;return}
  if(hero.attackT>0)hero.attackT=Math.max(0,hero.attackT-dt);
 
- // Hanging: lock the hero just below the grabbed slime. Left/right attempts to drag
- // only when the grabbed slime has no slime stacked above it.
- if(hero.grab){
+ if(hero.grab?.kind==="board"){
    let g=hero.grab;
-   if(!board[g.y]?.[g.x]){hero.grab=null}
+   if(!board[g.y]?.[g.x])hero.grab=null;
    else{
-     hero.vy=0; hero.y=g.y+.82; hero.x=g.x+.5;
+     hero.vy=0;hero.y=g.y+.82;hero.x=g.x+.5;
      let dir=keys.left?-1:keys.right?1:0;
-     if(dir && !board[g.y-1]?.[g.x]){
+     if(dir&&!board[g.y-1]?.[g.x]){
        let nx=g.x+dir;
        if(nx>=0&&nx<W&&!board[g.y][nx]&&!board[g.y+1]?.[nx]){
          board[g.y][nx]=board[g.y][g.x];board[g.y][g.x]=null;
-         hero.grab={x:nx,y:g.y};hero.x=nx+.5;
+         hero.grab={kind:"board",x:nx,y:g.y};hero.x=nx+.5;
        }
      }
      if(keys.attack)hero.charge=Math.min(100,hero.charge+dt*.09);
@@ -74,34 +82,66 @@ function updateHero(dt){
  if(hero.y>H){hero.y=H-1.5;hero.vy=0}
  if(keys.attack)hero.charge=Math.min(100,hero.charge+dt*.09);
 }
-function jump(){if(hero.onGround||hero.grab){hero.vy=-.0115;hero.grab=null}}
+function jump(){
+ if(hero.onGround||hero.grab){
+   if(hero.grab?.kind==="pair")hero.grab=null;
+   hero.vy=-.0115;
+   if(hero.grab?.kind==="board")hero.grab=null;
+ }
+}
 function attack(){
  let power=hero.charge>=75?4:1;hero.charge=0;
  let dx=hero.face,dy=0,dir=hero.face>0?"right":"left";
  if(keys.up){dx=0;dy=-1;dir="up"}else if(keys.down){dx=0;dy=1;dir="down"}
- hero.attackDir=dir;hero.attackPower=power;hero.attackT=190;
- // The blade sweeps through two nearby cells; charged slash reaches one cell farther.
- let reach=power>=4?2:1, hits=[];
- for(let r=1;r<=reach;r++)hits.push([Math.floor(hero.x+dx*r*.78),Math.floor(hero.y+dy*r*.82)]);
- for(const [tx,ty] of hits){
+ hero.attackDir=dir;hero.attackPower=power;hero.attackT=150;
+
+ // Precise thrust: narrow line, 1 cell normally / 2 cells when charged.
+ let reach=power>=4?2.05:1.15;
+ let hx=hero.x,hy=hero.y;
+ // Falling pair gets priority if it lies on the thrust line.
+ if(pair){
+   for(const part of [0,1]){
+     let px=pair.x+.5,py=pair.y+part+.5;
+     let along=(px-hx)*dx+(py-hy)*dy;
+     let perp=Math.abs((px-hx)*(-dy)+(py-hy)*dx);
+     if(along>0&&along<=reach&&perp<.42){
+       // Each falling slime also has HP. Create it lazily.
+       let key=part===0?"hpA":"hpB"; if(pair[key]==null)pair[key]=2;
+       pair[key]-=power;
+       if(pair[key]<=0){
+         if(part===0){pair.a=pair.b;pair.hpA=pair.hpB??2;pair.b=null;pair.hpB=null}
+         else pair.b=null;
+         score+=5;msg("空中撃破！");
+         if(pair.a==null&&pair.b==null)pair=null;
+       }
+       return;
+     }
+   }
+ }
+ for(let r=.55;r<=reach;r+=.45){
+   let tx=Math.floor(hx+dx*r),ty=Math.floor(hy+dy*r);
    if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){
      board[ty][tx].hp-=power;
      if(board[ty][tx].hp<=0){board[ty][tx]=null;score+=5;gravity();resolve()}
-     break;
+     return;
    }
  }
 }
 function grab(){
- if(hero.grab){hero.grab=null;return}
- // Prefer the slime in facing direction, then above/below. Works on ground or in air.
- let cx=Math.floor(hero.x),cy=Math.floor(hero.y), candidates=[
-   [cx+hero.face,cy],[cx,cy-1],[cx,cy],[cx-hero.face,cy],[cx,cy+1]
- ];
- for(const [x,y] of candidates){
-   if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){
-     hero.grab={x,y};hero.vx=0;hero.vy=0;hero.x=x+.5;hero.y=y+.82;msg("ガシッ！");
-     return;
+ if(hero.grab){hero.grab=null;msg("パッ");return}
+ // Falling slimes can be caught in mid-air if close enough.
+ if(pair){
+   let best=null;
+   for(const part of [0,1]){
+     if(part===1&&pair.b==null)continue;
+     let px=pair.x+.5,py=pair.y+part+.5,d=Math.hypot(px-hero.x,py-hero.y);
+     if(d<1.25&&(!best||d<best.d))best={part,d};
    }
+   if(best){hero.grab={kind:"pair",part:best.part};hero.vy=0;msg("空中キャッチ！");return}
+ }
+ let cx=Math.floor(hero.x),cy=Math.floor(hero.y),candidates=[[cx+hero.face,cy],[cx,cy-1],[cx,cy],[cx-hero.face,cy],[cx,cy+1]];
+ for(const [x,y] of candidates)if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){
+   hero.grab={kind:"board",x,y};hero.vx=0;hero.vy=0;hero.x=x+.5;hero.y=y+.82;msg("ガシッ！");return;
  }
 }
 function doSpecial(){if(special<100)return;special=0;let cx=Math.floor(hero.x),cy=Math.floor(hero.y),a=[];for(let d=-2;d<=2;d++)a.push([cx+d,cy],[cx,cy+d]);for(const[dX,dY]of[[-1,-1],[1,-1],[-1,1],[1,1]])a.push([cx+dX,cy+dY]);a.forEach(([x,y])=>{if(x>=0&&x<W&&y>=0&&y<H)board[y][x]=null});gravity();resolve();msg("おせっかい十字斬り！")}
@@ -119,31 +159,23 @@ function drawHero(){
  ctx.fillStyle="#f0c6a2";ctx.beginPath();ctx.arc(0,-.38,.25,0,Math.PI*2);ctx.fill();ctx.fillStyle="#5b3a2a";ctx.beginPath();ctx.arc(-.03,-.47,.23,Math.PI,Math.PI*2);ctx.lineTo(.2,-.4);ctx.lineTo(.08,-.5);ctx.lineTo(-.02,-.39);ctx.lineTo(-.12,-.51);ctx.lineTo(-.24,-.4);ctx.fill();
  ctx.fillStyle="#222";ctx.fillRect(f*.08-.025,-.4,.05,.055);
 
- // Sword pose. During attack it makes a large, unmistakable directional swing.
- let ang=f>0?-.65:Math.PI+.65;
+ // Sword pose: attacks are thrusts, not swings, for precise targeting.
+ let dx=f,dy=0;if(hero.attackDir==="up"){dx=0;dy=-1}else if(hero.attackDir==="down"){dx=0;dy=1}else if(hero.attackDir==="left"){dx=-1;dy=0}else if(hero.attackDir==="right"){dx=1;dy=0}
+ let thrust=hero.attackT>0 ? Math.sin((1-hero.attackT/150)*Math.PI)*.55 : 0;
+ let baseX=f*.25,baseY=-.02, handX=baseX+dx*thrust*.45,handY=baseY+dy*thrust*.45;
+ ctx.strokeStyle="#f0c6a2";ctx.lineWidth=.11;ctx.beginPath();ctx.moveTo(f*.15,-.06);ctx.lineTo(handX,handY);ctx.stroke();
+ let bladeLen=.65+thrust;
+ let tipx=handX+dx*bladeLen,tipy=handY+dy*bladeLen;
+ ctx.strokeStyle="#edf2ff";ctx.lineWidth=.12;ctx.beginPath();ctx.moveTo(handX,handY);ctx.lineTo(tipx,tipy);ctx.stroke();
+ ctx.strokeStyle="#cda64b";ctx.lineWidth=.07;ctx.beginPath();ctx.moveTo(handX-dy*.12,handY+dx*.12);ctx.lineTo(handX+dy*.12,handY-dx*.12);ctx.stroke();
  if(hero.attackT>0){
-   let p=1-hero.attackT/190;
-   if(hero.attackDir==="right")ang=-2.0+p*2.65;
-   if(hero.attackDir==="left")ang=Math.PI+2.0-p*2.65;
-   if(hero.attackDir==="up")ang=2.35+p*1.55;
-   if(hero.attackDir==="down")ang=-.75+p*1.55;
- }
- let hx=Math.cos(ang)*.34,hy=Math.sin(ang)*.34;
- ctx.strokeStyle="#f0c6a2";ctx.lineWidth=.11;ctx.beginPath();ctx.moveTo(f*.15,-.06);ctx.lineTo(hx,hy);ctx.stroke();
- let tipx=Math.cos(ang)*.92,tipy=Math.sin(ang)*.92;
- ctx.strokeStyle="#edf2ff";ctx.lineWidth=.12;ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(tipx,tipy);ctx.stroke();
- ctx.strokeStyle="#cda64b";ctx.lineWidth=.07;ctx.beginPath();ctx.moveTo(hx-Math.sin(ang)*.12,hy+Math.cos(ang)*.12);ctx.lineTo(hx+Math.sin(ang)*.12,hy-Math.cos(ang)*.12);ctx.stroke();
-
- if(hero.attackT>0){
-   ctx.strokeStyle="rgba(255,245,185,.75)";ctx.lineWidth=.08;ctx.beginPath();
-   if(hero.attackDir==="right")ctx.arc(0,0,.9,-2.0,.65);
-   else if(hero.attackDir==="left")ctx.arc(0,0,.9,Math.PI+.65,Math.PI+2.0);
-   else if(hero.attackDir==="up")ctx.arc(0,0,.9,2.35,3.9);
-   else ctx.arc(0,0,.9,-.75,.8);
-   ctx.stroke();
+   ctx.strokeStyle="rgba(255,245,185,.75)";ctx.lineWidth=.06;ctx.beginPath();ctx.moveTo(handX+dx*.25,handY+dy*.25);ctx.lineTo(tipx+dx*.18,tipy+dy*.18);ctx.stroke();
  }
  if(hero.grab){
-   ctx.strokeStyle="#ffe071";ctx.lineWidth=.055;ctx.setLineDash([.08,.06]);ctx.beginPath();ctx.moveTo(0,-.15);ctx.lineTo(0,-.78);ctx.stroke();ctx.setLineDash([]);
+   ctx.strokeStyle="#ffe071";ctx.lineWidth=.055;ctx.setLineDash([.08,.06]);ctx.beginPath();ctx.moveTo(0,-.15);
+   if(hero.grab.kind==="pair"&&pair){let py=pair.y+hero.grab.part+.5;ctx.lineTo(pair.x+.5-hero.x,py-hero.y)}
+   else ctx.lineTo(0,-.78);
+   ctx.stroke();ctx.setLineDash([]);
  }
  if(hero.charge>0){ctx.strokeStyle="#fff";ctx.lineWidth=.045;ctx.beginPath();ctx.arc(0,0,.57,0,Math.PI*2*hero.charge/100);ctx.stroke()}
  ctx.restore();
@@ -152,7 +184,7 @@ function draw(){
  ctx.clearRect(0,0,cv.width,cv.height);ctx.save();ctx.scale(S,S);
  ctx.strokeStyle="#34394f";ctx.lineWidth=.025;for(let x=0;x<=W;x++){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<=H;y++){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x])slime(x,y,board[y][x]);
- if(pair){slime(pair.x,pair.y,makeSlime(pair.a));slime(pair.x,pair.y+1,makeSlime(pair.b))}
+ if(pair){if(pair.a!=null)slime(pair.x,pair.y,makeSlime(pair.a));if(pair.b!=null)slime(pair.x,pair.y+1,makeSlime(pair.b))}
  drawHero();ctx.restore();
 }
 function loop(t){let dt=Math.min(32,t-last);last=t;update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
