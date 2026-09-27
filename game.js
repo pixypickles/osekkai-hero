@@ -16,14 +16,6 @@ function spawnPair(){let a=Math.floor(Math.random()*4),b=Math.floor(Math.random(
 function blocked(x,y){let iy=Math.floor(y+.5);return iy>=H||(iy>=0&&board[iy][x])}
 function updatePair(dt){
  if(!pair)spawnPair();
- if(hero.grab?.kind==="pair"){
-   // The hero is physically holding one cell of the falling pair.
-   // Keep the pair attached near the hero until released/jumped.
-   let off=hero.grab.part===0?0:1;
-   pair.x=Math.max(0,Math.min(W-1,Math.floor(hero.x)));
-   pair.y=hero.y-.95-off;
-   return;
- }
  let next=pair.y+fallSpeed*dt;
  if(blocked(pair.x,next+1)){settlePair()}else pair.y=next;
 }
@@ -51,10 +43,21 @@ function resolve(){
 }
 function gravity(){for(let x=0;x<W;x++){let v=[];for(let y=H-1;y>=0;y--)if(board[y][x])v.push(board[y][x]);for(let y=H-1,i=0;y>=0;y--)board[y][x]=i<v.length?v[i++]:null}}
 function solidAt(x,y){let ix=Math.floor(x),iy=Math.floor(y);return ix<0||ix>=W||iy>=H||(iy>=0&&board[iy][ix])}
+function pairRect(part){
+ if(!pair)return null;
+ if(part===0&&pair.a==null)return null;if(part===1&&pair.b==null)return null;
+ return {l:pair.x+.08,r:pair.x+.92,t:pair.y+part+.08,b:pair.y+part+.92};
+}
+function heroHitsPair(nx,ny){
+ let hl=nx-hero.w/2,hr=nx+hero.w/2,ht=ny-hero.h/2,hb=ny+hero.h/2;
+ for(const part of [0,1]){let r=pairRect(part);if(r&&hr>r.l&&hl<r.r&&hb>r.t&&ht<r.b)return {part,r}}
+ return null;
+}
 function updateHero(dt){
  if(hero.stun>0){hero.stun-=dt;return}
  if(hero.attackT>0)hero.attackT=Math.max(0,hero.attackT-dt);
 
+ // Board grab remains a hanging/dragging action.
  if(hero.grab?.kind==="board"){
    let g=hero.grab;
    if(!board[g.y]?.[g.x])hero.grab=null;
@@ -72,13 +75,35 @@ function updateHero(dt){
      return;
    }
  }
+
+ // Falling grab = elevator ride. The pair keeps falling naturally and the hero follows
+ // the exact grabbed part, without changing the pair's orientation/order.
+ if(hero.grab?.kind==="pair"){
+   if(!pair || (hero.grab.part===0&&pair.a==null) || (hero.grab.part===1&&pair.b==null)){hero.grab=null}
+   else{
+     let part=hero.grab.part;
+     hero.vx=0;hero.vy=0;
+     hero.x=pair.x + (hero.grab.side||-1)*.43 + .5;
+     hero.y=pair.y+part+.52;
+     if(keys.attack)hero.charge=Math.min(100,hero.charge+dt*.09);
+     return;
+   }
+ }
+
  hero.vx=0;if(keys.left){hero.vx=-.0042*dt;hero.face=-1}if(keys.right){hero.vx=.0042*dt;hero.face=1}
  if(hero.vx)hero.walk+=dt*.02;
  let nx=Math.max(.28,Math.min(W-.28,hero.x+hero.vx));
- if(!solidAt(nx,hero.y))hero.x=nx;
+ // Falling slimes are solid horizontally too.
+ if(!solidAt(nx,hero.y)&&!heroHitsPair(nx,hero.y))hero.x=nx;
+
  hero.vy+=.000027*dt;let ny=hero.y+hero.vy*dt;hero.onGround=false;
- if(hero.vy>=0&&solidAt(hero.x,ny+hero.h/2)){hero.vy=0;hero.y=Math.floor(ny+hero.h/2)-hero.h/2;hero.onGround=true}
- else if(hero.vy<0&&solidAt(hero.x,ny-hero.h/2)){hero.vy=.002}else hero.y=ny;
+ let ph=heroHitsPair(hero.x,ny);
+ if(ph){
+   if(hero.vy>0){hero.y=ph.r.t-hero.h/2;hero.vy=0;hero.onGround=true}
+   else if(hero.vy<0){hero.y=ph.r.b+hero.h/2;hero.vy=.0015}
+ }else if(hero.vy>=0&&solidAt(hero.x,ny+hero.h/2)){
+   hero.vy=0;hero.y=Math.floor(ny+hero.h/2)-hero.h/2;hero.onGround=true;
+ }else if(hero.vy<0&&solidAt(hero.x,ny-hero.h/2)){hero.vy=.002}else hero.y=ny;
  if(hero.y>H){hero.y=H-1.5;hero.vy=0}
  if(keys.attack)hero.charge=Math.min(100,hero.charge+dt*.09);
 }
@@ -137,7 +162,7 @@ function grab(){
      let px=pair.x+.5,py=pair.y+part+.5,d=Math.hypot(px-hero.x,py-hero.y);
      if(d<1.25&&(!best||d<best.d))best={part,d};
    }
-   if(best){hero.grab={kind:"pair",part:best.part};hero.vy=0;msg("空中キャッチ！");return}
+   if(best){let side=hero.x<pair.x+.5?-1:1;hero.grab={kind:"pair",part:best.part,side};hero.vy=0;msg("ガシッ！");return}
  }
  let cx=Math.floor(hero.x),cy=Math.floor(hero.y),candidates=[[cx+hero.face,cy],[cx,cy-1],[cx,cy],[cx-hero.face,cy],[cx,cy+1]];
  for(const [x,y] of candidates)if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){
@@ -148,7 +173,7 @@ function doSpecial(){if(special<100)return;special=0;let cx=Math.floor(hero.x),c
 function msg(t){let m=document.querySelector("#message");m.textContent=t;if(!gameOver)setTimeout(()=>m.textContent="",850)}
 function update(dt){if(gameOver)return;updatePair(dt);updateHero(dt);fallSpeed=Math.min(.00145,.00075+score/9000000);document.querySelector("#score").textContent=score;document.querySelector("#specialText").textContent=Math.floor(special)+"%";document.querySelector("#specialBar").style.width=special+"%"}
 
-function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color;ctx.beginPath();ctx.roundRect(x+.06,y+.08,.88,.84,.25);ctx.fill();ctx.fillStyle="#202438";ctx.fillRect(x+.27,y+.37,.1,.1);ctx.fillRect(x+.63,y+.37,.1,.1);if(s.hard){ctx.strokeStyle="#e7e8f0";ctx.lineWidth=.07;ctx.strokeRect(x+.14,y+.15,.72,.55)}}
+function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color;ctx.beginPath();ctx.roundRect(x+.055,y+.055,.89,.89,.36);ctx.fill();ctx.fillStyle="#202438";ctx.beginPath();ctx.arc(x+.32,y+.42,.055,0,Math.PI*2);ctx.arc(x+.68,y+.42,.055,0,Math.PI*2);ctx.fill();if(s.hard){ctx.strokeStyle="#e7e8f0";ctx.lineWidth=.065;ctx.beginPath();ctx.roundRect(x+.13,y+.13,.74,.64,.25);ctx.stroke()}}
 function drawHero(){
  let x=hero.x,y=hero.y,bob=hero.onGround&&hero.vx?Math.sin(hero.walk)*.035:0,f=hero.face;
  ctx.save();ctx.translate(x,y+bob);
@@ -164,7 +189,7 @@ function drawHero(){
  let thrust=hero.attackT>0 ? Math.sin((1-hero.attackT/150)*Math.PI)*.55 : 0;
  let baseX=f*.25,baseY=-.02, handX=baseX+dx*thrust*.45,handY=baseY+dy*thrust*.45;
  ctx.strokeStyle="#f0c6a2";ctx.lineWidth=.11;ctx.beginPath();ctx.moveTo(f*.15,-.06);ctx.lineTo(handX,handY);ctx.stroke();
- let bladeLen=.65+thrust;
+ let bladeLen=.46+thrust*.62;
  let tipx=handX+dx*bladeLen,tipy=handY+dy*bladeLen;
  ctx.strokeStyle="#edf2ff";ctx.lineWidth=.12;ctx.beginPath();ctx.moveTo(handX,handY);ctx.lineTo(tipx,tipy);ctx.stroke();
  ctx.strokeStyle="#cda64b";ctx.lineWidth=.07;ctx.beginPath();ctx.moveTo(handX-dy*.12,handY+dx*.12);ctx.lineTo(handX+dy*.12,handY-dx*.12);ctx.stroke();
