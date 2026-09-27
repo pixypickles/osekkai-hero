@@ -1,10 +1,10 @@
 const cv=document.querySelector("#game"),ctx=cv.getContext("2d");
 const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
 let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,chainPoints=0,GOAL=300,gameOver=false,cleared=false,playerClass=null;
-const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0,carry:null,jumps:0,grabHold:0,grabColorTick:0};
+const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0,carry:null,jumps:0,grabHold:0,grabColorTick:0,floating:false};
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
 
-function makeSlime(type,hard=false){return{color:COLORS[type],hp:hard?4:2,hard}}
+function makeSlime(type,hard=false){return{color:COLORS[type],hp:hard?4:2,hard,frozen:false}}
 function topFree(x){for(let y=0;y<H;y++)if(board[y][x])return y-1;return H-1}
 function chooseColumn(type){
  let sc=Array(W).fill(0).map((_,x)=>{let y=topFree(x),s=Math.random()*1.8;if(y>=0){
@@ -62,9 +62,9 @@ function settlePair(p){
 }
 function resolve(){
  let groups=[],vis=Array.from({length:H},()=>Array(W).fill(false));
- for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]&&!vis[y][x]){
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]&&!board[y][x].frozen&&!vis[y][x]){
   let q=[[x,y]],g=[],col=board[y][x].color;vis[y][x]=true;
-  while(q.length){let [cx,cy]=q.pop();g.push([cx,cy]);for(const[dX,dY]of[[1,0],[-1,0],[0,1],[0,-1]]){let nx=cx+dX,ny=cy+dY;if(nx>=0&&nx<W&&ny>=0&&ny<H&&!vis[ny][nx]&&board[ny][nx]?.color===col){vis[ny][nx]=true;q.push([nx,ny])}}}
+  while(q.length){let [cx,cy]=q.pop();g.push([cx,cy]);for(const[dX,dY]of[[1,0],[-1,0],[0,1],[0,-1]]){let nx=cx+dX,ny=cy+dY;if(nx>=0&&nx<W&&ny>=0&&ny<H&&!vis[ny][nx]&&board[ny][nx]?.color===col&&!board[ny][nx]?.frozen){vis[ny][nx]=true;q.push([nx,ny])}}}
   if(g.length>=4)groups.push(g);
  }
  if(!groups.length){chain=0;return}
@@ -72,7 +72,18 @@ function resolve(){
  groups.flat().forEach(([x,y])=>{board[y][x]=null;score+=10*chain;special=Math.min(100,special+3*chain)});
  setTimeout(()=>{gravity();resolve()},160);
 }
-function gravity(){for(let x=0;x<W;x++){let v=[];for(let y=H-1;y>=0;y--)if(board[y][x])v.push(board[y][x]);for(let y=H-1,i=0;y>=0;y--)board[y][x]=i<v.length?v[i++]:null}}
+function gravity(){
+ for(let x=0;x<W;x++){
+  let bottom=H-1;
+  while(bottom>=0){
+   if(board[bottom][x]?.frozen){bottom--;continue}
+   let top=bottom;while(top>=0&&!board[top][x]?.frozen)top--;
+   let vals=[];for(let y=bottom;y>top;y--)if(board[y][x])vals.push(board[y][x]);
+   let i=0;for(let y=bottom;y>top;y--)board[y][x]=i<vals.length?vals[i++]:null;
+   bottom=top-1;
+  }
+ }
+}
 function solidAt(x,y){let ix=Math.floor(x),iy=Math.floor(y);return ix<0||ix>=W||iy>=H||(iy>=0&&board[iy][ix])}
 function pairRect(p,part){
  if(!p)return null;
@@ -109,6 +120,18 @@ function updateGrabColorCharge(dt){
  if(hero.grabColorTick===dt||hero.grabColorTick>=480){nextHeroGrabColor();hero.grabColorTick=0}
 }
 function updateHero(dt){
+ if(playerClass==="mage"&&hero.floating){
+  hero.grab=null;hero.onGround=false;
+  let ax=(keys.right?1:0)-(keys.left?1:0),ay=(keys.down?1:0)-(keys.up?1:0);
+  if(ax)hero.face=ax;
+  hero.vx=hero.vx*.94+ax*.00032*dt;hero.vy=hero.vy*.94+ay*.00032*dt;
+  hero.vx=Math.max(-.0048,Math.min(.0048,hero.vx));hero.vy=Math.max(-.0048,Math.min(.0048,hero.vy));
+  let nx=Math.max(.3,Math.min(W-.3,hero.x+hero.vx*dt)),ny=Math.max(.5,Math.min(H-.5,hero.y+hero.vy*dt));
+  if(!solidAt(nx,hero.y)&&!heroHitsPair(nx,hero.y))hero.x=nx;else hero.vx=0;
+  if(!solidAt(hero.x,ny)&&!heroHitsPair(hero.x,ny))hero.y=ny;else hero.vy=0;
+  if(keys.attack)hero.charge=Math.min(100,hero.charge+dt*.09);
+  return;
+ }
  if(hero.stun>0){hero.stun-=dt;return}
  if(hero.attackT>0)hero.attackT=Math.max(0,hero.attackT-dt);if(hero.kickT>0)hero.kickT=Math.max(0,hero.kickT-dt);if(hero.grabT>0)hero.grabT=Math.max(0,hero.grabT-dt);if(hero.squashT>0)hero.squashT=Math.max(0,hero.squashT-dt);if(hero.squeezeT>0)hero.squeezeT=Math.max(0,hero.squeezeT-dt);
  updateGrabColorCharge(dt);
@@ -195,6 +218,7 @@ function updateHero(dt){
  if(keys.attack)hero.charge=Math.min(100,hero.charge+dt*.09);
 }
 function jump(){
+ if(playerClass==="mage"){hero.floating=!hero.floating;hero.grab=null;if(hero.floating){hero.vx=0;hero.vy=0;msg("浮遊")}else{hero.vy=.001;msg("浮遊解除")}return}
  if(playerClass==="monk"){
    // Monk cannot jump from a grabbed slime. He gets a true double jump instead.
    if(hero.grab)return;
@@ -221,6 +245,14 @@ function attack(){
  if(charged&&special>=100){doSpecial();return}
  hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;
 
+ if(playerClass==="mage"){
+  let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}
+  effects.push({x:hero.x,y:hero.y,t:360,max:360,type:"projectile",color:"#ff8a3d",dx,dy});
+  for(let r=.45;r<=4.5;r+=.25){let fx=hero.x+dx*r,fy=hero.y+dy*r;
+   for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;if(Math.abs(p.x+.5-fx)<.38&&Math.abs(p.y+part+.5-fy)<.38){if(part===0)p.a=null;else p.b=null;hitEffect(p.x+.5,p.y+part+.5,"#ff8a3d");return}}
+   let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){board[ty][tx]=null;hitEffect(tx+.5,ty+.5,"#ff8a3d");gravity();resolve();return}
+  }return;
+ }
  if(playerClass==="monk"){
    // UP: uppercut. Counter/destroy a slime directly overhead, including falling slime.
    if(keys.up){
@@ -260,6 +292,13 @@ function attack(){
 }
 function grab(){
  hero.grabT=220;hero.grabHold=0;hero.grabColorTick=0;
+ if(playerClass==="mage"){
+  hero.grabT=180;let dir=hero.face;effects.push({x:hero.x,y:hero.y,t:420,max:420,type:"wind",color:"#c8f2ff",dx:dir,dy:0});
+  for(let r=.45;r<=4.5;r+=.25){let fx=hero.x+dir*r,fy=hero.y;
+   for(const p of pairs){for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;if(Math.abs(p.x+.5-fx)<.4&&Math.abs(p.y+part+.5-fy)<.42){if(p.a!=null&&p.b!=null){[p.a,p.b]=[p.b,p.a];[p.hpA,p.hpB]=[p.hpB,p.hpA];msg("風転！")}return}}}
+   let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=1&&ty<H&&board[ty][tx]){let t=board[ty][tx];board[ty][tx]=board[ty-1][tx];board[ty-1][tx]=t;msg("風転！");return}
+  }return;
+ }
  if(playerClass==="monk"){
    if(hero.carry){let tx=Math.max(0,Math.min(W-1,Math.floor(hero.x+hero.face*.7))),ty=Math.max(0,Math.min(H-1,Math.floor(hero.y)));if(!board[ty][tx]){board[ty][tx]=hero.carry;hero.carry=null;gravity();resolve()}return}
    let best=null;for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let d=Math.hypot(p.x+.5-hero.x,p.y+part+.5-hero.y);if(d<1.55&&(!best||d<best.d))best={p,part,d}}
@@ -273,6 +312,13 @@ function grab(){
 }
 function kick(){
  hero.kickT=180;let dir=hero.face,hy=Math.floor(hero.y);
+ if(playerClass==="mage"){
+  let dir=hero.face;effects.push({x:hero.x,y:hero.y,t:360,max:360,type:"projectile",color:"#9de9ff",dx:dir,dy:0});
+  for(let r=.45;r<=4.5;r+=.25){let fx=hero.x+dir*r,fy=hero.y;
+   for(const p of [...pairs])for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;if(Math.abs(p.x+.5-fx)<.38&&Math.abs(p.y+part+.5-fy)<.42){let type=part===0?p.a:p.b,ty=Math.max(0,Math.min(H-1,Math.floor(p.y+part+.5)));if(!board[ty][p.x]){let s=makeSlime(type);s.frozen=true;board[ty][p.x]=s;if(part===0)p.a=null;else p.b=null;msg("凍結！")}return}}
+   let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){board[ty][tx].frozen=true;msg("凍結！");return}
+  }return;
+ }
  if(playerClass==="monk"){
    let best=null;for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let d=Math.hypot(p.x+.5-hero.x,p.y+part+.5-hero.y);if(d<1.2&&(!best||d<best.d))best={p,part,d}}
    if(best){let nx=best.p.x;if(nx+dir<0||nx+dir>=W){if(best.part===0)best.p.a=null;else best.p.b=null;return}while(nx+dir>=0&&nx+dir<W&&!board[Math.max(0,Math.floor(best.p.y+best.part))]?.[nx+dir])nx+=dir;if(nx===best.p.x){if(best.part===0)best.p.a=null;else best.p.b=null}else best.p.x=nx;return}
@@ -282,23 +328,17 @@ function kick(){
  let tx=Math.floor(hero.x+dir*.8),ty=hy;if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]&&!board[ty-1]?.[tx]){let nx=tx+dir;if(nx>=0&&nx<W&&!board[ty][nx]){board[ty][nx]=board[ty][tx];board[ty][tx]=null;gravity();resolve()}}
 }
 function doSpecial(){
- if(special<100)return;
- special=0;
- let targetColor=playerClass==="monk"?COLORS[0]:COLORS[1];
- let skillName=playerClass==="monk"?"翠気功波！ 緑を一掃！":"紅蓮斬！ 赤を一掃！";
- for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]?.color===targetColor)board[y][x]=null;
- for(const p of pairs){
-   if(p.a!=null&&COLORS[p.a]===targetColor)p.a=null;
-   if(p.b!=null&&COLORS[p.b]===targetColor)p.b=null;
- }
- // visual energy-wave effect
- effects.push({x:hero.x,y:hero.y,t:520,max:520,type:"wave",color:targetColor});
- gravity();resolve();msg(skillName);
+ if(special<100)return;special=0;
+ let target=playerClass==="monk"?COLORS[0]:playerClass==="mage"?COLORS[2]:COLORS[1];
+ let name=playerClass==="monk"?"翠気功波！":playerClass==="mage"?"蒼氷解放！":"紅蓮斬！";
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]){if(board[y][x].color===target)board[y][x]=null;else if(playerClass==="mage")board[y][x].frozen=false}
+ for(const p of pairs){if(p.a!=null&&COLORS[p.a]===target)p.a=null;if(p.b!=null&&COLORS[p.b]===target)p.b=null}
+ effects.push({x:hero.x,y:hero.y,t:520,max:520,type:"wave",color:target});gravity();resolve();msg(name);
 }
 function msg(t){let m=document.querySelector("#message");m.textContent=t;if(!gameOver)setTimeout(()=>m.textContent="",850)}
 function update(dt){effects.forEach(e=>e.t-=dt);effects=effects.filter(e=>e.t>0);if(gameOver||cleared||!playerClass)return;updatePairs(dt);updateHero(dt);fallSpeed=Math.min(.00145,.00075+score/9000000);document.querySelector("#score").textContent=score;document.querySelector("#chainPoints").textContent=chainPoints;document.querySelector("#specialText").textContent=Math.floor(special)+"%";document.querySelector("#specialBar").style.width=special+"%"}
 
-function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color;ctx.beginPath();ctx.roundRect(x+.055,y+.055,.89,.89,.36);ctx.fill();ctx.fillStyle="#202438";ctx.beginPath();ctx.arc(x+.32,y+.42,.055,0,Math.PI*2);ctx.arc(x+.68,y+.42,.055,0,Math.PI*2);ctx.fill();if(s.hard){ctx.strokeStyle="#e7e8f0";ctx.lineWidth=.065;ctx.beginPath();ctx.roundRect(x+.13,y+.13,.74,.64,.25);ctx.stroke()}}
+function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color;ctx.beginPath();ctx.roundRect(x+.055,y+.055,.89,.89,.36);ctx.fill();ctx.fillStyle="#202438";ctx.beginPath();ctx.arc(x+.32,y+.42,.055,0,Math.PI*2);ctx.arc(x+.68,y+.42,.055,0,Math.PI*2);ctx.fill();if(s.hard){ctx.strokeStyle="#e7e8f0";ctx.lineWidth=.065;ctx.beginPath();ctx.roundRect(x+.13,y+.13,.74,.64,.25);ctx.stroke()}if(s.frozen){ctx.fillStyle="rgba(190,238,255,.5)";ctx.beginPath();ctx.roundRect(x+.04,y+.04,.92,.9,.25);ctx.fill();ctx.strokeStyle="#e4fbff";ctx.lineWidth=.04;ctx.stroke()}}
 function drawHero(){
  let x=hero.x,y=hero.y,bob=hero.onGround&&hero.vx?Math.sin(hero.walk)*.035:0,f=hero.face;
  ctx.save();ctx.translate(x,y+bob);
@@ -326,6 +366,12 @@ function drawHero(){
    ctx.beginPath();ctx.moveTo(-f*.18,-.08);ctx.lineTo(-f*.3,.03);ctx.stroke();
    if(hero.attackT>0){ctx.strokeStyle="#e6c09d";ctx.lineWidth=.15;ctx.beginPath();ctx.moveTo(0,-.05);ctx.lineTo(pdx*(.32+.42*punch),-.05+pdy*(.48+.3*punch));ctx.stroke()}
    if(hero.grabT>0&&!hero.grab&&!hero.carry){let gp=Math.sin((1-hero.grabT/220)*Math.PI),reach=.28+.28*gp;ctx.strokeStyle="#e6c09d";ctx.lineWidth=.115;ctx.beginPath();ctx.moveTo(f*.18,-.08);ctx.lineTo(f*reach,-.12);ctx.stroke();ctx.fillStyle="#e6c09d";ctx.beginPath();ctx.arc(f*(reach+.07),-.12,.085,0,Math.PI*2);ctx.fill()}
+ }else if(playerClass==="mage"){
+   ctx.fillStyle="#315eb9";ctx.beginPath();ctx.moveTo(-.3,-.18);ctx.lineTo(.3,-.18);ctx.lineTo(.38,.48);ctx.lineTo(-.38,.48);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#86baff";ctx.fillRect(-.28,.08,.56,.07);ctx.fillStyle="#efc7a5";ctx.beginPath();ctx.arc(0,-.38,.23,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#233f86";ctx.beginPath();ctx.moveTo(-.34,-.55);ctx.lineTo(.34,-.55);ctx.lineTo(.05,-1.02);ctx.closePath();ctx.fill();ctx.fillRect(-.4,-.57,.8,.08);
+   ctx.fillStyle="#222";ctx.fillRect(f*.07-.025,-.4,.05,.055);ctx.strokeStyle="#efc7a5";ctx.lineWidth=.11;ctx.beginPath();ctx.moveTo(-.2,-.05);ctx.lineTo(-.38,.08);ctx.moveTo(.2,-.05);ctx.lineTo(.38,.08);ctx.stroke();
+   if(hero.floating){ctx.strokeStyle="#9de9ff";ctx.lineWidth=.045;ctx.beginPath();ctx.ellipse(0,.55,.42,.11,0,0,Math.PI*2);ctx.stroke()}
  }else{
    // Hero: red-based outfit.
    ctx.fillStyle="#8f2638";ctx.beginPath();ctx.moveTo(-f*.12,-.18);ctx.lineTo(-f*.42,.38);ctx.lineTo(-f*.08,.3);ctx.closePath();ctx.fill();
@@ -352,6 +398,8 @@ function drawEffects(){
    if(e.type==="hit"){
      ctx.strokeStyle="#fff6b0";ctx.lineWidth=.06;
      for(let i=0;i<6;i++){let a=i*Math.PI/3,r=.12+p*.32;ctx.beginPath();ctx.moveTo(e.x+Math.cos(a)*.05,e.y+Math.sin(a)*.05);ctx.lineTo(e.x+Math.cos(a)*r,e.y+Math.sin(a)*r);ctx.stroke()}
+   }else if(e.type==="projectile"){let q=1-e.t/e.max;ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(e.x+(e.dx||0)*q*4,e.y+(e.dy||0)*q*4,.13,0,Math.PI*2);ctx.fill();
+   }else if(e.type==="wind"){let q=1-e.t/e.max,xx=e.x+(e.dx||0)*q*4;ctx.strokeStyle=e.color;ctx.lineWidth=.05;ctx.beginPath();ctx.arc(xx,e.y,.12+.1*q,0,Math.PI*1.7);ctx.stroke();
    }else if(e.type==="wave"){
      ctx.strokeStyle=e.color;ctx.lineWidth=.13*(1-p)+.035;
      ctx.beginPath();ctx.arc(e.x,e.y,.3+p*4.7,0,Math.PI*2);ctx.stroke();
@@ -371,7 +419,7 @@ function draw(){
  drawEffects();drawHero();if(hero.carry)slime(hero.x+hero.face*.42-.5,hero.y-.95,hero.carry);ctx.restore();
 }
 function loop(t){let dt=Math.min(32,t-last);last=t;update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
-document.querySelectorAll(".classBtn").forEach(b=>b.addEventListener("click",()=>{playerClass=b.dataset.class;document.querySelector("#classSelect").style.display="none";document.querySelector("#className").textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":"モンク（緑・翠気功波）");}));
+document.querySelectorAll(".classBtn").forEach(b=>b.addEventListener("click",()=>{playerClass=b.dataset.class;document.querySelector("#classSelect").style.display="none";document.querySelector("#className").textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");}));
 const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",z:"jump",x:"attack",c:"grab",k:"kick"};
 addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
 addEventListener("keyup",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(k==="attack")attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}});
