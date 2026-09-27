@@ -1,8 +1,8 @@
 const cv=document.querySelector("#game"),ctx=cv.getContext("2d");
 const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
 let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,gameOver=false;
-const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0};
-let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075;
+const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0};
+let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
 
 function makeSlime(type,hard=false){return{color:COLORS[type],hp:hard?4:2,hard}}
 function topFree(x){for(let y=0;y<H;y++)if(board[y][x])return y-1;return H-1}
@@ -87,7 +87,7 @@ function heroHitsPair(nx,ny){
 function getPair(id){return pairs.find(p=>p.id===id)}
 function updateHero(dt){
  if(hero.stun>0){hero.stun-=dt;return}
- if(hero.attackT>0)hero.attackT=Math.max(0,hero.attackT-dt);if(hero.kickT>0)hero.kickT=Math.max(0,hero.kickT-dt);
+ if(hero.attackT>0)hero.attackT=Math.max(0,hero.attackT-dt);if(hero.kickT>0)hero.kickT=Math.max(0,hero.kickT-dt);if(hero.grabT>0)hero.grabT=Math.max(0,hero.grabT-dt);if(hero.squashT>0)hero.squashT=Math.max(0,hero.squashT-dt);
 
  // Board grab remains a hanging/dragging action.
  if(hero.grab?.kind==="board"){
@@ -149,7 +149,7 @@ function updateHero(dt){
      let tryX=hero.x+escape*.72;
      if(solidAt(tryX,hero.y))escape*=-1;
      hero.x=Math.max(.3,Math.min(W-.3,hero.x+escape*.62));
-     hero.vy=-.0038;hero.stun=420;hero.grab=null;msg("いてっ！");
+     hero.vy=-.0028;hero.stun=360;hero.squashT=260;hero.grab=null;
    }else if(hero.vy>0){hero.y=ph.r.t-hero.h/2;hero.vy=0;hero.onGround=true}
    else if(hero.vy<0){hero.y=ph.r.b+hero.h/2;hero.vy=.0015}
  }else if(hero.vy>=0&&solidAt(hero.x,ny+hero.h/2)){
@@ -171,6 +171,12 @@ function jump(){
    hero.grab=null;hero.vy=-.0115;
  }
 }
+function hitEffect(x,y,color="#fff"){
+ effects.push({x,y,t:220,max:220,type:"hit",color});
+}
+function slimeHurtEffect(x,y,color){
+ effects.push({x,y,t:280,max:280,type:"slime",color});
+}
 function attack(){
  let wasCharged=hero.charge>=75;hero.charge=0;
  if(wasCharged&&special>=100){doSpecial();return}
@@ -189,7 +195,7 @@ function attack(){
      let px=p.x+.5,py=p.y+part+.5;
      let along=(px-hx)*dx+(py-hy)*dy,perp=Math.abs((px-hx)*(-dy)+(py-hy)*dx);
      if(along>0&&along<=reach&&perp<.42){
-       let key=part===0?"hpA":"hpB";p[key]-=power;
+       let key=part===0?"hpA":"hpB";p[key]-=power;hitEffect(px,py);slimeHurtEffect(px,py,COLORS[part===0?p.a:p.b]);
        if(p[key]<=0){if(part===0)p.a=null;else p.b=null;score+=5;msg("空中撃破！");if(p.a==null&&p.b==null)pairs=pairs.filter(q=>q!==p)}
        return;
      }
@@ -198,23 +204,24 @@ function attack(){
  for(let r=.55;r<=reach;r+=.45){
    let tx=Math.floor(hx+dx*r),ty=Math.floor(hy+dy*r);
    if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){
-     board[ty][tx].hp-=power;
+     let hc=board[ty][tx].color;board[ty][tx].hp-=power;hitEffect(tx+.5,ty+.5);slimeHurtEffect(tx+.5,ty+.5,hc);
      if(board[ty][tx].hp<=0){board[ty][tx]=null;score+=5;gravity();resolve()}
      return;
    }
  }
 }
 function grab(){
- if(hero.grab){hero.grab=null;msg("パッ");return}
+ hero.grabT=220;
+ if(hero.grab){hero.grab=null;return}
  // Falling slimes can be caught in mid-air if close enough.
  let best=null;
  for(const p of pairs)for(const part of [0,1]){
    if((part===0&&p.a==null)||(part===1&&p.b==null))continue;
    let px=p.x+.5,py=p.y+part+.5,d=Math.hypot(px-hero.x,py-hero.y);
-   if(d<1.25&&(!best||d<best.d))best={p,part,d};
+   if(d<1.55&&(!best||d<best.d))best={p,part,d};
  }
  if(best){let side=hero.x<best.p.x+.5?-1:1;hero.grab={kind:"pair",id:best.p.id,part:best.part,side};hero.vy=0;msg("ガシッ！");return}
- let cx=Math.floor(hero.x),cy=Math.floor(hero.y),candidates=[[cx+hero.face,cy],[cx,cy-1],[cx,cy],[cx-hero.face,cy],[cx,cy+1]];
+ let cx=Math.floor(hero.x),cy=Math.floor(hero.y),candidates=[[cx+hero.face,cy],[cx+hero.face,cy-1],[cx+hero.face,cy+1],[cx+hero.face*2,cy],[cx,cy-1],[cx,cy],[cx-hero.face,cy],[cx,cy+1]];
  for(const [x,y] of candidates)if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){
    let side=hero.x<x+.5?-1:1;hero.grab={kind:"board",x,y,side};hero.vx=0;hero.vy=0;hero.x=x+.5+side*.52;hero.y=y+.18;msg("ガシッ！");return;
  }
@@ -246,12 +253,13 @@ function kick(){
 }
 function doSpecial(){if(special<100)return;special=0;let cx=Math.floor(hero.x),cy=Math.floor(hero.y),a=[];for(let d=-2;d<=2;d++)a.push([cx+d,cy],[cx,cy+d]);for(const[dX,dY]of[[-1,-1],[1,-1],[-1,1],[1,1]])a.push([cx+dX,cy+dY]);a.forEach(([x,y])=>{if(x>=0&&x<W&&y>=0&&y<H)board[y][x]=null});gravity();resolve();msg("おせっかい十字斬り！")}
 function msg(t){let m=document.querySelector("#message");m.textContent=t;if(!gameOver)setTimeout(()=>m.textContent="",850)}
-function update(dt){if(gameOver)return;updatePairs(dt);updateHero(dt);fallSpeed=Math.min(.00145,.00075+score/9000000);document.querySelector("#score").textContent=score;document.querySelector("#specialText").textContent=Math.floor(special)+"%";document.querySelector("#specialBar").style.width=special+"%"}
+function update(dt){effects.forEach(e=>e.t-=dt);effects=effects.filter(e=>e.t>0);if(gameOver)return;updatePairs(dt);updateHero(dt);fallSpeed=Math.min(.00145,.00075+score/9000000);document.querySelector("#score").textContent=score;document.querySelector("#specialText").textContent=Math.floor(special)+"%";document.querySelector("#specialBar").style.width=special+"%"}
 
 function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color;ctx.beginPath();ctx.roundRect(x+.055,y+.055,.89,.89,.36);ctx.fill();ctx.fillStyle="#202438";ctx.beginPath();ctx.arc(x+.32,y+.42,.055,0,Math.PI*2);ctx.arc(x+.68,y+.42,.055,0,Math.PI*2);ctx.fill();if(s.hard){ctx.strokeStyle="#e7e8f0";ctx.lineWidth=.065;ctx.beginPath();ctx.roundRect(x+.13,y+.13,.74,.64,.25);ctx.stroke()}}
 function drawHero(){
  let x=hero.x,y=hero.y,bob=hero.onGround&&hero.vx?Math.sin(hero.walk)*.035:0,f=hero.face;
  ctx.save();ctx.translate(x,y+bob);
+ if(hero.squashT>0){let q=Math.sin((hero.squashT/260)*Math.PI);ctx.scale(1+.55*q,1-.68*q);ctx.translate(0,.24*q);}
  ctx.fillStyle="#b83e55";ctx.beginPath();ctx.moveTo(-f*.12,-.18);ctx.lineTo(-f*.42,.38);ctx.lineTo(-f*.08,.3);ctx.closePath();ctx.fill();
  let step=hero.vx?Math.sin(hero.walk)*.12:0;
  ctx.strokeStyle="#d8dce8";ctx.lineWidth=.12;ctx.beginPath();
@@ -276,6 +284,12 @@ function drawHero(){
  ctx.fillStyle="#f0c6a2";ctx.beginPath();ctx.arc(0,-.38,.25,0,Math.PI*2);ctx.fill();ctx.fillStyle="#5b3a2a";ctx.beginPath();ctx.arc(-.03,-.47,.23,Math.PI,Math.PI*2);ctx.lineTo(.2,-.4);ctx.lineTo(.08,-.5);ctx.lineTo(-.02,-.39);ctx.lineTo(-.12,-.51);ctx.lineTo(-.24,-.4);ctx.fill();
  ctx.fillStyle="#222";ctx.fillRect(f*.08-.025,-.4,.05,.055);
 
+ // Grab button visibly reaches a hand toward the facing direction.
+ if(hero.grabT>0&&!hero.grab){
+   let gp=Math.sin((1-hero.grabT/220)*Math.PI),reach=.35+.55*gp;
+   ctx.strokeStyle="#f0c6a2";ctx.lineWidth=.115;ctx.beginPath();ctx.moveTo(f*.18,-.08);ctx.lineTo(f*reach,-.12);ctx.stroke();
+   ctx.fillStyle="#f0c6a2";ctx.beginPath();ctx.arc(f*(reach+.07),-.12,.085,0,Math.PI*2);ctx.fill();
+ }
  // Sword pose: attacks are thrusts, not swings, for precise targeting.
  let dx=f,dy=0;if(hero.attackDir==="up"){dx=0;dy=-1}else if(hero.attackDir==="down"){dx=0;dy=1}else if(hero.attackDir==="left"){dx=-1;dy=0}else if(hero.attackDir==="right"){dx=1;dy=0}
  let thrust=hero.attackT>0 ? Math.sin((1-hero.attackT/150)*Math.PI)*.55 : 0;
@@ -301,12 +315,26 @@ function drawHero(){
  if(hero.charge>0){ctx.strokeStyle="#fff";ctx.lineWidth=.045;ctx.beginPath();ctx.arc(0,0,.57,0,Math.PI*2*hero.charge/100);ctx.stroke()}
  ctx.restore();
 }
+function drawEffects(){
+ for(const e of effects){
+   let p=1-e.t/e.max,alpha=e.t/e.max;
+   ctx.save();ctx.globalAlpha=alpha;
+   if(e.type==="hit"){
+     ctx.strokeStyle="#fff6b0";ctx.lineWidth=.06;
+     for(let i=0;i<6;i++){let a=i*Math.PI/3,r=.12+p*.32;ctx.beginPath();ctx.moveTo(e.x+Math.cos(a)*.05,e.y+Math.sin(a)*.05);ctx.lineTo(e.x+Math.cos(a)*r,e.y+Math.sin(a)*r);ctx.stroke()}
+   }else{
+     ctx.strokeStyle=e.color;ctx.lineWidth=.055;ctx.beginPath();ctx.arc(e.x,e.y,.28+p*.18,0,Math.PI*2);ctx.stroke();
+     ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(e.x-.12,e.y-.05,.045,0,Math.PI*2);ctx.arc(e.x+.12,e.y-.05,.045,0,Math.PI*2);ctx.fill();
+   }
+   ctx.restore();
+ }
+}
 function draw(){
  ctx.clearRect(0,0,cv.width,cv.height);ctx.save();ctx.scale(S,S);
  ctx.strokeStyle="#34394f";ctx.lineWidth=.025;for(let x=0;x<=W;x++){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<=H;y++){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x])slime(x,y,board[y][x]);
  for(const p of pairs){if(p.a!=null)slime(p.x,p.y,makeSlime(p.a));if(p.b!=null)slime(p.x,p.y+1,makeSlime(p.b))}
- drawHero();ctx.restore();
+ drawEffects();drawHero();ctx.restore();
 }
 function loop(t){let dt=Math.min(32,t-last);last=t;update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
 const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",z:"jump",x:"attack",c:"grab",k:"kick"};
