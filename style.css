@@ -1,7 +1,8 @@
 *{box-sizing:border-box}body{margin:0;background:#151827;color:#fff;font-family:system-ui,-apple-system,sans-serif;touch-action:none;overflow:hidden}
-main{max-width:430px;margin:auto;text-align:center;height:100vh}.title{font-weight:900;font-size:17px;padding:7px 4px 3px}.title small{display:block;font-size:11px;color:#bbc2dd}
-.hud{display:flex;justify-content:space-around;font-size:12px}.gauge{height:7px;background:#33384c;margin:4px 12px;border-radius:6px;overflow:hidden}.gauge div{height:100%;width:0;background:linear-gradient(90deg,#ffe15b,#ff6b45)}
-canvas{background:#24283b;border:2px solid #565d80;max-height:68vh;max-width:95vw}.controls{display:flex;justify-content:space-between;padding:6px 12px;gap:10px}
-button{border:0;border-radius:50%;width:54px;height:54px;font-size:19px;font-weight:800;background:#59617f;color:#fff;box-shadow:0 3px #292d3e}
-button:active,.pressed{transform:translateY(2px);box-shadow:0 1px #292d3e}.dpad,.actions{display:flex;gap:7px}.actions button{width:49px;height:49px}.actions .special{background:#a84b63;font-size:13px}
-.help{font-size:9px;color:#939ab7;margin:0 6px}#message{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);font-weight:900;font-size:26px;text-shadow:0 3px 3px #000;pointer-events:none}
+main{max-width:430px;margin:auto;text-align:center;height:100vh}.title{font-weight:900;font-size:16px;padding:5px 4px 2px}.title small{display:block;font-size:10px;color:#bbc2dd}
+.hud{display:flex;justify-content:space-around;font-size:11px}.gauge{height:6px;background:#33384c;margin:3px 12px;border-radius:6px;overflow:hidden}.gauge div{height:100%;width:0;background:linear-gradient(90deg,#ffe15b,#ff6b45)}
+canvas{background:#24283b;border:2px solid #565d80;max-height:67vh;max-width:95vw}.controls{display:flex;justify-content:space-between;align-items:center;padding:5px 10px;gap:8px}
+button{border:0;border-radius:50%;width:50px;height:50px;font-size:17px;font-weight:800;background:#59617f;color:#fff;box-shadow:0 3px #292d3e}
+button:active,.pressed{transform:translateY(2px);box-shadow:0 1px #292d3e}.dpad{position:relative;width:150px;height:112px}.dpad button{position:absolute;width:47px;height:47px}.dpad .up{left:51px;top:0}.dpad .left{left:2px;top:52px}.dpad .down{left:51px;top:52px}.dpad .right{left:100px;top:52px}
+.actions{display:grid;grid-template-columns:repeat(2,48px);gap:6px}.actions button{width:48px;height:48px}.actions .special{background:#a84b63;font-size:12px}
+.help{font-size:9px;color:#939ab7;margin:0 4px}#message{position:absolute;top:43%;left:50%;transform:translate(-50%,-50%);font-weight:900;font-size:25px;text-shadow:0 3px 3px #000;pointer-events:none}
