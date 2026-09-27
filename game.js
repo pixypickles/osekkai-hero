@@ -191,14 +191,41 @@ function slimeHurtEffect(x,y,color){
 }
 function attack(){
  let charged=hero.charge>=75;hero.charge=0;
- if(playerClass==="hero"&&charged&&special>=100){doSpecial();return}
+ if(charged&&special>=100){doSpecial();return}
  hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;
+
  if(playerClass==="monk"){
+   // UP: uppercut. Counter/destroy a slime directly overhead, including falling slime.
+   if(keys.up){
+     let best=null;
+     for(const p of pairs)for(const part of [0,1]){
+       if((part===0&&p.a==null)||(part===1&&p.b==null))continue;
+       let px=p.x+.5,py=p.y+part+.5,dx=Math.abs(px-hero.x),dy=hero.y-py;
+       if(dx<.55&&dy>0&&dy<1.65&&(!best||dy<best.dy))best={p,part,px,py,dy};
+     }
+     if(best){
+       hitEffect(best.px,best.py);slimeHurtEffect(best.px,best.py,COLORS[best.part===0?best.p.a:best.p.b]);
+       if(best.part===0)best.p.a=null;else best.p.b=null;score+=5;msg("アッパー！");
+       return;
+     }
+     let tx=Math.floor(hero.x),ty=Math.floor(hero.y-1);
+     if(ty>=0&&board[ty]?.[tx]){let c=board[ty][tx].color;board[ty][tx]=null;hitEffect(tx+.5,ty+.5);slimeHurtEffect(tx+.5,ty+.5,c);score+=5;gravity();resolve()}
+     return;
+   }
+   // DOWN: smash the slime immediately below.
+   if(keys.down){
+     let tx=Math.floor(hero.x),ty=Math.floor(hero.y+1);
+     if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){let c=board[ty][tx].color;board[ty][tx]=null;hitEffect(tx+.5,ty+.5);slimeHurtEffect(tx+.5,ty+.5,c);score+=5;gravity();resolve();msg("下段パンチ！")}
+     return;
+   }
+   // LEFT/RIGHT: daruma punch. Only struck slime moves one cell; if blocked, destroy it.
    let dir=hero.face,ty=Math.floor(hero.y),tx=Math.floor(hero.x+dir*.82);
    let best=null;for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let d=Math.hypot(p.x+.5-hero.x,p.y+part+.5-hero.y);if(d<1.25&&(!best||d<best.d))best={p,part,d}}
    if(best){let nx=best.p.x+dir,blocked=nx<0||nx>=W||pairs.some(q=>q!==best.p&&q.x===nx&&Math.abs(q.y-best.p.y)<1.2);if(blocked){if(best.part===0)best.p.a=null;else best.p.b=null}else best.p.x=nx;hitEffect(best.p.x+.5,best.p.y+best.part+.5);return}
    if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){let nx=tx+dir,m=board[ty][tx];board[ty][tx]=null;if(nx>=0&&nx<W&&!board[ty][nx])board[ty][nx]=m;hitEffect(tx+.5,ty+.5);gravity();resolve()}return;
  }
+
+ // Hero: normal slime one hit, hard slime remains tougher.
  let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}
  let reach=charged?2.05:1.15,hx=hero.x,hy=hero.y,power=charged?4:2;
  for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let px=p.x+.5,py=p.y+part+.5,along=(px-hx)*dx+(py-hy)*dy,perp=Math.abs((px-hx)*(-dy)+(py-hy)*dx);if(along>0&&along<=reach&&perp<.42){let key=part===0?"hpA":"hpB";p[key]-=power;hitEffect(px,py);slimeHurtEffect(px,py,COLORS[part===0?p.a:p.b]);if(p[key]<=0){if(part===0)p.a=null;else p.b=null;score+=5}return}}
@@ -228,10 +255,18 @@ function kick(){
  let tx=Math.floor(hero.x+dir*.8),ty=hy;if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]&&!board[ty-1]?.[tx]){let nx=tx+dir;if(nx>=0&&nx<W&&!board[ty][nx]){board[ty][nx]=board[ty][tx];board[ty][tx]=null;gravity();resolve()}}
 }
 function doSpecial(){
- if(special<100||playerClass!=="hero")return;special=0;let red=COLORS[1];
- for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]?.color===red)board[y][x]=null;
- for(const p of pairs){if(p.a!=null&&COLORS[p.a]===red)p.a=null;if(p.b!=null&&COLORS[p.b]===red)p.b=null}
- gravity();resolve();msg("紅蓮斬！ 赤を一掃！");
+ if(special<100)return;
+ special=0;
+ let targetColor=playerClass==="monk"?COLORS[0]:COLORS[1];
+ let skillName=playerClass==="monk"?"翠気功波！ 緑を一掃！":"紅蓮斬！ 赤を一掃！";
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]?.color===targetColor)board[y][x]=null;
+ for(const p of pairs){
+   if(p.a!=null&&COLORS[p.a]===targetColor)p.a=null;
+   if(p.b!=null&&COLORS[p.b]===targetColor)p.b=null;
+ }
+ // visual energy-wave effect
+ effects.push({x:hero.x,y:hero.y,t:520,max:520,type:"wave",color:targetColor});
+ gravity();resolve();msg(skillName);
 }
 function msg(t){let m=document.querySelector("#message");m.textContent=t;if(!gameOver)setTimeout(()=>m.textContent="",850)}
 function update(dt){effects.forEach(e=>e.t-=dt);effects=effects.filter(e=>e.t>0);if(gameOver||cleared||!playerClass)return;updatePairs(dt);updateHero(dt);fallSpeed=Math.min(.00145,.00075+score/9000000);document.querySelector("#score").textContent=score;document.querySelector("#chainPoints").textContent=chainPoints;document.querySelector("#specialText").textContent=Math.floor(special)+"%";document.querySelector("#specialBar").style.width=special+"%"}
@@ -240,64 +275,47 @@ function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color;ctx.beginPath();ctx.r
 function drawHero(){
  let x=hero.x,y=hero.y,bob=hero.onGround&&hero.vx?Math.sin(hero.walk)*.035:0,f=hero.face;
  ctx.save();ctx.translate(x,y+bob);
- if(hero.squeezeT>0){
-   let q=Math.sin((hero.squeezeT/320)*Math.PI);
-   if(hero.squeezeDir===2){ctx.scale(1-.42*q,1+.55*q);ctx.translate(0,-.18*q)}
-   else{ctx.scale(1+.42*q,1-.36*q);ctx.translate(-hero.squeezeDir*.12*q,.12*q)}
- }
- ctx.fillStyle="#b83e55";ctx.beginPath();ctx.moveTo(-f*.12,-.18);ctx.lineTo(-f*.42,.38);ctx.lineTo(-f*.08,.3);ctx.closePath();ctx.fill();
- let step=hero.vx?Math.sin(hero.walk)*.12:0;
- ctx.strokeStyle="#d8dce8";ctx.lineWidth=.12;ctx.beginPath();
- if(hero.kickT>0){
-   let kp=Math.sin((1-hero.kickT/180)*Math.PI),kf=hero.face;
-   ctx.moveTo(-kf*.07,.24);ctx.lineTo(-kf*.12,.48);
-   ctx.moveTo(kf*.08,.24);ctx.lineTo(kf*(.28+.38*kp),.28-.04*kp);
- }else{
-   ctx.moveTo(-.11,.25);ctx.lineTo(-.14+step,.48);ctx.moveTo(.11,.25);ctx.lineTo(.14-step,.48);
- }
- ctx.stroke();
- ctx.strokeStyle="#49382f";ctx.lineWidth=.13;ctx.beginPath();
- if(hero.kickT>0){
-   let kp=Math.sin((1-hero.kickT/180)*Math.PI),kf=hero.face;
-   ctx.moveTo(-kf*.12,.48);ctx.lineTo(-kf*.23,.49);
-   let fx=kf*(.28+.38*kp),fy=.28-.04*kp;ctx.moveTo(fx,fy);ctx.lineTo(fx+kf*.15,fy);
- }else{
-   ctx.moveTo(-.14+step,.48);ctx.lineTo(-.24+step,.49);ctx.moveTo(.14-step,.48);ctx.lineTo(.24-step,.49);
- }
- ctx.stroke();
- ctx.fillStyle="#4e78d5";ctx.fillRect(-.23,-.18,.46,.48);ctx.fillStyle="#d9b84c";ctx.fillRect(-.23,.11,.46,.07);
- ctx.fillStyle="#f0c6a2";ctx.beginPath();ctx.arc(0,-.38,.25,0,Math.PI*2);ctx.fill();ctx.fillStyle="#5b3a2a";ctx.beginPath();ctx.arc(-.03,-.47,.23,Math.PI,Math.PI*2);ctx.lineTo(.2,-.4);ctx.lineTo(.08,-.5);ctx.lineTo(-.02,-.39);ctx.lineTo(-.12,-.51);ctx.lineTo(-.24,-.4);ctx.fill();
- ctx.fillStyle="#222";ctx.fillRect(f*.08-.025,-.4,.05,.055);
+ if(hero.squeezeT>0){let q=Math.sin((hero.squeezeT/320)*Math.PI);if(hero.squeezeDir===2){ctx.scale(1-.42*q,1+.55*q);ctx.translate(0,-.18*q)}else{ctx.scale(1+.42*q,1-.36*q);ctx.translate(-hero.squeezeDir*.12*q,.12*q)}}
+ let step=hero.vx?Math.sin(hero.walk)*.12:0,kp=hero.kickT>0?Math.sin((1-hero.kickT/180)*Math.PI):0;
 
- // Grab button visibly reaches a hand toward the facing direction.
- if(hero.grabT>0&&!hero.grab){
-   let gp=Math.sin((1-hero.grabT/220)*Math.PI),reach=.28+.28*gp;
-   ctx.strokeStyle="#f0c6a2";ctx.lineWidth=.115;ctx.beginPath();ctx.moveTo(f*.18,-.08);ctx.lineTo(f*reach,-.12);ctx.stroke();
-   ctx.fillStyle="#f0c6a2";ctx.beginPath();ctx.arc(f*(reach+.07),-.12,.085,0,Math.PI*2);ctx.fill();
+ if(playerClass==="monk"){
+   // Original monk: green sleeveless gi, dark green belt/wrist wraps, bare hands, headband.
+   ctx.strokeStyle="#e6c09d";ctx.lineWidth=.13;ctx.beginPath();
+   if(hero.kickT>0){ctx.moveTo(-f*.07,.24);ctx.lineTo(-f*.12,.49);ctx.moveTo(f*.08,.24);ctx.lineTo(f*(.28+.4*kp),.28-.04*kp)}
+   else{ctx.moveTo(-.11,.24);ctx.lineTo(-.15+step,.5);ctx.moveTo(.11,.24);ctx.lineTo(.15-step,.5)}ctx.stroke();
+   ctx.strokeStyle="#4c3b30";ctx.lineWidth=.13;ctx.beginPath();
+   if(hero.kickT>0){ctx.moveTo(-f*.12,.49);ctx.lineTo(-f*.23,.5);let fx=f*(.28+.4*kp),fy=.28-.04*kp;ctx.moveTo(fx,fy);ctx.lineTo(fx+f*.16,fy)}
+   else{ctx.moveTo(-.15+step,.5);ctx.lineTo(-.25+step,.51);ctx.moveTo(.15-step,.5);ctx.lineTo(.25-step,.51)}ctx.stroke();
+   ctx.fillStyle="#43a85e";ctx.beginPath();ctx.moveTo(-.27,-.2);ctx.lineTo(.27,-.2);ctx.lineTo(.22,.31);ctx.lineTo(-.22,.31);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#195d37";ctx.fillRect(-.25,.08,.5,.085);
+   ctx.fillStyle="#e6c09d";ctx.beginPath();ctx.arc(0,-.39,.25,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#3a2923";ctx.beginPath();ctx.arc(-.02,-.49,.22,Math.PI,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#2f8f51";ctx.fillRect(-.25,-.48,.5,.055);ctx.beginPath();ctx.moveTo(-f*.2,-.46);ctx.lineTo(-f*.46,-.38);ctx.lineTo(-f*.22,-.35);ctx.fill();
+   ctx.fillStyle="#222";ctx.fillRect(f*.08-.025,-.4,.05,.055);
+   // Arms / directional punch
+   let pdx=f,pdy=0;if(hero.attackDir==="up"){pdx=0;pdy=-1}else if(hero.attackDir==="down"){pdx=0;pdy=1}
+   let punch=hero.attackT>0?Math.sin((1-hero.attackT/150)*Math.PI):0;
+   ctx.strokeStyle="#e6c09d";ctx.lineWidth=.13;ctx.beginPath();ctx.moveTo(f*.18,-.08);ctx.lineTo(f*.31,-.01);ctx.stroke();
+   ctx.beginPath();ctx.moveTo(-f*.18,-.08);ctx.lineTo(-f*.3,.03);ctx.stroke();
+   if(hero.attackT>0){ctx.strokeStyle="#e6c09d";ctx.lineWidth=.15;ctx.beginPath();ctx.moveTo(0,-.05);ctx.lineTo(pdx*(.32+.42*punch),-.05+pdy*(.48+.3*punch));ctx.stroke()}
+   if(hero.grabT>0&&!hero.grab&&!hero.carry){let gp=Math.sin((1-hero.grabT/220)*Math.PI),reach=.28+.28*gp;ctx.strokeStyle="#e6c09d";ctx.lineWidth=.115;ctx.beginPath();ctx.moveTo(f*.18,-.08);ctx.lineTo(f*reach,-.12);ctx.stroke();ctx.fillStyle="#e6c09d";ctx.beginPath();ctx.arc(f*(reach+.07),-.12,.085,0,Math.PI*2);ctx.fill()}
+ }else{
+   // Hero: red-based outfit.
+   ctx.fillStyle="#8f2638";ctx.beginPath();ctx.moveTo(-f*.12,-.18);ctx.lineTo(-f*.42,.38);ctx.lineTo(-f*.08,.3);ctx.closePath();ctx.fill();
+   ctx.strokeStyle="#d8dce8";ctx.lineWidth=.12;ctx.beginPath();ctx.moveTo(-.11,.25);ctx.lineTo(-.14+step,.48);ctx.moveTo(.11,.25);ctx.lineTo(.14-step,.48);ctx.stroke();
+   ctx.strokeStyle="#49382f";ctx.lineWidth=.13;ctx.beginPath();ctx.moveTo(-.14+step,.48);ctx.lineTo(-.24+step,.49);ctx.moveTo(.14-step,.48);ctx.lineTo(.24-step,.49);ctx.stroke();
+   ctx.fillStyle="#c83d4e";ctx.fillRect(-.23,-.18,.46,.48);ctx.fillStyle="#e5bd4c";ctx.fillRect(-.23,.11,.46,.07);
+   ctx.fillStyle="#f0c6a2";ctx.beginPath();ctx.arc(0,-.38,.25,0,Math.PI*2);ctx.fill();ctx.fillStyle="#5b3a2a";ctx.beginPath();ctx.arc(-.03,-.47,.23,Math.PI,Math.PI*2);ctx.lineTo(.2,-.4);ctx.lineTo(.08,-.5);ctx.lineTo(-.02,-.39);ctx.lineTo(-.12,-.51);ctx.lineTo(-.24,-.4);ctx.fill();ctx.fillStyle="#222";ctx.fillRect(f*.08-.025,-.4,.05,.055);
+   if(hero.grabT>0&&!hero.grab){let gp=Math.sin((1-hero.grabT/220)*Math.PI),reach=.28+.28*gp;ctx.strokeStyle="#f0c6a2";ctx.lineWidth=.115;ctx.beginPath();ctx.moveTo(f*.18,-.08);ctx.lineTo(f*reach,-.12);ctx.stroke();ctx.fillStyle="#f0c6a2";ctx.beginPath();ctx.arc(f*(reach+.07),-.12,.085,0,Math.PI*2);ctx.fill()}
+   let dx=f,dy=0;if(hero.attackDir==="up"){dx=0;dy=-1}else if(hero.attackDir==="down"){dx=0;dy=1}else if(hero.attackDir==="left"){dx=-1;dy=0}else if(hero.attackDir==="right"){dx=1;dy=0}
+   let thrust=hero.attackT>0?Math.sin((1-hero.attackT/150)*Math.PI)*.55:0,baseX=f*.25,baseY=-.02,handX=baseX+dx*thrust*.45,handY=baseY+dy*thrust*.45;
+   ctx.strokeStyle="#f0c6a2";ctx.lineWidth=.11;ctx.beginPath();ctx.moveTo(f*.15,-.06);ctx.lineTo(handX,handY);ctx.stroke();
+   let bladeLen=.46+thrust*.62,tipx=handX+dx*bladeLen,tipy=handY+dy*bladeLen,px=-dy,py=dx,bladeHalf=.065,neckX=handX+dx*.08,neckY=handY+dy*.08;
+   ctx.fillStyle="#edf2ff";ctx.beginPath();ctx.moveTo(neckX+px*bladeHalf,neckY+py*bladeHalf);ctx.lineTo(tipx,tipy);ctx.lineTo(neckX-px*bladeHalf,neckY-py*bladeHalf);ctx.closePath();ctx.fill();
+   ctx.strokeStyle="#cda64b";ctx.lineWidth=.07;ctx.beginPath();ctx.moveTo(handX-dy*.12,handY+dx*.12);ctx.lineTo(handX+dy*.12,handY-dx*.12);ctx.stroke();
  }
- // Sword pose: attacks are thrusts, not swings, for precise targeting.
- let dx=f,dy=0;if(hero.attackDir==="up"){dx=0;dy=-1}else if(hero.attackDir==="down"){dx=0;dy=1}else if(hero.attackDir==="left"){dx=-1;dy=0}else if(hero.attackDir==="right"){dx=1;dy=0}
- let thrust=hero.attackT>0 ? Math.sin((1-hero.attackT/150)*Math.PI)*.55 : 0;
- let baseX=f*.25,baseY=-.02, handX=baseX+dx*thrust*.45,handY=baseY+dy*thrust*.45;
- ctx.strokeStyle="#f0c6a2";ctx.lineWidth=.11;ctx.beginPath();ctx.moveTo(f*.15,-.06);ctx.lineTo(handX,handY);ctx.stroke();
- let bladeLen=.46+thrust*.62;
- let tipx=handX+dx*bladeLen,tipy=handY+dy*bladeLen;
- // Tapered blade with an actual point.
- let px=-dy,py=dx,bladeHalf=.065,neckX=handX+dx*.08,neckY=handY+dy*.08;
- ctx.fillStyle="#edf2ff";ctx.beginPath();
- ctx.moveTo(neckX+px*bladeHalf,neckY+py*bladeHalf);
- ctx.lineTo(tipx,tipy);
- ctx.lineTo(neckX-px*bladeHalf,neckY-py*bladeHalf);
- ctx.closePath();ctx.fill();
- ctx.strokeStyle="#cda64b";ctx.lineWidth=.07;ctx.beginPath();ctx.moveTo(handX-dy*.12,handY+dx*.12);ctx.lineTo(handX+dy*.12,handY-dx*.12);ctx.stroke();
-
- if(hero.grab){
-   ctx.strokeStyle="#ffe071";ctx.lineWidth=.055;ctx.setLineDash([.08,.06]);ctx.beginPath();ctx.moveTo(0,-.15);
-   if(hero.grab.kind==="pair"&&getPair(hero.grab.id)){let gp=getPair(hero.grab.id),py=gp.y+hero.grab.part+.5;ctx.lineTo(gp.x+.5-hero.x,py-hero.y)}
-   else ctx.lineTo(0,-.78);
-   ctx.stroke();ctx.setLineDash([]);
- }
- if(hero.charge>0){ctx.strokeStyle="#fff";ctx.lineWidth=.045;ctx.beginPath();ctx.arc(0,0,.57,0,Math.PI*2*hero.charge/100);ctx.stroke()}
+ if(hero.grab){ctx.strokeStyle="#ffe071";ctx.lineWidth=.055;ctx.setLineDash([.08,.06]);ctx.beginPath();ctx.moveTo(0,-.15);if(hero.grab.kind==="pair"&&getPair(hero.grab.id)){let gp=getPair(hero.grab.id),py=gp.y+hero.grab.part+.5;ctx.lineTo(gp.x+.5-hero.x,py-hero.y)}else ctx.lineTo(0,-.78);ctx.stroke();ctx.setLineDash([])}
+ if(hero.charge>0){ctx.strokeStyle=playerClass==="monk"?"#59dc76":"#ff5f78";ctx.lineWidth=.045;ctx.beginPath();ctx.arc(0,0,.57,0,Math.PI*2*hero.charge/100);ctx.stroke()}
  ctx.restore();
 }
 function drawEffects(){
@@ -307,6 +325,10 @@ function drawEffects(){
    if(e.type==="hit"){
      ctx.strokeStyle="#fff6b0";ctx.lineWidth=.06;
      for(let i=0;i<6;i++){let a=i*Math.PI/3,r=.12+p*.32;ctx.beginPath();ctx.moveTo(e.x+Math.cos(a)*.05,e.y+Math.sin(a)*.05);ctx.lineTo(e.x+Math.cos(a)*r,e.y+Math.sin(a)*r);ctx.stroke()}
+   }else if(e.type==="wave"){
+     ctx.strokeStyle=e.color;ctx.lineWidth=.13*(1-p)+.035;
+     ctx.beginPath();ctx.arc(e.x,e.y,.3+p*4.7,0,Math.PI*2);ctx.stroke();
+     ctx.globalAlpha=alpha*.35;ctx.beginPath();ctx.arc(e.x,e.y,.18+p*3.2,0,Math.PI*2);ctx.stroke();
    }else{
      ctx.strokeStyle=e.color;ctx.lineWidth=.055;ctx.beginPath();ctx.arc(e.x,e.y,.28+p*.18,0,Math.PI*2);ctx.stroke();
      ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(e.x-.12,e.y-.05,.045,0,Math.PI*2);ctx.arc(e.x+.12,e.y-.05,.045,0,Math.PI*2);ctx.fill();
@@ -322,7 +344,7 @@ function draw(){
  drawEffects();drawHero();if(hero.carry)slime(hero.x+hero.face*.42-.5,hero.y-.95,hero.carry);ctx.restore();
 }
 function loop(t){let dt=Math.min(32,t-last);last=t;update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
-document.querySelectorAll(".classBtn").forEach(b=>b.addEventListener("click",()=>{playerClass=b.dataset.class;document.querySelector("#classSelect").style.display="none";document.querySelector("#className").textContent="職業: "+(playerClass==="hero"?"勇者（必殺：赤一掃）":"モンク");}));
+document.querySelectorAll(".classBtn").forEach(b=>b.addEventListener("click",()=>{playerClass=b.dataset.class;document.querySelector("#classSelect").style.display="none";document.querySelector("#className").textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":"モンク（緑・翠気功波）");}));
 const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",z:"jump",x:"attack",c:"grab",k:"kick"};
 addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
 addEventListener("keyup",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(k==="attack")attack();keys[k]=false});
