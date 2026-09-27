@@ -62,13 +62,19 @@ function updateHero(dt){
    let g=hero.grab;
    if(!board[g.y]?.[g.x])hero.grab=null;
    else{
-     hero.vy=0;hero.y=g.y+.82;hero.x=g.x+.5;
+     hero.vy=0;hero.y=g.y+.18;hero.x=g.x+.5+(g.side||-1)*.52;
      let dir=keys.left?-1:keys.right?1:0;
      if(dir&&!board[g.y-1]?.[g.x]){
        let nx=g.x+dir;
-       if(nx>=0&&nx<W&&!board[g.y][nx]&&!board[g.y+1]?.[nx]){
+       // A settled slime may move sideways only if the destination has a floor/support
+       // directly underneath. This prevents "sticking" to walls in mid-air.
+       let supported = (g.y===H-1) || !!board[g.y+1]?.[nx];
+       let destinationFree = nx>=0&&nx<W&&!board[g.y][nx];
+       if(destinationFree&&supported){
          board[g.y][nx]=board[g.y][g.x];board[g.y][g.x]=null;
-         hero.grab={kind:"board",x:nx,y:g.y};hero.x=nx+.5;
+         hero.grab={kind:"board",x:nx,y:g.y,side:g.side};
+         // Stay on the same side while pulling/pushing.
+         hero.x=nx+.5;
        }
      }
      if(keys.attack)hero.charge=Math.min(100,hero.charge+dt*.09);
@@ -166,7 +172,7 @@ function grab(){
  }
  let cx=Math.floor(hero.x),cy=Math.floor(hero.y),candidates=[[cx+hero.face,cy],[cx,cy-1],[cx,cy],[cx-hero.face,cy],[cx,cy+1]];
  for(const [x,y] of candidates)if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){
-   hero.grab={kind:"board",x,y};hero.vx=0;hero.vy=0;hero.x=x+.5;hero.y=y+.82;msg("ガシッ！");return;
+   let side=hero.x<x+.5?-1:1;hero.grab={kind:"board",x,y,side};hero.vx=0;hero.vy=0;hero.x=x+.5+side*.52;hero.y=y+.18;msg("ガシッ！");return;
  }
 }
 function doSpecial(){if(special<100)return;special=0;let cx=Math.floor(hero.x),cy=Math.floor(hero.y),a=[];for(let d=-2;d<=2;d++)a.push([cx+d,cy],[cx,cy+d]);for(const[dX,dY]of[[-1,-1],[1,-1],[-1,1],[1,1]])a.push([cx+dX,cy+dY]);a.forEach(([x,y])=>{if(x>=0&&x<W&&y>=0&&y<H)board[y][x]=null});gravity();resolve();msg("おせっかい十字斬り！")}
@@ -191,7 +197,13 @@ function drawHero(){
  ctx.strokeStyle="#f0c6a2";ctx.lineWidth=.11;ctx.beginPath();ctx.moveTo(f*.15,-.06);ctx.lineTo(handX,handY);ctx.stroke();
  let bladeLen=.46+thrust*.62;
  let tipx=handX+dx*bladeLen,tipy=handY+dy*bladeLen;
- ctx.strokeStyle="#edf2ff";ctx.lineWidth=.12;ctx.beginPath();ctx.moveTo(handX,handY);ctx.lineTo(tipx,tipy);ctx.stroke();
+ // Tapered blade with an actual point.
+ let px=-dy,py=dx,bladeHalf=.065,neckX=handX+dx*.08,neckY=handY+dy*.08;
+ ctx.fillStyle="#edf2ff";ctx.beginPath();
+ ctx.moveTo(neckX+px*bladeHalf,neckY+py*bladeHalf);
+ ctx.lineTo(tipx,tipy);
+ ctx.lineTo(neckX-px*bladeHalf,neckY-py*bladeHalf);
+ ctx.closePath();ctx.fill();
  ctx.strokeStyle="#cda64b";ctx.lineWidth=.07;ctx.beginPath();ctx.moveTo(handX-dy*.12,handY+dx*.12);ctx.lineTo(handX+dy*.12,handY-dx*.12);ctx.stroke();
  if(hero.attackT>0){
    ctx.strokeStyle="rgba(255,245,185,.75)";ctx.lineWidth=.06;ctx.beginPath();ctx.moveTo(handX+dx*.25,handY+dy*.25);ctx.lineTo(tipx+dx*.18,tipy+dy*.18);ctx.stroke();
