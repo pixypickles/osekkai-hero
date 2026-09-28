@@ -38,3 +38,5 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 
 /* v35: larger DOWN target; mobile thumbs were missing the original 47px target. */
 .dpad .down{width:58px;height:58px;left:46px;top:48px;font-size:20px;z-index:2}
+
+.dpad.stick{position:relative;width:132px;height:132px;touch-action:none;user-select:none}.stickRing{position:absolute;inset:5px;border-radius:50%;background:#263247;border:3px solid #8290a5}.stickKnob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px;border-radius:50%;background:#e1ebf9;border:3px solid #46566e;pointer-events:none}
