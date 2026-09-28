@@ -90,7 +90,7 @@ function gravity(){
   }
  }
 }
-function solidAt(x,y){let ix=Math.floor(x),iy=Math.floor(y);return ix<0||ix>=W||iy>=H||(iy>=0&&board[iy][ix])}
+function solidAt(x,y){let ix=Math.floor(x),iy=Math.floor(y);return ix<0||ix>=W||iy>=H||bossPlatformAt(x,y)||(iy>=0&&board[iy][ix])}
 function pairRect(p,part){
  if(!p)return null;
  if(part===0&&p.a==null)return null;if(part===1&&p.b==null)return null;
@@ -288,6 +288,11 @@ function hitEffect(x,y,color="#fff"){
 function slimeHurtEffect(x,y,color){
  effects.push({x,y,t:280,max:280,type:"slime",color});
 }
+function attackHitsBoss(x,y,dx,dy,range,width=.55){
+ if(!bossMode)return false;
+ let rx=(W-.62)-x,ry=bossY-y,along=rx*dx+ry*dy,side=Math.abs(rx*(-dy)+ry*dx);
+ return along>=-.2&&along<=range&&side<1.05+width;
+}
 function cancelBossFireAlong(x,y,dx,dy,range,label){
  if(!bossMode||!bossFireballs.length)return false;
  let best=null;
@@ -304,18 +309,19 @@ function attack(){
  if(playerClass==="hero"&&hero.grab){hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;destroyHeroGrabbed();return}
  if(charged&&special>=100){doSpecial();return}
  hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;
- if(playerClass==="hero"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.55,"聖剣で相殺！"))return;if(bossRectHit(hero.x+dx*1.1,hero.y+dy*1.1,.9)){bossDamage(1,"剣撃！");return}}
+ if(playerClass==="hero"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.55,"聖剣で相殺！"))return;if(attackHitsBoss(hero.x,hero.y,dx,dy,1.8,.45)){bossDamage(1,"剣撃！");return}}
 
  if(playerClass==="mage"){
   let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}
   effects.push({x:hero.x,y:hero.y,t:360,max:360,type:"projectile",color:"#ff8a3d",dx,dy});
   if(cancelBossFireAlong(hero.x,hero.y,dx,dy,4.5,"ファイアボールで相殺！"))return;
+  if(attackHitsBoss(hero.x,hero.y,dx,dy,5.2,.38)){bossDamage(1,"ファイアボール！");return}
   for(let r=.45;r<=4.5;r+=.25){let fx=hero.x+dx*r,fy=hero.y+dy*r;
    for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;if(Math.abs(pairPos(p,part).x+.5-fx)<.38&&Math.abs(pairPos(p,part).y+.5-fy)<.38){if(part===0)p.a=null;else p.b=null;hitEffect(pairPos(p,part).x+.5,pairPos(p,part).y+.5,"#ff8a3d");return}}
    let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){hitEffect(tx+.5,ty+.5,"#ff8a3d");if(board[ty][tx].frozen){board[ty][tx].frozen=false;msg("解凍！");gravity();resolve();return}board[ty][tx]=null;gravity();resolve();return}
   }return;
  }
- if(playerClass==="monk"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.25,"拳で相殺！"))return;if(bossRectHit(hero.x+dx*.9,hero.y+dy*.9,1.0)){bossDamage(1,"拳撃！");return}}
+ if(playerClass==="monk"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.25,"拳で相殺！"))return;if(attackHitsBoss(hero.x,hero.y,dx,dy,1.5,.45)){bossDamage(1,"拳撃！");return}}
  if(playerClass==="monk"){
    // UP: uppercut. Counter/destroy a slime directly overhead, including falling slime.
    if(keys.up){
@@ -470,17 +476,14 @@ function startNormalStage(n){
  spawnClock=0;if(typeof spawnPair==="function")spawnPair();
  updateStageHud();
 }
+function bossPlatformAt(x,y){
+ if(!bossMode||bossTier!==1)return false;
+ let ix=Math.floor(x),iy=Math.floor(y),c=W-1;
+ return (ix===c&&iy>=H-3&&iy<H)||(ix===c-1&&iy>=H-2&&iy<H)||(ix===c-2&&iy===H-1);
+}
 function seedBossPlatforms(){
- // Neutral cover for the player.
  let cells=[[1,H-1],[2,H-1],[4,H-1],[6,H-1],[6,H-2]];
  for(const [x,y] of cells)if(x>=0&&x<W&&y>=0&&y<H&&!board[y][x])board[y][x]=makeSlime(-1);
- // First boss stands on an indestructible three-step stone pedestal.
- if(bossTier===1){
-  let c=W-1;
-  for(let y=H-3;y<H;y++)board[y][c]=makeBossBlock();
-  for(let y=H-2;y<H;y++)board[y][c-1]=makeBossBlock();
-  board[H-1][c-2]=makeBossBlock();
- }
 }
 function startBossStage(tier=1){
  try{localStorage.setItem("osekkaiBossUnlocked","1")}catch(e){}
@@ -530,7 +533,7 @@ function updateBoss(dt){
  for(const f of bossFireballs){
   f.x+=f.vx*dt;f.y+=f.vy*dt;f.t-=dt;
   let blocked=false,tx=Math.floor(f.x),ty=Math.floor(f.y);
-  if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx])blocked=true;
+  if(bossPlatformAt(f.x,f.y)||(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]))blocked=true;
   if(!blocked){
    for(const p of pairs){
     for(const part of [0,1]){
@@ -584,6 +587,8 @@ function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color||"#aeb4bf";ctx.beginP
 function drawBoss(){
  if(!bossMode)return;
  let x=W-.62,y=bossY;
+ // Permanent three-step stone pedestal: terrain, not slime data.
+ if(bossTier===1){ctx.save();for(let step=0;step<3;step++){let bx=W-1-step,h=3-step;for(let yy=H-h;yy<H;yy++){ctx.fillStyle="#596372";ctx.fillRect(bx+.04,yy+.04,.92,.92);ctx.fillStyle="#7c8796";ctx.fillRect(bx+.09,yy+.09,.82,.16);ctx.strokeStyle="#3f4753";ctx.lineWidth=.035;ctx.strokeRect(bx+.04,yy+.04,.92,.92);}}ctx.restore();}
  ctx.save();ctx.translate(x,y);
  let q=bossHitT>0?Math.sin(bossHitT*.08)*.06:0;ctx.scale(1+q,1-q);
  // cloak/body: about two grid cells tall
