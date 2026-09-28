@@ -76,7 +76,7 @@ function resolve(){
   if(g.length>=4)groups.push(g);
  }
  if(!groups.length){chain=0;return}
- chain++;chainPoints+=25*chain;document.querySelector("#chainPoints").textContent=chainPoints;if(!bossMode&&chainPoints>=GOAL){finishStage();}
+ chain++;chainPoints+=25*chain;document.querySelector("#chainPoints").textContent=bossMode?chainPoints:`${chainPoints} / ${GOAL}`;if(!bossMode&&chainPoints>=GOAL){finishStage();}
  groups.flat().forEach(([x,y])=>{board[y][x]=null;score+=10*chain;special=Math.min(100,special+3*chain)});
  setTimeout(()=>{gravity();resolve()},160);
 }
@@ -463,6 +463,7 @@ function updateStageHud(){
  let s=document.querySelector("#stageText");if(s)s.textContent=bossMode?(bossTier===2?"BOSS 2":"BOSS"):stage;
  let bh=document.querySelector("#bossHud");if(bh)bh.style.display=bossMode?"inline":"none";
  let hp=document.querySelector("#bossHpText");if(hp)hp.textContent=Math.max(0,bossHp)+" / "+bossMaxHp;
+ let cp=document.querySelector("#chainPoints");if(cp)cp.textContent=bossMode?chainPoints:`${chainPoints} / ${GOAL}`;
 }
 function showGameOver(){
  if(gameOver)return;gameOver=true;
@@ -788,7 +789,16 @@ window.beginSelectedJob=function(job){
 
 document.querySelector("#nextStageBtn")?.addEventListener("click",()=>{
  document.querySelector("#stageMenu").style.display="none";
- if(bossMode){startNormalStage(1)}else if(stage>=3){startBossStage()}else{startNormalStage(stage+1)}
+ if(bossMode){
+  // First boss continues to the harder second half; strong boss loops the run.
+  startNormalStage(bossTier===1?4:1)
+}else if(stage===3){
+  startBossStage(1)
+}else if(stage===6){
+  startBossStage(2)
+}else{
+  startNormalStage(stage+1)
+}
 });
 document.querySelector("#continueBtn")?.addEventListener("click",()=>{
  document.querySelector("#stageMenu").style.display="none";
@@ -813,12 +823,8 @@ addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();
 addEventListener("keyup",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(k==="attack")attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}});
 const fastFallBtn=document.querySelector("#fastFall");
 if(fastFallBtn){
- const setFast=v=>{fastFall=v;fastFallBtn.classList.toggle("active",v)};
- fastFallBtn.addEventListener("pointerdown",e=>{e.preventDefault();try{fastFallBtn.setPointerCapture(e.pointerId)}catch(_){}setFast(true)},{passive:false});
- const stopFast=e=>{e.preventDefault();setFast(false)};
- fastFallBtn.addEventListener("pointerup",stopFast,{passive:false});
- fastFallBtn.addEventListener("pointercancel",stopFast,{passive:false});
- fastFallBtn.addEventListener("lostpointercapture",()=>setFast(false));
+ const setFast=v=>{fastFall=v;fastFallBtn.classList.toggle("active",v);fastFallBtn.innerHTML=v?"▶▶<small>高速 ON</small>":"▼▼<small>早送り</small>"};
+ fastFallBtn.addEventListener("pointerdown",e=>{e.preventDefault();setFast(!fastFall)},{passive:false});
 }
 const moveStick=document.querySelector("#moveStick"),stickKnob=document.querySelector("#stickKnob");if(moveStick&&stickKnob){let sid=null,sdir=null;const clear=()=>{if(sdir)keys[sdir]=false;sdir=null;sid=null;stickKnob.style.transform="translate(0px,0px)"};const set=e=>{let r=moveStick.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2,d=Math.hypot(dx,dy),mx=r.width*.28;if(d>mx){dx=dx/d*mx;dy=dy/d*mx}stickKnob.style.transform=`translate(${dx}px,${dy}px)`;let next=d<r.width*.1?null:(Math.abs(dx)>=Math.abs(dy)?(dx<0?"left":"right"):(dy<0?"up":"down"));if(next!==sdir){if(sdir)keys[sdir]=false;sdir=next;if(next){if(heroGrabDirection(next)){keys[next]=false}else{keys[next]=true}if(playerClass==="mage"&&(next==="left"||next==="right"))hero.face=next==="left"?-1:1}}};moveStick.addEventListener("pointerdown",e=>{e.preventDefault();sid=e.pointerId;try{moveStick.setPointerCapture(sid)}catch(_){}set(e)});moveStick.addEventListener("pointermove",e=>{if(e.pointerId===sid){e.preventDefault();set(e)}});moveStick.addEventListener("pointerup",e=>{if(e.pointerId===sid)clear()});moveStick.addEventListener("pointercancel",clear)}
 document.querySelectorAll("button[data-key]").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}
