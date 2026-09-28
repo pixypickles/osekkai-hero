@@ -402,6 +402,7 @@ function startNormalStage(n){
  stage=n;bossMode=false;GOAL=300+(stage-1)*100;resetStageBoard();
  // Start with a little material already on the field.
  seedOpeningBoard();
+ spawnClock=0;if(typeof spawnPair==="function")spawnPair();
  updateStageHud();
 }
 function startBossStage(){
@@ -446,8 +447,17 @@ function seedOpeningBoard(){
  }
 }
 function msg(t){let m=document.querySelector("#message");m.textContent=t;if(!gameOver)setTimeout(()=>m.textContent="",850)}
-function update(dt){effects.forEach(e=>e.t-=dt);effects=effects.filter(e=>e.t>0);if(gameOver||cleared||!playerClass)return;updatePairs(dt);updateHero(dt);fallSpeed=Math.min(.00145,.00075+score/9000000);document.querySelector("#score").textContent=score;document.querySelector("#chainPoints").textContent=chainPoints;document.querySelector("#specialText").textContent=Math.floor(special)+"%";document.querySelector("#specialBar").style.width=special+"%"}
+function update(dt){
+ effects.forEach(e=>e.t-=dt);effects=effects.filter(e=>e.t>0);
+ if(gameOver||cleared||!playerClass)return;
  updateBoss(dt);
+ updatePairs(dt);updateHero(dt);
+ fallSpeed=Math.min(.00145,.00075+score/9000000);
+ document.querySelector("#score").textContent=score;
+ document.querySelector("#chainPoints").textContent=chainPoints;
+ document.querySelector("#specialText").textContent=Math.floor(special)+"%";
+ document.querySelector("#specialBar").style.width=special+"%";
+}
 
 function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color||"#aeb4bf";ctx.beginPath();ctx.roundRect(x+.055,y+.055,.89,.89,.36);ctx.fill();ctx.fillStyle="#202438";ctx.beginPath();ctx.arc(x+.32,y+.42,.055,0,Math.PI*2);ctx.arc(x+.68,y+.42,.055,0,Math.PI*2);ctx.fill();if(s.hard){ctx.strokeStyle="#e7e8f0";ctx.lineWidth=.065;ctx.beginPath();ctx.roundRect(x+.13,y+.13,.74,.64,.25);ctx.stroke()}if(s.frozen){ctx.fillStyle="rgba(190,238,255,.5)";ctx.beginPath();ctx.roundRect(x+.04,y+.04,.92,.9,.25);ctx.fill();ctx.strokeStyle="#e4fbff";ctx.lineWidth=.04;ctx.stroke()}}
 
