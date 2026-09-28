@@ -428,7 +428,7 @@ function bossDamage(amount,label="HIT!"){
  if(bossHp<=0)finishStage();return true;
 }
 function bossRectHit(x,y,range=.75){
- return bossMode && Math.abs(x-(W-.55))<range && Math.abs(y-(H*.62))<1.25;
+ return bossMode && Math.abs(x-(W-.55))<range && Math.abs(y-(H*.70))<1.25;
 }
 function spawnBossSingle(){
  // Single slimes, including colorless nuisance slimes.
@@ -439,18 +439,31 @@ function spawnBossSingle(){
 }
 function updateBoss(dt){
  if(!bossMode)return;
- bossSpawnT-=dt;if(bossSpawnT<=0){spawnBossSingle();bossSpawnT=Math.max(220,620-stage*25)}
+ bossSpawnT-=dt;if(bossSpawnT<=0){spawnBossSingle();bossSpawnT=850+Math.random()*300}
  if(bossHitT>0)bossHitT-=dt;
  bossFireT-=dt;
  if(bossFireT<=0){
-  bossFireT=1500+Math.random()*900;
-  let bx=W-.9,by=H*.62;
+  bossFireT=2400+Math.random()*1400;
+  let bx=W-.9,by=H*.70;
   let dx=hero.x-bx,dy=hero.y-by,len=Math.hypot(dx,dy)||1;
-  bossFireballs.push({x:bx,y:by,vx:dx/len*.0045,vy:dy/len*.0045,t:3200});
+  bossFireballs.push({x:bx,y:by,vx:dx/len*.0030,vy:dy/len*.0030,t:3200});
   msg("ボス: ファイア！");
  }
  for(const f of bossFireballs){
   f.x+=f.vx*dt;f.y+=f.vy*dt;f.t-=dt;
+  let blocked=false,tx=Math.floor(f.x),ty=Math.floor(f.y);
+  if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx])blocked=true;
+  if(!blocked){
+   for(const p of pairs){
+    for(const part of [0,1]){
+     let val=part===0?p.a:p.b;if(val==null)continue;
+     let z=pairPos(p,part);
+     if(Math.abs((z.x+.5)-f.x)<.42&&Math.abs((z.y+.5)-f.y)<.42){blocked=true;break}
+    }
+    if(blocked)break;
+   }
+  }
+  if(blocked){f.t=0;effects.push({x:f.x,y:f.y,t:180,max:180,type:"hit",color:"#ff8a3d"});continue}
   if(Math.abs(f.x-hero.x)<.42&&Math.abs(f.y-hero.y)<.55&&hero.stun<=0){
    hero.stun=1000;f.t=0;msg("熱っ！ 1秒動けない！");
   }
@@ -492,7 +505,7 @@ function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color||"#aeb4bf";ctx.beginP
 
 function drawBoss(){
  if(!bossMode)return;
- let x=W-.58,y=H*.62;
+ let x=W-.58,y=H*.70;
  ctx.save();ctx.translate(x,y);
  let q=bossHitT>0?Math.sin(bossHitT*.08)*.06:0;ctx.scale(1+q,1-q);
  ctx.fillStyle="#5d376f";ctx.beginPath();ctx.arc(0,0,.52,Math.PI,0);ctx.lineTo(.48,.5);ctx.lineTo(-.48,.5);ctx.closePath();ctx.fill();
