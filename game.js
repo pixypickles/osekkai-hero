@@ -399,7 +399,13 @@ function showGameOver(){
  let result=document.querySelector("#stageResult"),info=document.querySelector("#stageInfo");
  if(result)result.textContent="GAME OVER";
  if(info)info.textContent="同じステージから再挑戦できます。";
- let next=document.querySelector("#nextStageBtn"),cont=document.querySelector("#continueBtn");
+ let next=window.beginBossOnly=function(job){
+ selectedClass=job;playerClass=job;hero.floating=playerClass==="mage";
+ setActionLabels();startBossStage();
+ let cn=document.querySelector("#className");
+ if(cn)cn.textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
+};
+document.querySelector("#nextStageBtn"),cont=document.querySelector("#continueBtn");
  if(next)next.style.display="none";if(cont)cont.style.display="block";
  document.querySelector("#stageMenu").style.display="flex";
 }
@@ -420,6 +426,8 @@ function startNormalStage(n){
  updateStageHud();
 }
 function startBossStage(){
+ try{localStorage.setItem("osekkaiBossUnlocked","1")}catch(e){}
+ let bb=document.querySelector("#bossOnlyBtn");if(bb)bb.style.display="block";
  bossMode=true;bossHp=bossMaxHp=30;bossSpawnT=0;bossFireT=900;bossFireballs=[];resetStageBoard();updateStageHud();msg("BOSS!");
 }
 function bossDamage(amount,label="HIT!"){
@@ -535,11 +543,17 @@ function drawHero(){
    ctx.strokeStyle="#4c3b30";ctx.lineWidth=.13;ctx.beginPath();
    if(hero.kickT>0){ctx.moveTo(-f*.12,.49);ctx.lineTo(-f*.23,.5);let fx=f*(.28+.4*kp),fy=.28-.04*kp;ctx.moveTo(fx,fy);ctx.lineTo(fx+f*.16,fy)}
    else{ctx.moveTo(-.15+step,.5);ctx.lineTo(-.25+step,.51);ctx.moveTo(.15-step,.5);ctx.lineTo(.25-step,.51)}ctx.stroke();
-   ctx.fillStyle="#43a85e";ctx.beginPath();ctx.moveTo(-.27,-.2);ctx.lineTo(.27,-.2);ctx.lineTo(.22,.31);ctx.lineTo(-.22,.31);ctx.closePath();ctx.fill();
-   ctx.fillStyle="#195d37";ctx.fillRect(-.25,.08,.5,.085);
+   // Monk: layered emerald gi with cream lapels, sash, shoulder guard and prayer beads.
+   ctx.fillStyle="#237b4b";ctx.beginPath();ctx.moveTo(-.29,-.2);ctx.lineTo(.29,-.2);ctx.lineTo(.23,.31);ctx.lineTo(-.23,.31);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#3eae68";ctx.beginPath();ctx.moveTo(-.25,-.18);ctx.lineTo(.03,.02);ctx.lineTo(-.06,.25);ctx.lineTo(-.25,.16);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#efe2b8";ctx.beginPath();ctx.moveTo(-.13,-.2);ctx.lineTo(.04,.01);ctx.lineTo(.15,-.2);ctx.lineTo(.23,-.17);ctx.lineTo(.05,.11);ctx.lineTo(-.22,-.14);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#174e35";ctx.fillRect(-.26,.08,.52,.09);
+   ctx.fillStyle="#d9aa42";ctx.fillRect(-.26,.115,.52,.035);
    ctx.fillStyle="#e6c09d";ctx.beginPath();ctx.arc(0,-.39,.25,0,Math.PI*2);ctx.fill();
    ctx.fillStyle="#3a2923";ctx.beginPath();ctx.arc(-.02,-.49,.22,Math.PI,Math.PI*2);ctx.fill();
-   ctx.fillStyle="#2f8f51";ctx.fillRect(-.25,-.48,.5,.055);ctx.beginPath();ctx.moveTo(-f*.2,-.46);ctx.lineTo(-f*.46,-.38);ctx.lineTo(-f*.22,-.35);ctx.fill();
+   ctx.fillStyle="#d9aa42";ctx.fillRect(-.255,-.49,.51,.06);ctx.beginPath();ctx.moveTo(-f*.2,-.46);ctx.lineTo(-f*.46,-.36);ctx.lineTo(-f*.22,-.34);ctx.fill();
+   ctx.fillStyle="#174e35";ctx.beginPath();ctx.arc(-f*.23,-.08,.105,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#a96a37";for(let bi=0;bi<4;bi++){ctx.beginPath();ctx.arc(-.13+bi*.085,-.02,.035,0,Math.PI*2);ctx.fill()}
    ctx.fillStyle="#222";ctx.fillRect(f*.08-.025,-.4,.05,.055);
    // Arms / directional punch
    let pdx=f,pdy=0;if(hero.attackDir==="up"){pdx=0;pdy=-1}else if(hero.attackDir==="down"){pdx=0;pdy=1}
@@ -554,8 +568,15 @@ function drawHero(){
    ctx.fillStyle="#76a9f2";ctx.beginPath();ctx.moveTo(-.27,-.15);ctx.lineTo(.05,-.15);ctx.lineTo(-.08,.1);ctx.lineTo(-.32,.04);ctx.closePath();ctx.fill();
    ctx.strokeStyle="#e7c65b";ctx.lineWidth=.035;ctx.beginPath();ctx.moveTo(-.3,.43);ctx.lineTo(.3,.43);ctx.moveTo(-.27,.08);ctx.lineTo(.27,.08);ctx.stroke();
    ctx.fillStyle="#efc7a5";ctx.beginPath();ctx.arc(0,-.38,.23,0,Math.PI*2);ctx.fill();
-   ctx.fillStyle="#172d69";ctx.beginPath();ctx.moveTo(-.35,-.56);ctx.lineTo(.35,-.56);ctx.lineTo(.08,-1.03);ctx.lineTo(-.03,-.83);ctx.lineTo(-.13,-.98);ctx.closePath();ctx.fill();
-   ctx.fillStyle="#315eb9";ctx.fillRect(-.41,-.59,.82,.085);ctx.strokeStyle="#e7c65b";ctx.lineWidth=.03;ctx.beginPath();ctx.moveTo(-.38,-.56);ctx.lineTo(.38,-.56);ctx.stroke();
+   // Brighter wizard hat: cobalt body, wide brim, gold band, crescent and feather.
+   ctx.fillStyle="#315fc2";ctx.beginPath();ctx.moveTo(-.35,-.56);ctx.lineTo(.35,-.56);ctx.lineTo(.13,-1.04);ctx.lineTo(.02,-.86);ctx.lineTo(-.13,-1.00);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#274b9d";ctx.beginPath();ctx.ellipse(0,-.555,.43,.095,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#e7c65b";ctx.fillRect(-.32,-.65,.62,.065);
+   ctx.fillStyle="#fff0a5";ctx.beginPath();ctx.arc(.09,-.82,.09,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#315fc2";ctx.beginPath();ctx.arc(.13,-.85,.075,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle="#b8eaff";ctx.lineWidth=.04;ctx.beginPath();ctx.moveTo(-.17,-.67);ctx.quadraticCurveTo(-.38,-.91,-.25,-1.06);ctx.stroke();
+   ctx.fillStyle="#9ee9ff";ctx.beginPath();ctx.ellipse(-.28,-.92,.055,.17,-.55,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle="#fff2a6";ctx.lineWidth=.025;ctx.beginPath();ctx.moveTo(-.36,-.56);ctx.lineTo(.36,-.56);ctx.stroke();
    ctx.fillStyle="#6ed9ff";ctx.beginPath();ctx.arc(f*.02,-.1,.065,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#e7c65b";ctx.lineWidth=.025;ctx.stroke();
    ctx.fillStyle="#222";ctx.fillRect(f*.07-.025,-.4,.05,.055);ctx.strokeStyle="#efc7a5";ctx.lineWidth=.11;ctx.beginPath();ctx.moveTo(-.2,-.05);ctx.lineTo(-.39,.08);ctx.moveTo(.2,-.05);ctx.lineTo(.39,.08);ctx.stroke();
    ctx.fillStyle="#223a83";ctx.beginPath();ctx.arc(-.39,.08,.075,0,Math.PI*2);ctx.arc(.39,.08,.075,0,Math.PI*2);ctx.fill();
@@ -604,6 +625,12 @@ function drawEffects(){
 }
 function draw(){
  ctx.clearRect(0,0,cv.width,cv.height);ctx.save();ctx.scale(S,S);
+ let bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,"#526d94");bg.addColorStop(.55,"#405a7d");bg.addColorStop(1,"#30445f");ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+ // soft clouds / magical haze
+ ctx.fillStyle="rgba(225,240,255,.055)";
+ for(let i=0;i<5;i++){let cx=1.1+i*1.75,cy=1.4+(i%2)*2.8;ctx.beginPath();ctx.arc(cx,cy,.75,0,Math.PI*2);ctx.arc(cx+.55,cy+.12,.55,0,Math.PI*2);ctx.fill()}
+ // distant floor glow
+ ctx.fillStyle="rgba(170,205,235,.06)";ctx.fillRect(0,H-2.2,W,2.2);
  ctx.strokeStyle="#34394f";ctx.lineWidth=.025;for(let x=0;x<=W;x++){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<=H;y++){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x])slime(x,y,board[y][x]);
  for(const p of pairs){if(p.a!=null){let z=pairPos(p,0);slime(z.x,z.y,makeSlime(p.a))}if(p.b!=null){let z=pairPos(p,1);slime(z.x,z.y,makeSlime(p.b))}}

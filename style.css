@@ -29,3 +29,9 @@ button{-webkit-tap-highlight-color:transparent;touch-action:none;}
 @keyframes bossflash{50%{filter:brightness(2)}}
 
 #classSelect .classBtn,#classSelect .startBtn{pointer-events:auto;touch-action:manipulation;position:relative;z-index:12}
+
+body{background:linear-gradient(180deg,#28375c 0%,#3c5278 46%,#263754 100%)}
+main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));}
+#game{background:linear-gradient(180deg,#506b91 0%,#405a7d 55%,#344965 100%);box-shadow:inset 0 0 35px rgba(220,235,255,.10)}
+
+.bossOnlyBtn{margin-top:9px;border-color:#d9aa42}.bossOnlyBtn small{display:block;opacity:.75}
