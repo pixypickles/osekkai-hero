@@ -355,9 +355,20 @@ function grab(){
    let cx=Math.floor(hero.x),cy=Math.floor(hero.y),cand=[[cx+hero.face,cy],[cx+hero.face,cy-1],[cx,cy-1],[cx,cy]];for(const [x,y] of cand)if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){hero.carry=board[y][x];board[y][x]=null;gravity();resolve();return}return;
  }
  if(hero.grab){nextHeroGrabColor();return}
+ let cx=Math.floor(hero.x),cy=Math.floor(hero.y);
+ // Down + grab prioritizes the slime directly under the hero.
+ if(keys.down){
+  let downY=Math.min(H-1,Math.floor(hero.y+.72)),downX=Math.max(0,Math.min(W-1,cx));
+  if(board[downY]?.[downX]){hero.grab={kind:"board",x:downX,y:downY,side:0,down:true};hero.vx=0;hero.vy=0;msg("下を掴んだ！");return}
+  let dbest=null;for(const p of pairs)for(const part of [0,1]){
+   if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let z=pairPos(p,part),dx=Math.abs(z.x+.5-hero.x),dy=z.y+.5-hero.y;
+   if(dx<.52&&dy>.15&&dy<1.15&&(!dbest||dy<dbest.dy))dbest={p,part,dy}
+  }
+  if(dbest){hero.grab={kind:"pair",id:dbest.p.id,part:dbest.part,side:0,down:true};hero.vy=0;msg("下を掴んだ！");return}
+ }
  let best=null;for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let d=Math.hypot(p.x+.5-hero.x,p.y+part+.5-hero.y);if(d<1.55&&(!best||d<best.d))best={p,part,d}}
  if(best){let side=hero.x<best.p.x+.5?-1:1;hero.grab={kind:"pair",id:best.p.id,part:best.part,side};hero.vy=0;return}
- let cx=Math.floor(hero.x),cy=Math.floor(hero.y),candidates=[[cx+hero.face,cy],[cx+hero.face,cy-1],[cx+hero.face,cy+1],[cx+hero.face*2,cy],[cx,cy-1],[cx,cy],[cx-hero.face,cy],[cx,cy+1]];for(const [x,y] of candidates)if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){let side=hero.x<x+.5?-1:1;hero.grab={kind:"board",x,y,side};hero.vx=0;hero.vy=0;hero.x=x+.5+side*.52;hero.y=y+.18;return}
+ let candidates=[[cx+hero.face,cy],[cx+hero.face,cy-1],[cx+hero.face,cy+1],[cx+hero.face*2,cy],[cx,cy-1],[cx,cy],[cx-hero.face,cy],[cx,cy+1]];for(const [x,y] of candidates)if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){let side=hero.x<x+.5?-1:1;hero.grab={kind:"board",x,y,side};hero.vx=0;hero.vy=0;hero.x=x+.5+side*.52;hero.y=y+.18;return}
 }
 function kick(){
  if(playerClass==="hero"&&hero.grab)releaseHeroGrab();
@@ -713,6 +724,6 @@ document.querySelector("#titleBtn")?.addEventListener("click",()=>{
  document.querySelector("#startBtn").disabled=true;document.querySelector("#classHelp").textContent="職業をタップすると操作説明が表示されます。";
 });
 const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",z:"jump",x:"attack",c:"grab",k:"kick"};
-addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(playerClass==="hero"&&hero.grab&&!e.repeat&&((k==="left"&&hero.grab.side<0)||(k==="right"&&hero.grab.side>0)))releaseHeroGrab();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
+addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(playerClass==="hero"&&hero.grab&&!e.repeat&&((hero.grab.down&&k!=="down"&&["left","right","up"].includes(k))||(!hero.grab.down&&((k==="left"&&hero.grab.side<0)||(k==="right"&&hero.grab.side>0)))))releaseHeroGrab();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
 addEventListener("keyup",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(k==="attack")attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}});
-document.querySelectorAll("button[data-key]").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}if(playerClass==="hero"&&hero.grab&&((k==="left"&&hero.grab.side<0)||(k==="right"&&hero.grab.side>0)))releaseHeroGrab();keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack"&&keys[k])attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}b.classList.remove("pressed");try{if(b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId)}catch(_){}};b.addEventListener("pointerdown",down,{passive:false});b.addEventListener("pointerup",up,{passive:false});b.addEventListener("pointercancel",up,{passive:false});});
+document.querySelectorAll("button[data-key]").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}if(playerClass==="hero"&&hero.grab&&((hero.grab.down&&k!=="down"&&["left","right","up"].includes(k))||(!hero.grab.down&&((k==="left"&&hero.grab.side<0)||(k==="right"&&hero.grab.side>0)))))releaseHeroGrab();keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack"&&keys[k])attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}b.classList.remove("pressed");try{if(b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId)}catch(_){}};b.addEventListener("pointerdown",down,{passive:false});b.addEventListener("pointerup",up,{passive:false});b.addEventListener("pointercancel",up,{passive:false});});
