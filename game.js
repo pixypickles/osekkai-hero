@@ -5,6 +5,7 @@ let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossFi
 
 const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0,carry:null,jumps:0,grabHold:0,grabColorTick:0,floating:false};
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
+let fastFall=false; const FAST_FALL_MULT=4.2;
 
 function makeSlime(type,hard=false){return{color:type===-1?"#aeb4bf":COLORS[type],hp:hard?4:2,hard,frozen:false}}
 function makeBossBlock(){return{color:"#687181",hp:999999,hard:true,frozen:false,bossBlock:true}}
@@ -53,7 +54,7 @@ function updatePairs(dt){
   if(!p.windLock&&p.aiClock>300+Math.random()*180){p.aiClock=0;if(p.x!==p.targetX){let nx=p.x+Math.sign(p.targetX-p.x);if(!pairBlocked(p,p.y,nx,p.orient))p.x=nx}
    else if(!p.rotated&&p.targetOrient==="h"&&p.y>-.45){if(!pairBlocked(p,p.y,p.x,"h")){p.orient="h";p.rotated=true;msg(["プレイヤー: ここかなぁ…","プレイヤー: どこにしよう？","プレイヤー: 悩むなぁ…","プレイヤー: こっちかな？","プレイヤー: よし、ここ！"][Math.floor(Math.random()*5)])}}
   }
-  let next=p.y+fallSpeed*dt;if(pairBlocked(p,next))landed.push(p);else p.y=next;
+  let next=p.y+fallSpeed*(fastFall?FAST_FALL_MULT:1)*dt;if(pairBlocked(p,next))landed.push(p);else p.y=next;
  }
  for(const p of landed)settlePair(p);
 }
@@ -810,6 +811,15 @@ addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();
  if(!e.repeat&&["left","right","up","down"].includes(k)){if(playerClass==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
  if(!e.repeat&&heroGrabDirection(k)){keys[k]=false;return}keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
 addEventListener("keyup",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(k==="attack")attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}});
+const fastFallBtn=document.querySelector("#fastFall");
+if(fastFallBtn){
+ const setFast=v=>{fastFall=v;fastFallBtn.classList.toggle("active",v)};
+ fastFallBtn.addEventListener("pointerdown",e=>{e.preventDefault();try{fastFallBtn.setPointerCapture(e.pointerId)}catch(_){}setFast(true)},{passive:false});
+ const stopFast=e=>{e.preventDefault();setFast(false)};
+ fastFallBtn.addEventListener("pointerup",stopFast,{passive:false});
+ fastFallBtn.addEventListener("pointercancel",stopFast,{passive:false});
+ fastFallBtn.addEventListener("lostpointercapture",()=>setFast(false));
+}
 const moveStick=document.querySelector("#moveStick"),stickKnob=document.querySelector("#stickKnob");if(moveStick&&stickKnob){let sid=null,sdir=null;const clear=()=>{if(sdir)keys[sdir]=false;sdir=null;sid=null;stickKnob.style.transform="translate(0px,0px)"};const set=e=>{let r=moveStick.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2,d=Math.hypot(dx,dy),mx=r.width*.28;if(d>mx){dx=dx/d*mx;dy=dy/d*mx}stickKnob.style.transform=`translate(${dx}px,${dy}px)`;let next=d<r.width*.1?null:(Math.abs(dx)>=Math.abs(dy)?(dx<0?"left":"right"):(dy<0?"up":"down"));if(next!==sdir){if(sdir)keys[sdir]=false;sdir=next;if(next){if(heroGrabDirection(next)){keys[next]=false}else{keys[next]=true}if(playerClass==="mage"&&(next==="left"||next==="right"))hero.face=next==="left"?-1:1}}};moveStick.addEventListener("pointerdown",e=>{e.preventDefault();sid=e.pointerId;try{moveStick.setPointerCapture(sid)}catch(_){}set(e)});moveStick.addEventListener("pointermove",e=>{if(e.pointerId===sid){e.preventDefault();set(e)}});moveStick.addEventListener("pointerup",e=>{if(e.pointerId===sid)clear()});moveStick.addEventListener("pointercancel",clear)}
 document.querySelectorAll("button[data-key]").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}
  if(["left","right","up","down"].includes(k)){if(playerClass==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
