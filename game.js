@@ -48,8 +48,9 @@ function updatePairs(dt){
  let landed=[];
  for(const p of [...pairs].sort((a,b)=>b.y-a.y)){
   p.aiClock+=dt;
-  // Visible "human" inputs: hesitate, tap left/right one column at a time, then rotate.
-  if(p.aiClock>300+Math.random()*180){p.aiClock=0;if(p.x!==p.targetX){let nx=p.x+Math.sign(p.targetX-p.x);if(!pairBlocked(p,p.y,nx,p.orient))p.x=nx}
+  if(p.windLock>0)p.windLock=Math.max(0,p.windLock-dt);
+  // Visible "human" inputs. After a mage wind push, wait before touching that piece again.
+  if(!p.windLock&&p.aiClock>300+Math.random()*180){p.aiClock=0;if(p.x!==p.targetX){let nx=p.x+Math.sign(p.targetX-p.x);if(!pairBlocked(p,p.y,nx,p.orient))p.x=nx}
    else if(!p.rotated&&p.targetOrient==="h"&&p.y>-.45){if(!pairBlocked(p,p.y,p.x,"h")){p.orient="h";p.rotated=true;msg(["プレイヤー: ここかなぁ…","プレイヤー: どこにしよう？","プレイヤー: 悩むなぁ…","プレイヤー: こっちかな？","プレイヤー: よし、ここ！"][Math.floor(Math.random()*5)])}}
   }
   let next=p.y+fallSpeed*dt;if(pairBlocked(p,next))landed.push(p);else p.y=next;
@@ -143,10 +144,14 @@ function updateHero(dt){
  if(hero.stun>0){hero.stun-=dt;hero.vx*=.8;hero.vy*=.8;return}
  if(playerClass==="mage"){
   hero.grab=null;hero.onGround=false;
-  let ax=(keys.right?1:0)-(keys.left?1:0),ay=(keys.down?1:0)-(keys.up?1:0);
-  if(ax)hero.face=ax;
-  hero.vx=hero.vx*.94+ax*.00032*dt;hero.vy=hero.vy*.94+ay*.00032*dt;
-  hero.vx=Math.max(-.0048,Math.min(.0048,hero.vx));hero.vy=Math.max(-.0048,Math.min(.0048,hero.vy));
+  let now=performance.now();
+  // A quick direction tap only changes facing. Hold ~0.09s to actually glide.
+  let l=keys.left&&now-dirPressedAt.left>=MAGE_MOVE_DELAY,r=keys.right&&now-dirPressedAt.right>=MAGE_MOVE_DELAY;
+  let u=keys.up&&now-dirPressedAt.up>=MAGE_MOVE_DELAY,d=keys.down&&now-dirPressedAt.down>=MAGE_MOVE_DELAY;
+  let ax=(r?1:0)-(l?1:0),ay=(d?1:0)-(u?1:0);
+  // Less inertia than before: releasing the pad stops the mage promptly.
+  hero.vx=hero.vx*(ax?0.88:0.70)+ax*.00042*dt;hero.vy=hero.vy*(ay?0.88:0.70)+ay*.00042*dt;
+  hero.vx=Math.max(-.0044,Math.min(.0044,hero.vx));hero.vy=Math.max(-.0044,Math.min(.0044,hero.vy));
   let nx=Math.max(.3,Math.min(W-.3,hero.x+hero.vx*dt)),ny=Math.max(.5,Math.min(H-.5,hero.y+hero.vy*dt));
   if(!solidAt(nx,hero.y)&&!heroHitsPair(nx,hero.y))hero.x=nx;else hero.vx=0;
   if(!solidAt(hero.x,ny)&&!heroHitsPair(hero.x,ny))hero.y=ny;else hero.vy=0;
@@ -247,7 +252,12 @@ function mageGustPush(){
   for(const p of pairs)for(const part of [0,1]){
    if((part===0&&p.a==null)||(part===1&&p.b==null))continue;
    if(Math.abs(pairPos(p,part).x+.5-fx)<.4&&Math.abs(pairPos(p,part).y+.5-fy)<.42){
-    let nx=p.x+dir;if(nx>=0&&nx<W){p.x=nx;msg("風押し！")}return;
+    let nx=p.x+dir;
+    if(nx>=0&&nx<W&&!pairBlocked(p,p.y,nx,p.orient)){
+      p.x=nx;p.targetX=nx;p.windLock=700;p.aiClock=0;
+      msg("風押し！");
+    }else msg("動かせない！");
+    return;
    }
   }
   // Settled stack: top slime -> 1, second from top -> top two, third or lower -> too heavy.
@@ -771,6 +781,10 @@ document.querySelector("#titleBtn")?.addEventListener("click",()=>{
  document.querySelector("#startBtn").disabled=true;document.querySelector("#classHelp").textContent="職業をタップすると操作説明が表示されます。";
 });
 const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",z:"jump",x:"attack",c:"grab",k:"kick"};
-addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(playerClass==="hero"&&hero.grab&&!e.repeat&&((hero.grab.down&&k!=="down"&&["left","right","up"].includes(k))||(!hero.grab.down&&((k==="left"&&hero.grab.side<0)||(k==="right"&&hero.grab.side>0)))))releaseHeroGrab();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
+addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();
+ if(!e.repeat&&["left","right","up","down"].includes(k)){dirPressedAt[k]=performance.now();if(playerClass==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
+ if(playerClass==="hero"&&hero.grab&&!e.repeat&&((hero.grab.down&&k!=="down"&&["left","right","up"].includes(k))||(!hero.grab.down&&((k==="left"&&hero.grab.side<0)||(k==="right"&&hero.grab.side>0)))))releaseHeroGrab();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
 addEventListener("keyup",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(k==="attack")attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}});
-document.querySelectorAll("button[data-key]").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}if(playerClass==="hero"&&hero.grab&&((hero.grab.down&&k!=="down"&&["left","right","up"].includes(k))||(!hero.grab.down&&((k==="left"&&hero.grab.side<0)||(k==="right"&&hero.grab.side>0)))))releaseHeroGrab();keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack"&&keys[k])attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}b.classList.remove("pressed");try{if(b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId)}catch(_){}};b.addEventListener("pointerdown",down,{passive:false});b.addEventListener("pointerup",up,{passive:false});b.addEventListener("pointercancel",up,{passive:false});});
+document.querySelectorAll("button[data-key]").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}
+ if(["left","right","up","down"].includes(k)){dirPressedAt[k]=performance.now();if(playerClass==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
+ if(playerClass==="hero"&&hero.grab&&((hero.grab.down&&k!=="down"&&["left","right","up"].includes(k))||(!hero.grab.down&&((k==="left"&&hero.grab.side<0)||(k==="right"&&hero.grab.side>0)))))releaseHeroGrab();keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack"&&keys[k])attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}b.classList.remove("pressed");try{if(b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId)}catch(_){}};b.addEventListener("pointerdown",down,{passive:false});b.addEventListener("pointerup",up,{passive:false});b.addEventListener("pointercancel",up,{passive:false});});
