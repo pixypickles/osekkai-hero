@@ -479,6 +479,14 @@ function startNormalStage(n){
  stage=n;bossMode=false;GOAL=300+(stage-1)*100;resetStageBoard();
  // Start with a little material already on the field.
  seedOpeningBoard();
+ // Mage must start in open air. Previously resetStageBoard left every class
+ // at ground height, so the opening slimes could spawn around/inside the mage
+ // and solidAt() then rejected every movement direction.
+ if(playerClass==="mage"){
+  hero.floating=true;hero.x=W/2;hero.y=Math.max(1.5,H-4.0);hero.vx=0;hero.vy=0;
+  // If that cell is occupied, walk upward until a free air cell is found.
+  while(hero.y>1.0&&(solidAt(hero.x,hero.y)||heroHitsPair(hero.x,hero.y)))hero.y-=1;
+ }
  spawnClock=0;if(typeof spawnPair==="function")spawnPair();
  updateStageHud();
 }
