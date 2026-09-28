@@ -513,20 +513,30 @@ function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color||"#aeb4bf";ctx.beginP
 
 function drawBoss(){
  if(!bossMode)return;
- let x=W-.58,y=H*.70;
+ let x=W-.62,y=H*.70;
  ctx.save();ctx.translate(x,y);
  let q=bossHitT>0?Math.sin(bossHitT*.08)*.06:0;ctx.scale(1+q,1-q);
- ctx.fillStyle="#5d376f";ctx.beginPath();ctx.arc(0,0,.52,Math.PI,0);ctx.lineTo(.48,.5);ctx.lineTo(-.48,.5);ctx.closePath();ctx.fill();
- ctx.fillStyle="#9a65b0";ctx.beginPath();ctx.arc(0,-.12,.34,0,Math.PI*2);ctx.fill();
- ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(-.12,-.16,.07,0,Math.PI*2);ctx.arc(.12,-.16,.07,0,Math.PI*2);ctx.fill();
- ctx.fillStyle="#222";ctx.beginPath();ctx.arc(-.1,-.15,.03,0,Math.PI*2);ctx.arc(.1,-.15,.03,0,Math.PI*2);ctx.fill();
- ctx.fillStyle="#e5bd4c";ctx.beginPath();ctx.moveTo(-.3,-.42);ctx.lineTo(-.18,-.7);ctx.lineTo(0,-.48);ctx.lineTo(.18,-.7);ctx.lineTo(.3,-.42);ctx.closePath();ctx.fill();
+ // cloak/body: about two grid cells tall
+ ctx.fillStyle="#39234f";ctx.beginPath();ctx.moveTo(-.46,.72);ctx.lineTo(-.5,-.25);ctx.quadraticCurveTo(-.42,-.72,0,-.82);ctx.quadraticCurveTo(.42,-.72,.5,-.25);ctx.lineTo(.46,.72);ctx.closePath();ctx.fill();
+ ctx.fillStyle="#6f3b86";ctx.beginPath();ctx.moveTo(-.36,.62);ctx.lineTo(-.34,-.15);ctx.lineTo(0,.05);ctx.lineTo(.34,-.15);ctx.lineTo(.36,.62);ctx.closePath();ctx.fill();
+ // shoulder armor
+ ctx.fillStyle="#b4873c";ctx.beginPath();ctx.ellipse(-.38,-.17,.22,.14,-.2,0,Math.PI*2);ctx.ellipse(.38,-.17,.22,.14,.2,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#e1b951";ctx.beginPath();ctx.arc(-.38,-.18,.075,0,Math.PI*2);ctx.arc(.38,-.18,.075,0,Math.PI*2);ctx.fill();
+ // face
+ ctx.fillStyle="#9d66b4";ctx.beginPath();ctx.arc(0,-.48,.34,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#4d285f";ctx.beginPath();ctx.moveTo(-.29,-.58);ctx.lineTo(-.46,-.8);ctx.lineTo(-.2,-.7);ctx.moveTo(.29,-.58);ctx.lineTo(.46,-.8);ctx.lineTo(.2,-.7);ctx.fill();
+ ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(-.12,-.51,.075,0,Math.PI*2);ctx.arc(.12,-.51,.075,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#df4b49";ctx.beginPath();ctx.arc(-.105,-.5,.035,0,Math.PI*2);ctx.arc(.105,-.5,.035,0,Math.PI*2);ctx.fill();
+ // ornate crown + central gem
+ ctx.fillStyle="#e5bd4c";ctx.beginPath();ctx.moveTo(-.31,-.72);ctx.lineTo(-.24,-1.02);ctx.lineTo(-.08,-.84);ctx.lineTo(0,-1.08);ctx.lineTo(.1,-.84);ctx.lineTo(.27,-1.02);ctx.lineTo(.32,-.72);ctx.closePath();ctx.fill();
+ ctx.fillStyle="#65d8f3";ctx.beginPath();ctx.moveTo(0,-.95);ctx.lineTo(.07,-.86);ctx.lineTo(0,-.77);ctx.lineTo(-.07,-.86);ctx.closePath();ctx.fill();
+ // chest jewel and gold trim
+ ctx.strokeStyle="#d9ad4a";ctx.lineWidth=.04;ctx.beginPath();ctx.moveTo(-.27,.08);ctx.lineTo(0,.25);ctx.lineTo(.27,.08);ctx.stroke();
+ ctx.fillStyle="#d84c61";ctx.beginPath();ctx.moveTo(0,.12);ctx.lineTo(.09,.23);ctx.lineTo(0,.35);ctx.lineTo(-.09,.23);ctx.closePath();ctx.fill();
  ctx.restore();
  for(const f of bossFireballs){
-  ctx.save();ctx.translate(f.x,f.y);
-  ctx.fillStyle="#ff6a2a";ctx.beginPath();ctx.arc(0,0,.16,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#ffd35a";ctx.beginPath();ctx.arc(-.04,-.02,.08,0,Math.PI*2);ctx.fill();
-  ctx.restore();
+  ctx.save();ctx.translate(f.x,f.y);ctx.fillStyle="#ff6a2a";ctx.beginPath();ctx.arc(0,0,.16,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#ffd35a";ctx.beginPath();ctx.arc(-.04,-.02,.08,0,Math.PI*2);ctx.fill();ctx.restore();
  }
 }
 function drawHero(){
@@ -589,8 +599,18 @@ function drawHero(){
    ctx.fillStyle="#8f2638";ctx.beginPath();ctx.moveTo(-f*.12,-.18);ctx.lineTo(-f*.42,.38);ctx.lineTo(-f*.08,.3);ctx.closePath();ctx.fill();
    ctx.strokeStyle="#d8dce8";ctx.lineWidth=.12;ctx.beginPath();ctx.moveTo(-.11,.25);ctx.lineTo(-.14+step,.48);ctx.moveTo(.11,.25);ctx.lineTo(.14-step,.48);ctx.stroke();
    ctx.strokeStyle="#49382f";ctx.lineWidth=.13;ctx.beginPath();ctx.moveTo(-.14+step,.48);ctx.lineTo(-.24+step,.49);ctx.moveTo(.14-step,.48);ctx.lineTo(.24-step,.49);ctx.stroke();
-   ctx.fillStyle="#c83d4e";ctx.fillRect(-.23,-.18,.46,.48);ctx.fillStyle="#e5bd4c";ctx.fillRect(-.23,.11,.46,.07);
-   ctx.fillStyle="#f0c6a2";ctx.beginPath();ctx.arc(0,-.38,.25,0,Math.PI*2);ctx.fill();ctx.fillStyle="#5b3a2a";ctx.beginPath();ctx.arc(-.03,-.47,.23,Math.PI,Math.PI*2);ctx.lineTo(.2,-.4);ctx.lineTo(.08,-.5);ctx.lineTo(-.02,-.39);ctx.lineTo(-.12,-.51);ctx.lineTo(-.24,-.4);ctx.fill();ctx.fillStyle="#222";ctx.fillRect(f*.08-.025,-.4,.05,.055);
+   ctx.fillStyle="#a8293f";ctx.beginPath();ctx.moveTo(-.24,-.18);ctx.lineTo(.24,-.18);ctx.lineTo(.21,.3);ctx.lineTo(-.21,.3);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#d94a58";ctx.beginPath();ctx.moveTo(-.2,-.17);ctx.lineTo(.03,.02);ctx.lineTo(.2,-.17);ctx.lineTo(.2,.04);ctx.lineTo(.03,.15);ctx.lineTo(-.2,.02);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#f0dfb2";ctx.beginPath();ctx.moveTo(-.13,-.18);ctx.lineTo(.02,-.01);ctx.lineTo(.13,-.18);ctx.lineTo(.19,-.14);ctx.lineTo(.03,.09);ctx.lineTo(-.19,-.13);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#e5bd4c";ctx.fillRect(-.23,.105,.46,.075);
+   ctx.fillStyle="#6f2136";ctx.beginPath();ctx.arc(-f*.22,-.07,.105,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#e5bd4c";ctx.lineWidth=.025;ctx.stroke();
+   ctx.fillStyle="#f0c6a2";ctx.beginPath();ctx.arc(0,-.38,.25,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#5b3a2a";ctx.beginPath();ctx.arc(-.03,-.47,.23,Math.PI,Math.PI*2);ctx.lineTo(.2,-.4);ctx.lineTo(.08,-.5);ctx.lineTo(-.02,-.39);ctx.lineTo(-.12,-.51);ctx.lineTo(-.24,-.4);ctx.fill();
+   // classic fantasy-hero inspired circlet, original design
+   ctx.strokeStyle="#e8c75b";ctx.lineWidth=.055;ctx.beginPath();ctx.arc(0,-.45,.235,Math.PI*1.05,Math.PI*1.95);ctx.stroke();
+   ctx.fillStyle="#e8c75b";ctx.beginPath();ctx.moveTo(-.1,-.57);ctx.lineTo(0,-.67);ctx.lineTo(.1,-.57);ctx.lineTo(.055,-.49);ctx.lineTo(-.055,-.49);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#5bd9ef";ctx.beginPath();ctx.moveTo(0,-.63);ctx.lineTo(.045,-.575);ctx.lineTo(0,-.52);ctx.lineTo(-.045,-.575);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#222";ctx.fillRect(f*.08-.025,-.4,.05,.055);
    if(hero.grabT>0&&!hero.grab){let gp=Math.sin((1-hero.grabT/220)*Math.PI),reach=.28+.28*gp;ctx.strokeStyle="#f0c6a2";ctx.lineWidth=.115;ctx.beginPath();ctx.moveTo(f*.18,-.08);ctx.lineTo(f*reach,-.12);ctx.stroke();ctx.fillStyle="#f0c6a2";ctx.beginPath();ctx.arc(f*(reach+.07),-.12,.085,0,Math.PI*2);ctx.fill()}
    let dx=f,dy=0;if(hero.attackDir==="up"){dx=0;dy=-1}else if(hero.attackDir==="down"){dx=0;dy=1}else if(hero.attackDir==="left"){dx=-1;dy=0}else if(hero.attackDir==="right"){dx=1;dy=0}
    let thrust=hero.attackT>0?Math.sin((1-hero.attackT/150)*Math.PI)*.55:0,baseX=f*.25,baseY=-.02,handX=baseX+dx*thrust*.45,handY=baseY+dy*thrust*.45;
