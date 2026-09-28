@@ -427,16 +427,19 @@ function showGameOver(){
  let result=document.querySelector("#stageResult"),info=document.querySelector("#stageInfo");
  if(result)result.textContent="GAME OVER";
  if(info)info.textContent="同じステージから再挑戦できます。";
- let next=window.beginBossOnly=function(job){
- selectedClass=job;playerClass=job;hero.floating=playerClass==="mage";
- setActionLabels();startBossStage();
- let cn=document.querySelector("#className");
- if(cn)cn.textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
-};
-document.querySelector("#nextStageBtn"),cont=document.querySelector("#continueBtn");
+ let next=document.querySelector("#nextStageBtn"),cont=document.querySelector("#continueBtn");
  if(next)next.style.display="none";if(cont)cont.style.display="block";
  document.querySelector("#stageMenu").style.display="flex";
 }
+window.beginBossOnly=function(job){
+ if(!job)return;
+ selectedClass=job;playerClass=job;
+ hero.floating=playerClass==="mage";
+ setActionLabels();
+ startBossStage();
+ let cn=document.querySelector("#className");
+ if(cn)cn.textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
+};
 function finishStage(){
  if(cleared)return;cleared=true;
  let nextBtn=document.querySelector("#nextStageBtn"),contBtn=document.querySelector("#continueBtn");
@@ -453,10 +456,20 @@ function startNormalStage(n){
  spawnClock=0;if(typeof spawnPair==="function")spawnPair();
  updateStageHud();
 }
+function seedBossPlatforms(){
+ // Small neutral footholds: useful cover against fire without filling the arena.
+ let cells=[[1,H-1],[2,H-1],[4,H-1],[6,H-1],[6,H-2]];
+ for(const [x,y] of cells)if(x>=0&&x<W&&y>=0&&y<H&&!board[y][x])board[y][x]=makeSlime(-1);
+}
 function startBossStage(){
  try{localStorage.setItem("osekkaiBossUnlocked","1")}catch(e){}
  let bb=document.querySelector("#bossOnlyBtn");if(bb)bb.style.display="block";
- bossMode=true;bossHp=bossMaxHp=30;bossSpawnT=0;bossFireT=900;bossFireballs=[];resetStageBoard();updateStageHud();msg("BOSS!");
+ bossMode=true;bossHp=bossMaxHp=30;bossSpawnT=0;bossFireT=900;bossFireballs=[];
+ resetStageBoard();
+ hero.floating=playerClass==="mage";
+ if(playerClass==="mage"){hero.y=H-3.0;hero.vy=0}else{hero.y=H-1.2;hero.vy=0}
+ seedBossPlatforms();
+ updateStageHud();msg("BOSS!");
 }
 function bossDamage(amount,label="HIT!"){
  if(!bossMode||bossHp<=0)return false;
