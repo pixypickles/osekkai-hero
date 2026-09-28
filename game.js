@@ -118,11 +118,25 @@ function nextHeroGrabColor(){
  msg("色変化！");
 }
 function updateGrabColorCharge(dt){
- if(playerClass!=="hero"||!hero.grab||!keys.grab){hero.grabHold=0;hero.grabColorTick=0;return}
- hero.grabHold+=dt;
- if(hero.grabHold<520)return;
- hero.grabColorTick+=dt;
- if(hero.grabColorTick===dt||hero.grabColorTick>=480){nextHeroGrabColor();hero.grabColorTick=0}
+ // v27: color cycling is tap-based, no hold delay.
+}
+function releaseHeroGrab(){
+ if(playerClass!=="hero"||!hero.grab)return false;
+ hero.grab=null;hero.grabHold=0;hero.grabColorTick=0;return true;
+}
+function destroyHeroGrabbed(){
+ if(playerClass!=="hero"||!hero.grab)return false;
+ if(hero.grab.kind==="board"){
+  let x=hero.grab.x,y=hero.grab.y,s=board[y]?.[x];
+  if(s){hitEffect(x+.5,y+.5,"#75e8ff");slimeHurtEffect(x+.5,y+.5,s.color);board[y][x]=null;hero.grab=null;gravity();resolve();return true}
+ }
+ if(hero.grab.kind==="pair"){
+  let p=getPair(hero.grab.id);
+  if(p){let part=hero.grab.part,z=pairPos(p,part),type=part===0?p.a:p.b;
+   if(type!=null){hitEffect(z.x+.5,z.y+.5,"#75e8ff");if(part===0)p.a=null;else p.b=null;hero.grab=null;return true}
+  }
+ }
+ hero.grab=null;return false;
 }
 function updateHero(dt){
  if(hero.stun>0){hero.stun-=dt;hero.vx*=.8;hero.vy*=.8;return}
@@ -250,6 +264,7 @@ function mageGustPush(){
  }
 }
 function jump(){
+ if(playerClass==="hero"&&hero.grab){releaseHeroGrab();hero.vy=-.0128;hero.onGround=false;return}
  if(playerClass==="mage"){mageGustPush();return}
  if(playerClass==="monk"){
    // Monk cannot jump from a grabbed slime. He gets a true double jump instead.
@@ -274,6 +289,7 @@ function slimeHurtEffect(x,y,color){
 }
 function attack(){
  let charged=hero.charge>=75;hero.charge=0;
+ if(playerClass==="hero"&&hero.grab){hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;destroyHeroGrabbed();return}
  if(charged&&special>=100){doSpecial();return}
  hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;if(playerClass==="hero"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(bossRectHit(hero.x+dx*1.1,hero.y+dy*1.1,.9)){bossDamage(1,"剣撃！");return}}
 
@@ -338,12 +354,13 @@ function grab(){
    if(best){let type=best.part===0?best.p.a:best.p.b;if(best.part===0)best.p.a=null;else best.p.b=null;hero.carry=makeSlime(type);return}
    let cx=Math.floor(hero.x),cy=Math.floor(hero.y),cand=[[cx+hero.face,cy],[cx+hero.face,cy-1],[cx,cy-1],[cx,cy]];for(const [x,y] of cand)if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){hero.carry=board[y][x];board[y][x]=null;gravity();resolve();return}return;
  }
- if(hero.grab){hero.grab=null;return}
+ if(hero.grab){nextHeroGrabColor();return}
  let best=null;for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let d=Math.hypot(p.x+.5-hero.x,p.y+part+.5-hero.y);if(d<1.55&&(!best||d<best.d))best={p,part,d}}
  if(best){let side=hero.x<best.p.x+.5?-1:1;hero.grab={kind:"pair",id:best.p.id,part:best.part,side};hero.vy=0;return}
  let cx=Math.floor(hero.x),cy=Math.floor(hero.y),candidates=[[cx+hero.face,cy],[cx+hero.face,cy-1],[cx+hero.face,cy+1],[cx+hero.face*2,cy],[cx,cy-1],[cx,cy],[cx-hero.face,cy],[cx,cy+1]];for(const [x,y] of candidates)if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){let side=hero.x<x+.5?-1:1;hero.grab={kind:"board",x,y,side};hero.vx=0;hero.vy=0;hero.x=x+.5+side*.52;hero.y=y+.18;return}
 }
 function kick(){
+ if(playerClass==="hero"&&hero.grab)releaseHeroGrab();
  if(playerClass==="hero"&&bossMode&&bossRectHit(hero.x+hero.face*1.0,hero.y,.9)){hero.kickT=180;bossDamage(1,"蹴り！");return}
  hero.kickT=180;let dir=hero.face,hy=Math.floor(hero.y);
  if(playerClass==="mage"){
@@ -606,18 +623,21 @@ function drawHero(){
    ctx.fillStyle="#6f2136";ctx.beginPath();ctx.arc(-f*.22,-.07,.105,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#e5bd4c";ctx.lineWidth=.025;ctx.stroke();
    ctx.fillStyle="#f0c6a2";ctx.beginPath();ctx.arc(0,-.38,.25,0,Math.PI*2);ctx.fill();
    ctx.fillStyle="#5b3a2a";ctx.beginPath();ctx.arc(-.03,-.47,.23,Math.PI,Math.PI*2);ctx.lineTo(.2,-.4);ctx.lineTo(.08,-.5);ctx.lineTo(-.02,-.39);ctx.lineTo(-.12,-.51);ctx.lineTo(-.24,-.4);ctx.fill();
-   // classic fantasy-hero inspired circlet, original design
-   ctx.strokeStyle="#e8c75b";ctx.lineWidth=.055;ctx.beginPath();ctx.arc(0,-.45,.235,Math.PI*1.05,Math.PI*1.95);ctx.stroke();
-   ctx.fillStyle="#e8c75b";ctx.beginPath();ctx.moveTo(-.1,-.57);ctx.lineTo(0,-.67);ctx.lineTo(.1,-.57);ctx.lineTo(.055,-.49);ctx.lineTo(-.055,-.49);ctx.closePath();ctx.fill();
-   ctx.fillStyle="#5bd9ef";ctx.beginPath();ctx.moveTo(0,-.63);ctx.lineTo(.045,-.575);ctx.lineTo(0,-.52);ctx.lineTo(-.045,-.575);ctx.closePath();ctx.fill();
+   // Forehead circlet: sits across the hairline instead of floating above the head.
+   ctx.strokeStyle="#e8c75b";ctx.lineWidth=.045;ctx.beginPath();ctx.moveTo(-.19,-.515);ctx.quadraticCurveTo(0,-.555,.19,-.515);ctx.stroke();
+   ctx.fillStyle="#e8c75b";ctx.beginPath();ctx.moveTo(-.075,-.55);ctx.lineTo(0,-.615);ctx.lineTo(.075,-.55);ctx.lineTo(.052,-.49);ctx.lineTo(-.052,-.49);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#59d8ef";ctx.beginPath();ctx.moveTo(0,-.585);ctx.lineTo(.034,-.548);ctx.lineTo(0,-.508);ctx.lineTo(-.034,-.548);ctx.closePath();ctx.fill();
    ctx.fillStyle="#222";ctx.fillRect(f*.08-.025,-.4,.05,.055);
    if(hero.grabT>0&&!hero.grab){let gp=Math.sin((1-hero.grabT/220)*Math.PI),reach=.28+.28*gp;ctx.strokeStyle="#f0c6a2";ctx.lineWidth=.115;ctx.beginPath();ctx.moveTo(f*.18,-.08);ctx.lineTo(f*reach,-.12);ctx.stroke();ctx.fillStyle="#f0c6a2";ctx.beginPath();ctx.arc(f*(reach+.07),-.12,.085,0,Math.PI*2);ctx.fill()}
    let dx=f,dy=0;if(hero.attackDir==="up"){dx=0;dy=-1}else if(hero.attackDir==="down"){dx=0;dy=1}else if(hero.attackDir==="left"){dx=-1;dy=0}else if(hero.attackDir==="right"){dx=1;dy=0}
    let thrust=hero.attackT>0?Math.sin((1-hero.attackT/150)*Math.PI)*.55:0,baseX=f*.25,baseY=-.02,handX=baseX+dx*thrust*.45,handY=baseY+dy*thrust*.45;
    ctx.strokeStyle="#f0c6a2";ctx.lineWidth=.11;ctx.beginPath();ctx.moveTo(f*.15,-.06);ctx.lineTo(handX,handY);ctx.stroke();
-   let bladeLen=.46+thrust*.62,tipx=handX+dx*bladeLen,tipy=handY+dy*bladeLen,px=-dy,py=dx,bladeHalf=.065,neckX=handX+dx*.08,neckY=handY+dy*.08;
-   ctx.fillStyle="#edf2ff";ctx.beginPath();ctx.moveTo(neckX+px*bladeHalf,neckY+py*bladeHalf);ctx.lineTo(tipx,tipy);ctx.lineTo(neckX-px*bladeHalf,neckY-py*bladeHalf);ctx.closePath();ctx.fill();
-   ctx.strokeStyle="#cda64b";ctx.lineWidth=.07;ctx.beginPath();ctx.moveTo(handX-dy*.12,handY+dx*.12);ctx.lineTo(handX+dy*.12,handY-dx*.12);ctx.stroke();
+   if(hero.attackT>0){
+    let bladeLen=.46+thrust*.62,tipx=handX+dx*bladeLen,tipy=handY+dy*bladeLen,px=-dy,py=dx,bladeHalf=.07,neckX=handX+dx*.08,neckY=handY+dy*.08;
+    ctx.fillStyle="#bff7ff";ctx.beginPath();ctx.moveTo(neckX+px*bladeHalf,neckY+py*bladeHalf);ctx.lineTo(tipx,tipy);ctx.lineTo(neckX-px*bladeHalf,neckY-py*bladeHalf);ctx.closePath();ctx.fill();
+    ctx.strokeStyle="#55cde7";ctx.lineWidth=.025;ctx.beginPath();ctx.moveTo(neckX,neckY);ctx.lineTo(tipx-dx*.05,tipy-dy*.05);ctx.stroke();
+    ctx.strokeStyle="#e6bf4f";ctx.lineWidth=.075;ctx.beginPath();ctx.moveTo(handX-dy*.12,handY+dx*.12);ctx.lineTo(handX+dy*.12,handY-dx*.12);ctx.stroke();
+   }
  }
  if(hero.grab){ctx.strokeStyle="#ffe071";ctx.lineWidth=.055;ctx.setLineDash([.08,.06]);ctx.beginPath();ctx.moveTo(0,-.15);if(hero.grab.kind==="pair"&&getPair(hero.grab.id)){let gp=getPair(hero.grab.id),py=gp.y+hero.grab.part+.5;ctx.lineTo(gp.x+.5-hero.x,py-hero.y)}else ctx.lineTo(0,-.78);ctx.stroke();ctx.setLineDash([])}
  if(hero.charge>0){ctx.strokeStyle=playerClass==="monk"?"#59dc76":"#ff5f78";ctx.lineWidth=.045;ctx.beginPath();ctx.arc(0,0,.57,0,Math.PI*2*hero.charge/100);ctx.stroke()}
@@ -693,6 +713,6 @@ document.querySelector("#titleBtn")?.addEventListener("click",()=>{
  document.querySelector("#startBtn").disabled=true;document.querySelector("#classHelp").textContent="職業をタップすると操作説明が表示されます。";
 });
 const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",z:"jump",x:"attack",c:"grab",k:"kick"};
-addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
+addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(playerClass==="hero"&&hero.grab&&!e.repeat&&((k==="left"&&hero.grab.side<0)||(k==="right"&&hero.grab.side>0)))releaseHeroGrab();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
 addEventListener("keyup",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(k==="attack")attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}});
-document.querySelectorAll("button[data-key]").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack"&&keys[k])attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}b.classList.remove("pressed");try{if(b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId)}catch(_){}};b.addEventListener("pointerdown",down,{passive:false});b.addEventListener("pointerup",up,{passive:false});b.addEventListener("pointercancel",up,{passive:false});});
+document.querySelectorAll("button[data-key]").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}if(playerClass==="hero"&&hero.grab&&((k==="left"&&hero.grab.side<0)||(k==="right"&&hero.grab.side>0)))releaseHeroGrab();keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack"&&keys[k])attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}b.classList.remove("pressed");try{if(b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId)}catch(_){}};b.addEventListener("pointerdown",down,{passive:false});b.addEventListener("pointerup",up,{passive:false});b.addEventListener("pointercancel",up,{passive:false});});
