@@ -103,17 +103,17 @@ function heroHitsPair(nx,ny){
  return null;
 }
 function getPair(id){return pairs.find(p=>p.id===id)}
-function nextHeroGrabColor(){
+function nextHeroGrabColor(dir=1){
  // Fixed cycle: red -> yellow -> green -> blue -> red.
  const cycle=[COLORS[1],COLORS[3],COLORS[0],COLORS[2]];
  if(playerClass!=="hero"||!hero.grab)return;
  if(hero.grab.kind==="board"){
    let s=board[hero.grab.y]?.[hero.grab.x];if(!s)return;
-   let i=cycle.indexOf(s.color);s.color=cycle[(i+1+cycle.length)%cycle.length];
+   let i=cycle.indexOf(s.color);s.color=cycle[(i+dir+cycle.length)%cycle.length];
    slimeHurtEffect(hero.grab.x+.5,hero.grab.y+.5,s.color);
  }else if(hero.grab.kind==="pair"){
    let p=getPair(hero.grab.id);if(!p)return;let part=hero.grab.part;
-   let type=part===0?p.a:p.b;if(type==null)return;let c=COLORS[type],i=cycle.indexOf(c),next=cycle[(i+1+cycle.length)%cycle.length],ni=COLORS.indexOf(next);
+   let type=part===0?p.a:p.b;if(type==null)return;let c=COLORS[type],i=cycle.indexOf(c),next=cycle[(i+dir+cycle.length)%cycle.length],ni=COLORS.indexOf(next);
    if(part===0)p.a=ni;else p.b=ni;
    slimeHurtEffect(pairPos(p,part).x+.5,pairPos(p,part).y+.5,next);
  }
@@ -171,14 +171,21 @@ function updateHero(dt){
        // directly underneath. This prevents "sticking" to walls in mid-air.
        let supported = (g.y===H-1) || !!board[g.y+1]?.[nx];
        let destinationFree = nx>=0&&nx<W&&!board[g.y][nx];
-       // Direction toward the slime = push. Push is allowed over an edge.
-       // Direction away from the slime = pull, which still requires support.
+       // Push and pull are both allowed over an edge. If there is no footing,
+       // the grabbed slime and hero become one falling unit instead of refusing the pull.
        let pushing = (g.side<0&&dir>0)||(g.side>0&&dir<0);
-       if(destinationFree&&(pushing||supported)){
-         let moved=board[g.y][g.x];board[g.y][g.x]=null;board[g.y][nx]=moved;
-         hero.grab={kind:"board",x:nx,y:g.y,side:g.side};
-         hero.x=nx+.5+(g.side||-1)*.52;
-         if(pushing&&!supported){hero.grab=null;gravity();resolve();msg("ポイッ！")}
+       if(destinationFree){
+         let moved=board[g.y][g.x];board[g.y][g.x]=null;
+         if(!supported){
+           let type=COLORS.indexOf(moved.color);
+           let fp={id:++pairSeq,x:nx,y:g.y,a:type,b:null,hpA:moved.hp||2,hpB:0,orient:"v",targetX:nx,targetOrient:"v",aiClock:0,rotated:true,windLock:999999};
+           pairs.push(fp);
+           hero.grab={kind:"pair",id:fp.id,part:0,side:g.side};
+           hero.x=nx+.5+(g.side||-1)*.48;hero.y=g.y+.52;hero.vx=0;hero.vy=0;
+           msg(pushing?"押したまま落下！":"引っ張ったまま落下！");
+         }else{
+           board[g.y][nx]=moved;hero.grab={kind:"board",x:nx,y:g.y,side:g.side};hero.x=nx+.5+(g.side||-1)*.52;
+         }
        }
      }
      if(keys.attack)hero.charge=Math.min(100,hero.charge+dt*.09);
@@ -381,7 +388,7 @@ function grab(){
    if(best){let type=best.part===0?best.p.a:best.p.b;if(best.part===0)best.p.a=null;else best.p.b=null;hero.carry=makeSlime(type);return}
    let cx=Math.floor(hero.x),cy=Math.floor(hero.y),cand=[[cx+hero.face,cy],[cx+hero.face,cy-1],[cx,cy-1],[cx,cy]];for(const [x,y] of cand)if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){hero.carry=board[y][x];board[y][x]=null;gravity();resolve();return}return;
  }
- if(hero.grab){nextHeroGrabColor();return}
+ if(hero.grab){releaseHeroGrab();msg("離した！");return}
  let cx=Math.floor(hero.x),cy=Math.floor(hero.y);
  // Down + grab prioritizes the slime directly under the hero.
  if(keys.down){
@@ -397,8 +404,15 @@ function grab(){
  if(best){let side=hero.x<best.p.x+.5?-1:1;hero.grab={kind:"pair",id:best.p.id,part:best.part,side};hero.vy=0;return}
  let candidates=[[cx+hero.face,cy],[cx+hero.face,cy-1],[cx+hero.face,cy+1],[cx+hero.face*2,cy],[cx,cy-1],[cx,cy],[cx-hero.face,cy],[cx,cy+1]];for(const [x,y] of candidates)if(x>=0&&x<W&&y>=0&&y<H&&board[y][x]){let side=hero.x<x+.5?-1:1;hero.grab={kind:"board",x,y,side};hero.vx=0;hero.vy=0;hero.x=x+.5+side*.52;hero.y=y+.18;return}
 }
+function kickHeroGrabbed(){
+ if(playerClass!=="hero"||!hero.grab)return false;
+ let dir=hero.face,g=hero.grab;hero.kickT=180;
+ if(g.kind==="pair"){let p=getPair(g.id);if(!p){hero.grab=null;return false}let part=g.part,z=pairPos(p,part),nx=p.x+dir;if(nx<0||nx>=W){if(part===0)p.a=null;else p.b=null}else{p.x=nx;p.targetX=nx;p.windLock=450}hero.grab=null;msg("蹴り飛ばし！");return true}
+ if(g.kind==="board"){let x=g.x,y=g.y,m=board[y]?.[x];if(!m){hero.grab=null;return false}let nx=x+dir;if(nx>=0&&nx<W&&!board[y][nx]){board[y][x]=null;board[y][nx]=m;hero.grab=null;gravity();resolve();msg("蹴り飛ばし！");return true}hero.grab=null;return false}
+ return false;
+}
 function kick(){
- if(playerClass==="hero"&&hero.grab)releaseHeroGrab();
+ if(playerClass==="hero"&&hero.grab&&kickHeroGrabbed())return;
  if(playerClass==="hero"&&bossMode&&bossRectHit(hero.x+hero.face*1.0,hero.y,.9)){hero.kickT=180;bossDamage(1,"蹴り！");return}
  hero.kickT=180;let dir=hero.face,hy=Math.floor(hero.y);
  if(playerClass==="mage"){
@@ -785,12 +799,18 @@ document.querySelector("#titleBtn")?.addEventListener("click",()=>{
  document.querySelectorAll(".classBtn").forEach(x=>x.classList.remove("selected"));
  document.querySelector("#startBtn").disabled=true;document.querySelector("#classHelp").textContent="職業をタップすると操作説明が表示されます。";
 });
+function heroGrabDirection(dir){
+ if(playerClass!=="hero"||!hero.grab)return false;
+ if(dir==="up"){nextHeroGrabColor(1);return true}
+ if(dir==="down"){nextHeroGrabColor(-1);return true}
+ return false;
+}
 const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",z:"jump",x:"attack",c:"grab",k:"kick"};
 addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();
  if(!e.repeat&&["left","right","up","down"].includes(k)){if(playerClass==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
- if(playerClass==="hero"&&hero.grab&&!e.repeat&&((hero.grab.down&&k!=="down"&&["left","right","up"].includes(k))||(!hero.grab.down&&((k==="left"&&hero.grab.side<0)||(k==="right"&&hero.grab.side>0)))))releaseHeroGrab();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
+ if(!e.repeat&&heroGrabDirection(k)){keys[k]=false;return}keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
 addEventListener("keyup",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(k==="attack")attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}});
-const moveStick=document.querySelector("#moveStick"),stickKnob=document.querySelector("#stickKnob");if(moveStick&&stickKnob){let sid=null,sdir=null;const clear=()=>{if(sdir)keys[sdir]=false;sdir=null;sid=null;stickKnob.style.transform="translate(0px,0px)"};const set=e=>{let r=moveStick.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2,d=Math.hypot(dx,dy),mx=r.width*.28;if(d>mx){dx=dx/d*mx;dy=dy/d*mx}stickKnob.style.transform=`translate(${dx}px,${dy}px)`;let next=d<r.width*.1?null:(Math.abs(dx)>=Math.abs(dy)?(dx<0?"left":"right"):(dy<0?"up":"down"));if(next!==sdir){if(sdir)keys[sdir]=false;sdir=next;if(next){keys[next]=true;if(playerClass==="mage"&&(next==="left"||next==="right"))hero.face=next==="left"?-1:1}}};moveStick.addEventListener("pointerdown",e=>{e.preventDefault();sid=e.pointerId;try{moveStick.setPointerCapture(sid)}catch(_){}set(e)});moveStick.addEventListener("pointermove",e=>{if(e.pointerId===sid){e.preventDefault();set(e)}});moveStick.addEventListener("pointerup",e=>{if(e.pointerId===sid)clear()});moveStick.addEventListener("pointercancel",clear)}
+const moveStick=document.querySelector("#moveStick"),stickKnob=document.querySelector("#stickKnob");if(moveStick&&stickKnob){let sid=null,sdir=null;const clear=()=>{if(sdir)keys[sdir]=false;sdir=null;sid=null;stickKnob.style.transform="translate(0px,0px)"};const set=e=>{let r=moveStick.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2,d=Math.hypot(dx,dy),mx=r.width*.28;if(d>mx){dx=dx/d*mx;dy=dy/d*mx}stickKnob.style.transform=`translate(${dx}px,${dy}px)`;let next=d<r.width*.1?null:(Math.abs(dx)>=Math.abs(dy)?(dx<0?"left":"right"):(dy<0?"up":"down"));if(next!==sdir){if(sdir)keys[sdir]=false;sdir=next;if(next){if(heroGrabDirection(next)){keys[next]=false}else{keys[next]=true}if(playerClass==="mage"&&(next==="left"||next==="right"))hero.face=next==="left"?-1:1}}};moveStick.addEventListener("pointerdown",e=>{e.preventDefault();sid=e.pointerId;try{moveStick.setPointerCapture(sid)}catch(_){}set(e)});moveStick.addEventListener("pointermove",e=>{if(e.pointerId===sid){e.preventDefault();set(e)}});moveStick.addEventListener("pointerup",e=>{if(e.pointerId===sid)clear()});moveStick.addEventListener("pointercancel",clear)}
 document.querySelectorAll("button[data-key]").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}
  if(["left","right","up","down"].includes(k)){if(playerClass==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
- if(playerClass==="hero"&&hero.grab&&((hero.grab.down&&k!=="down"&&["left","right","up"].includes(k))||(!hero.grab.down&&((k==="left"&&hero.grab.side<0)||(k==="right"&&hero.grab.side>0)))))releaseHeroGrab();keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack"&&keys[k])attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}b.classList.remove("pressed");try{if(b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId)}catch(_){}};b.addEventListener("pointerdown",down,{passive:false});b.addEventListener("pointerup",up,{passive:false});b.addEventListener("pointercancel",up,{passive:false});});
+ if(heroGrabDirection(k)){keys[k]=false;return}keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack"&&keys[k])attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}b.classList.remove("pressed");try{if(b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId)}catch(_){}};b.addEventListener("pointerdown",down,{passive:false});b.addEventListener("pointerup",up,{passive:false});b.addEventListener("pointercancel",up,{passive:false});});
