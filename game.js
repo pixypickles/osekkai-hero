@@ -7,6 +7,7 @@ const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
 
 function makeSlime(type,hard=false){return{color:type===-1?"#aeb4bf":COLORS[type],hp:hard?4:2,hard,frozen:false}}
+function makeBossBlock(){return{color:"#687181",hp:999999,hard:true,frozen:false,bossBlock:true}}
 function topFree(x){for(let y=0;y<H;y++)if(board[y][x])return y-1;return H-1}
 function pairPos(p,part){return p.orient==="h"?{x:p.x+part,y:p.y}:{x:p.x,y:p.y+part}}
 function seedBoard(){
@@ -128,7 +129,7 @@ function destroyHeroGrabbed(){
  if(playerClass!=="hero"||!hero.grab)return false;
  if(hero.grab.kind==="board"){
   let x=hero.grab.x,y=hero.grab.y,s=board[y]?.[x];
-  if(s){hitEffect(x+.5,y+.5,"#75e8ff");slimeHurtEffect(x+.5,y+.5,s.color);board[y][x]=null;hero.grab=null;gravity();resolve();return true}
+  if(s){if(s.bossBlock){hitEffect(x+.5,y+.5,"#c8d0dc");hero.grab=null;return false}hitEffect(x+.5,y+.5,"#75e8ff");slimeHurtEffect(x+.5,y+.5,s.color);board[y][x]=null;hero.grab=null;gravity();resolve();return true}
  }
  if(hero.grab.kind==="pair"){
   let p=getPair(hero.grab.id);
@@ -470,22 +471,28 @@ function startNormalStage(n){
  updateStageHud();
 }
 function seedBossPlatforms(){
- // Small neutral footholds: useful cover against fire without filling the arena.
+ // Neutral cover for the player.
  let cells=[[1,H-1],[2,H-1],[4,H-1],[6,H-1],[6,H-2]];
- // Raised neutral dais under the boss so it visibly stands rather than floats.
- let bossCol=Math.max(0,W-1);
- cells.push([bossCol,H-1],[bossCol,H-2],[Math.max(0,bossCol-1),H-1]);
  for(const [x,y] of cells)if(x>=0&&x<W&&y>=0&&y<H&&!board[y][x])board[y][x]=makeSlime(-1);
+ // First boss stands on an indestructible three-step stone pedestal.
+ if(bossTier===1){
+  let c=W-1;
+  for(let y=H-3;y<H;y++)board[y][c]=makeBossBlock();
+  for(let y=H-2;y<H;y++)board[y][c-1]=makeBossBlock();
+  board[H-1][c-2]=makeBossBlock();
+ }
 }
-function startBossStage(){
+function startBossStage(tier=1){
  try{localStorage.setItem("osekkaiBossUnlocked","1")}catch(e){}
  let bb=document.querySelector("#bossOnlyBtn");if(bb)bb.style.display="block";
- bossMode=true;bossHp=bossMaxHp=30;bossSpawnT=0;bossFireT=900;bossFireballs=[];
+ bossMode=true;bossTier=tier;bossMaxHp=tier===2?48:30;bossHp=bossMaxHp;
+ bossSpawnT=0;bossFireT=tier===2?650:900;bossFireballs=[];bossDir=1;
  resetStageBoard();
  hero.floating=playerClass==="mage";
  if(playerClass==="mage"){hero.y=H-3.0;hero.vy=0}else{hero.y=H-1.2;hero.vy=0}
+ bossY=tier===2?H*.48:H-3.95;
  seedBossPlatforms();
- updateStageHud();msg("BOSS!");
+ updateStageHud();msg(tier===2?"STRONG BOSS!":"BOSS!");
 }
 function bossDamage(amount,label="HIT!"){
  if(!bossMode||bossHp<=0)return false;
@@ -493,26 +500,32 @@ function bossDamage(amount,label="HIT!"){
  if(bossHp<=0)finishStage();return true;
 }
 function bossRectHit(x,y,range=.75){
- return bossMode && Math.abs(x-(W-.55))<range && Math.abs(y-(H-.95))<1.25;
+ return bossMode && Math.abs(x-(W-.62))<range && Math.abs(y-bossY)<1.35;
 }
 function spawnBossSingle(){
- // Single slimes, including colorless nuisance slimes.
- let neutral=Math.random()<.22;
+ let neutral=bossTier===2||Math.random()<.22;
  let type=neutral?-1:Math.floor(Math.random()*COLORS.length);
  let p={id:(Date.now()+Math.random()),x:Math.floor(Math.random()*Math.max(1,W-2)),y:-1,a:type,b:null,hpA:neutral?3:2,hpB:0,rot:0,targetX:0,targetRot:0,aiT:999};
  p.targetX=p.x;pairs.push(p);
 }
 function updateBoss(dt){
  if(!bossMode)return;
- bossSpawnT-=dt;if(bossSpawnT<=0){spawnBossSingle();bossSpawnT=850+Math.random()*300}
+ if(bossTier===2){
+  bossY+=bossDir*.00115*dt;
+  if(bossY>H-2.2){bossY=H-2.2;bossDir=-1}
+  if(bossY<2.0){bossY=2.0;bossDir=1}
+ }
+ bossSpawnT-=dt;if(bossSpawnT<=0){spawnBossSingle();bossSpawnT=bossTier===2?1050+Math.random()*380:850+Math.random()*300}
  if(bossHitT>0)bossHitT-=dt;
  bossFireT-=dt;
  if(bossFireT<=0){
-  bossFireT=2400+Math.random()*1400;
-  let bx=W-.9,by=H-1.25;
-  let dx=hero.x-bx,dy=hero.y-by,len=Math.hypot(dx,dy)||1;
-  bossFireballs.push({x:bx,y:by,vx:dx/len*.0030,vy:dy/len*.0030,t:3200});
-  msg("ボス: ファイア！");
+  bossFireT=bossTier===2?1900+Math.random()*900:2400+Math.random()*1400;
+  let bx=W-.9,by=bossY-.3,dx=hero.x-bx,dy=hero.y-by,len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len;
+  if(bossTier===2){
+   let ang=.20,ca=Math.cos(ang),sa=Math.sin(ang);
+   for(const s of [-1,1]){let vx=ux*ca-uy*sa*s,vy=ux*sa*s+uy*ca;bossFireballs.push({x:bx,y:by,vx:vx*.00315,vy:vy*.00315,t:3600})}
+   msg("強ボス: ダブルファイア！");
+  }else{bossFireballs.push({x:bx,y:by,vx:ux*.0030,vy:uy*.0030,t:3200});msg("ボス: ファイア！")}
  }
  for(const f of bossFireballs){
   f.x+=f.vx*dt;f.y+=f.vy*dt;f.t-=dt;
@@ -570,7 +583,7 @@ function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color||"#aeb4bf";ctx.beginP
 
 function drawBoss(){
  if(!bossMode)return;
- let x=W-.62,y=H-.95;
+ let x=W-.62,y=bossY;
  ctx.save();ctx.translate(x,y);
  let q=bossHitT>0?Math.sin(bossHitT*.08)*.06:0;ctx.scale(1+q,1-q);
  // cloak/body: about two grid cells tall
