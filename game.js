@@ -287,21 +287,34 @@ function hitEffect(x,y,color="#fff"){
 function slimeHurtEffect(x,y,color){
  effects.push({x,y,t:280,max:280,type:"slime",color});
 }
+function cancelBossFireAlong(x,y,dx,dy,range,label){
+ if(!bossMode||!bossFireballs.length)return false;
+ let best=null;
+ for(const f of bossFireballs){
+  let rx=f.x-x,ry=f.y-y,along=rx*dx+ry*dy,side=Math.abs(rx*(-dy)+ry*dx);
+  if(along>=0&&along<=range&&side<.42&&(!best||along<best.along))best={f,along};
+ }
+ if(!best)return false;
+ best.f.t=0;effects.push({x:best.f.x,y:best.f.y,t:260,max:260,type:"hit",color:"#fff0a0"});
+ msg(label);return true;
+}
 function attack(){
  let charged=hero.charge>=75;hero.charge=0;
  if(playerClass==="hero"&&hero.grab){hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;destroyHeroGrabbed();return}
  if(charged&&special>=100){doSpecial();return}
- hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;if(playerClass==="hero"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(bossRectHit(hero.x+dx*1.1,hero.y+dy*1.1,.9)){bossDamage(1,"剣撃！");return}}
+ hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;
+ if(playerClass==="hero"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.55,"聖剣で相殺！"))return;if(bossRectHit(hero.x+dx*1.1,hero.y+dy*1.1,.9)){bossDamage(1,"剣撃！");return}}
 
  if(playerClass==="mage"){
   let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}
   effects.push({x:hero.x,y:hero.y,t:360,max:360,type:"projectile",color:"#ff8a3d",dx,dy});
+  if(cancelBossFireAlong(hero.x,hero.y,dx,dy,4.5,"ファイアボールで相殺！"))return;
   for(let r=.45;r<=4.5;r+=.25){let fx=hero.x+dx*r,fy=hero.y+dy*r;
    for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;if(Math.abs(pairPos(p,part).x+.5-fx)<.38&&Math.abs(pairPos(p,part).y+.5-fy)<.38){if(part===0)p.a=null;else p.b=null;hitEffect(pairPos(p,part).x+.5,pairPos(p,part).y+.5,"#ff8a3d");return}}
    let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){hitEffect(tx+.5,ty+.5,"#ff8a3d");if(board[ty][tx].frozen){board[ty][tx].frozen=false;msg("解凍！");gravity();resolve();return}board[ty][tx]=null;gravity();resolve();return}
   }return;
  }
- if(playerClass==="monk"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(bossRectHit(hero.x+dx*.9,hero.y+dy*.9,1.0)){bossDamage(1,"拳撃！");return}}
+ if(playerClass==="monk"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.25,"拳で相殺！"))return;if(bossRectHit(hero.x+dx*.9,hero.y+dy*.9,1.0)){bossDamage(1,"拳撃！");return}}
  if(playerClass==="monk"){
    // UP: uppercut. Counter/destroy a slime directly overhead, including falling slime.
    if(keys.up){
@@ -420,7 +433,7 @@ function resetStageBoard(){
 function updateStageHud(){
  let s=document.querySelector("#stageText");if(s)s.textContent=bossMode?"BOSS":stage;
  let bh=document.querySelector("#bossHud");if(bh)bh.style.display=bossMode?"inline":"none";
- let hp=document.querySelector("#bossHpText");if(hp)hp.textContent=Math.max(0,bossHp);
+ let hp=document.querySelector("#bossHpText");if(hp)hp.textContent=Math.max(0,bossHp)+" / "+bossMaxHp;
 }
 function showGameOver(){
  if(gameOver)return;gameOver=true;
@@ -459,6 +472,9 @@ function startNormalStage(n){
 function seedBossPlatforms(){
  // Small neutral footholds: useful cover against fire without filling the arena.
  let cells=[[1,H-1],[2,H-1],[4,H-1],[6,H-1],[6,H-2]];
+ // Raised neutral dais under the boss so it visibly stands rather than floats.
+ let bossCol=Math.max(0,W-1);
+ cells.push([bossCol,H-1],[bossCol,H-2],[Math.max(0,bossCol-1),H-1]);
  for(const [x,y] of cells)if(x>=0&&x<W&&y>=0&&y<H&&!board[y][x])board[y][x]=makeSlime(-1);
 }
 function startBossStage(){
@@ -477,7 +493,7 @@ function bossDamage(amount,label="HIT!"){
  if(bossHp<=0)finishStage();return true;
 }
 function bossRectHit(x,y,range=.75){
- return bossMode && Math.abs(x-(W-.55))<range && Math.abs(y-(H*.70))<1.25;
+ return bossMode && Math.abs(x-(W-.55))<range && Math.abs(y-(H-.95))<1.25;
 }
 function spawnBossSingle(){
  // Single slimes, including colorless nuisance slimes.
@@ -493,7 +509,7 @@ function updateBoss(dt){
  bossFireT-=dt;
  if(bossFireT<=0){
   bossFireT=2400+Math.random()*1400;
-  let bx=W-.9,by=H*.70;
+  let bx=W-.9,by=H-1.25;
   let dx=hero.x-bx,dy=hero.y-by,len=Math.hypot(dx,dy)||1;
   bossFireballs.push({x:bx,y:by,vx:dx/len*.0030,vy:dy/len*.0030,t:3200});
   msg("ボス: ファイア！");
@@ -554,7 +570,7 @@ function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color||"#aeb4bf";ctx.beginP
 
 function drawBoss(){
  if(!bossMode)return;
- let x=W-.62,y=H*.70;
+ let x=W-.62,y=H-.95;
  ctx.save();ctx.translate(x,y);
  let q=bossHitT>0?Math.sin(bossHitT*.08)*.06:0;ctx.scale(1+q,1-q);
  // cloak/body: about two grid cells tall
