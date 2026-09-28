@@ -431,7 +431,7 @@ function resetStageBoard(){
  document.querySelector("#message").classList.remove("clear");
 }
 function updateStageHud(){
- let s=document.querySelector("#stageText");if(s)s.textContent=bossMode?"BOSS":stage;
+ let s=document.querySelector("#stageText");if(s)s.textContent=bossMode?(bossTier===2?"BOSS 2":"BOSS"):stage;
  let bh=document.querySelector("#bossHud");if(bh)bh.style.display=bossMode?"inline":"none";
  let hp=document.querySelector("#bossHpText");if(hp)hp.textContent=Math.max(0,bossHp)+" / "+bossMaxHp;
 }
