@@ -144,13 +144,9 @@ function updateHero(dt){
  if(hero.stun>0){hero.stun-=dt;hero.vx*=.8;hero.vy*=.8;return}
  if(playerClass==="mage"){
   hero.grab=null;hero.onGround=false;
-  let now=performance.now();
-  // A quick direction tap only changes facing. Hold ~0.09s to actually glide.
-  let l=keys.left&&now-dirPressedAt.left>=MAGE_MOVE_DELAY,r=keys.right&&now-dirPressedAt.right>=MAGE_MOVE_DELAY;
-  let u=keys.up&&now-dirPressedAt.up>=MAGE_MOVE_DELAY,d=keys.down&&now-dirPressedAt.down>=MAGE_MOVE_DELAY;
-  let ax=(r?1:0)-(l?1:0),ay=(d?1:0)-(u?1:0);
-  // Less inertia than before: releasing the pad stops the mage promptly.
-  hero.vx=hero.vx*(ax?0.88:0.70)+ax*.00042*dt;hero.vy=hero.vy*(ay?0.88:0.70)+ay*.00042*dt;
+  let now=performance.now(),held=k=>keys[k]&&dirPressedAt[k]>0&&now-dirPressedAt[k]>=55;
+  let ax=(held("right")?1:0)-(held("left")?1:0),ay=(held("down")?1:0)-(held("up")?1:0);
+  hero.vx=hero.vx*(ax?0.82:0.58)+ax*.00062*dt;hero.vy=hero.vy*(ay?0.82:0.58)+ay*.00062*dt;
   hero.vx=Math.max(-.0044,Math.min(.0044,hero.vx));hero.vy=Math.max(-.0044,Math.min(.0044,hero.vy));
   let nx=Math.max(.3,Math.min(W-.3,hero.x+hero.vx*dt)),ny=Math.max(.5,Math.min(H-.5,hero.y+hero.vy*dt));
   if(!solidAt(nx,hero.y)&&!heroHitsPair(nx,hero.y))hero.x=nx;else hero.vx=0;
@@ -782,9 +778,9 @@ document.querySelector("#titleBtn")?.addEventListener("click",()=>{
 });
 const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",z:"jump",x:"attack",c:"grab",k:"kick"};
 addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();
- if(!e.repeat&&["left","right","up","down"].includes(k)){dirPressedAt[k]=performance.now();if(playerClass==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
+ if(!e.repeat&&["left","right","up","down"].includes(k)){if(!keys[k])dirPressedAt[k]=performance.now();if(playerClass==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
  if(playerClass==="hero"&&hero.grab&&!e.repeat&&((hero.grab.down&&k!=="down"&&["left","right","up"].includes(k))||(!hero.grab.down&&((k==="left"&&hero.grab.side<0)||(k==="right"&&hero.grab.side>0)))))releaseHeroGrab();keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
-addEventListener("keyup",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(k==="attack")attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}});
+addEventListener("keyup",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(k==="attack")attack();keys[k]=false;if(dirPressedAt[k]!=null)dirPressedAt[k]=0;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}});
 document.querySelectorAll("button[data-key]").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}
- if(["left","right","up","down"].includes(k)){dirPressedAt[k]=performance.now();if(playerClass==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
- if(playerClass==="hero"&&hero.grab&&((hero.grab.down&&k!=="down"&&["left","right","up"].includes(k))||(!hero.grab.down&&((k==="left"&&hero.grab.side<0)||(k==="right"&&hero.grab.side>0)))))releaseHeroGrab();keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack"&&keys[k])attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}b.classList.remove("pressed");try{if(b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId)}catch(_){}};b.addEventListener("pointerdown",down,{passive:false});b.addEventListener("pointerup",up,{passive:false});b.addEventListener("pointercancel",up,{passive:false});});
+ if(["left","right","up","down"].includes(k)){if(!keys[k])dirPressedAt[k]=performance.now();if(playerClass==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
+ if(playerClass==="hero"&&hero.grab&&((hero.grab.down&&k!=="down"&&["left","right","up"].includes(k))||(!hero.grab.down&&((k==="left"&&hero.grab.side<0)||(k==="right"&&hero.grab.side>0)))))releaseHeroGrab();keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack"&&keys[k])attack();keys[k]=false;if(dirPressedAt[k]!=null)dirPressedAt[k]=0;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}b.classList.remove("pressed");try{if(b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId)}catch(_){}};b.addEventListener("pointerdown",down,{passive:false});b.addEventListener("pointerup",up,{passive:false});b.addEventListener("pointercancel",up,{passive:false});});
