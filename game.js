@@ -564,13 +564,14 @@ function setActionLabels(){
  {grab:"風替",jump:"風押",attack:"炎",kick:"氷"};
  for(const [k,v] of Object.entries(labels)){let el=document.querySelector('[data-key="'+k+'"]');if(el)el.textContent=v}
 }
-window.addEventListener("jobstart",e=>{
- const job=e.detail&&e.detail.job;if(!job)return;
+window.beginSelectedJob=function(job){
+ if(!job)return;
  selectedClass=job;playerClass=job;hero.floating=playerClass==="mage";
- document.querySelector("#classSelect").style.display="none";setActionLabels();
+ setActionLabels();
  try{startNormalStage(1)}catch(err){console.error(err);resetStageBoard();updateStageHud()}
- document.querySelector("#className").textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
-});
+ let cn=document.querySelector("#className");
+ if(cn)cn.textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
+};
 
 document.querySelector("#nextStageBtn")?.addEventListener("click",()=>{
  document.querySelector("#stageMenu").style.display="none";
