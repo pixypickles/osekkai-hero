@@ -1,7 +1,7 @@
 const cv=document.querySelector("#game"),ctx=cv.getContext("2d");
 const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
 let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,chainPoints=0,GOAL=300,gameOver=false,cleared=false,playerClass=null;
-let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0;
+let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossFireT=1200,bossFireballs=[];
 
 const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0,carry:null,jumps:0,grabHold:0,grabColorTick:0,floating:false};
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
@@ -49,7 +49,7 @@ function updatePairs(dt){
   p.aiClock+=dt;
   // Visible "human" inputs: hesitate, tap left/right one column at a time, then rotate.
   if(p.aiClock>300+Math.random()*180){p.aiClock=0;if(p.x!==p.targetX){let nx=p.x+Math.sign(p.targetX-p.x);if(!pairBlocked(p,p.y,nx,p.orient))p.x=nx}
-   else if(!p.rotated&&p.targetOrient==="h"&&p.y>-.45){if(!pairBlocked(p,p.y,p.x,"h")){p.orient="h";p.rotated=true;msg("CPU: ここかな…")}}
+   else if(!p.rotated&&p.targetOrient==="h"&&p.y>-.45){if(!pairBlocked(p,p.y,p.x,"h")){p.orient="h";p.rotated=true;msg(["プレイヤー: ここかなぁ…","プレイヤー: どこにしよう？","プレイヤー: 悩むなぁ…","プレイヤー: こっちかな？","プレイヤー: よし、ここ！"][Math.floor(Math.random()*5)])}}
   }
   let next=p.y+fallSpeed*dt;if(pairBlocked(p,next))landed.push(p);else p.y=next;
  }
@@ -58,9 +58,9 @@ function updatePairs(dt){
 function settlePair(p){
  let hardChance=score>700?Math.min(.25,.06+score/9000):0;
  if(p.orient==="h"){
-  for(const part of [0,1]){let type=part===0?p.a:p.b;if(type==null)continue;let x=p.x+part,y=topFree(x);if(y<0){gameOver=true;msg("GAME OVER");return}board[y][x]=makeSlime(type,Math.random()<hardChance)}
+  for(const part of [0,1]){let type=part===0?p.a:p.b;if(type==null)continue;let x=p.x+part,y=topFree(x);if(y<0){showGameOver();return}board[y][x]=makeSlime(type,Math.random()<hardChance)}
  }else{
-  let x=p.x,y=topFree(x),count=(p.a!=null?1:0)+(p.b!=null?1:0);if(y<count-1){gameOver=true;msg("GAME OVER");return}
+  let x=p.x,y=topFree(x),count=(p.a!=null?1:0)+(p.b!=null?1:0);if(y<count-1){showGameOver();return}
   if(p.b!=null){board[y][x]=makeSlime(p.b,Math.random()<hardChance);y--}if(p.a!=null)board[y][x]=makeSlime(p.a,Math.random()<hardChance);
  }
  if(hero.grab?.kind==="pair"&&hero.grab.id===p.id)hero.grab=null;pairs=pairs.filter(q=>q!==p);resolve();
@@ -125,6 +125,7 @@ function updateGrabColorCharge(dt){
  if(hero.grabColorTick===dt||hero.grabColorTick>=480){nextHeroGrabColor();hero.grabColorTick=0}
 }
 function updateHero(dt){
+ if(hero.stun>0){hero.stun-=dt;hero.vx*=.8;hero.vy*=.8;return}
  if(playerClass==="mage"){
   hero.grab=null;hero.onGround=false;
   let ax=(keys.right?1:0)-(keys.left?1:0),ay=(keys.down?1:0)-(keys.up?1:0);
@@ -284,6 +285,7 @@ function attack(){
    let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){hitEffect(tx+.5,ty+.5,"#ff8a3d");if(board[ty][tx].frozen){board[ty][tx].frozen=false;msg("解凍！");gravity();resolve();return}board[ty][tx]=null;gravity();resolve();return}
   }return;
  }
+ if(playerClass==="monk"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(bossRectHit(hero.x+dx*.9,hero.y+dy*.9,1.0)){bossDamage(1,"拳撃！");return}}
  if(playerClass==="monk"){
    // UP: uppercut. Counter/destroy a slime directly overhead, including falling slime.
    if(keys.up){
@@ -351,6 +353,7 @@ function kick(){
    let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){board[ty][tx].frozen=true;msg("凍結！");return}
   }return;
  }
+ if(playerClass==="monk"&&bossMode&&bossRectHit(hero.x+hero.face*1.0,hero.y,1.0)){hero.kickT=180;bossDamage(1,"モンクキック！");return}
  if(playerClass==="monk"){
    let best=null;for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let d=Math.hypot(p.x+.5-hero.x,p.y+part+.5-hero.y);if(d<1.2&&(!best||d<best.d))best={p,part,d}}
    if(best){let nx=best.p.x;if(nx+dir<0||nx+dir>=W){if(best.part===0)best.p.a=null;else best.p.b=null;return}while(nx+dir>=0&&nx+dir<W&&!board[Math.max(0,Math.floor(best.p.y+best.part))]?.[nx+dir])nx+=dir;if(nx===best.p.x){if(best.part===0)best.p.a=null;else best.p.b=null}else best.p.x=nx;return}
@@ -391,8 +394,19 @@ function updateStageHud(){
  let bh=document.querySelector("#bossHud");if(bh)bh.style.display=bossMode?"inline":"none";
  let hp=document.querySelector("#bossHpText");if(hp)hp.textContent=Math.max(0,bossHp);
 }
+function showGameOver(){
+ if(gameOver)return;gameOver=true;
+ let result=document.querySelector("#stageResult"),info=document.querySelector("#stageInfo");
+ if(result)result.textContent="GAME OVER";
+ if(info)info.textContent="同じステージから再挑戦できます。";
+ let next=document.querySelector("#nextStageBtn"),cont=document.querySelector("#continueBtn");
+ if(next)next.style.display="none";if(cont)cont.style.display="block";
+ document.querySelector("#stageMenu").style.display="flex";
+}
 function finishStage(){
  if(cleared)return;cleared=true;
+ let nextBtn=document.querySelector("#nextStageBtn"),contBtn=document.querySelector("#continueBtn");
+ if(nextBtn)nextBtn.style.display="block";if(contBtn)contBtn.style.display="none";
  let result=document.querySelector("#stageResult"),info=document.querySelector("#stageInfo");
  if(result)result.textContent=bossMode?"BOSS CLEAR!":"STAGE CLEAR!";
  if(info)info.textContent=bossMode?"ボス撃破！ 次は通常ステージ1から再開します。":(stage>=3?"次はボス戦です。":"次は落下が少し激しくなります。");
@@ -406,7 +420,7 @@ function startNormalStage(n){
  updateStageHud();
 }
 function startBossStage(){
- bossMode=true;bossHp=bossMaxHp=30;bossSpawnT=0;resetStageBoard();updateStageHud();msg("BOSS!");
+ bossMode=true;bossHp=bossMaxHp=30;bossSpawnT=0;bossFireT=900;bossFireballs=[];resetStageBoard();updateStageHud();msg("BOSS!");
 }
 function bossDamage(amount,label="HIT!"){
  if(!bossMode||bossHp<=0)return false;
@@ -414,7 +428,7 @@ function bossDamage(amount,label="HIT!"){
  if(bossHp<=0)finishStage();return true;
 }
 function bossRectHit(x,y,range=.75){
- return bossMode && Math.abs(x-(W-.55))<range && Math.abs(y-(H*.48))<1.25;
+ return bossMode && Math.abs(x-(W-.55))<range && Math.abs(y-(H*.62))<1.25;
 }
 function spawnBossSingle(){
  // Single slimes, including colorless nuisance slimes.
@@ -427,6 +441,21 @@ function updateBoss(dt){
  if(!bossMode)return;
  bossSpawnT-=dt;if(bossSpawnT<=0){spawnBossSingle();bossSpawnT=Math.max(220,620-stage*25)}
  if(bossHitT>0)bossHitT-=dt;
+ bossFireT-=dt;
+ if(bossFireT<=0){
+  bossFireT=1500+Math.random()*900;
+  let bx=W-.9,by=H*.62;
+  let dx=hero.x-bx,dy=hero.y-by,len=Math.hypot(dx,dy)||1;
+  bossFireballs.push({x:bx,y:by,vx:dx/len*.0045,vy:dy/len*.0045,t:3200});
+  msg("ボス: ファイア！");
+ }
+ for(const f of bossFireballs){
+  f.x+=f.vx*dt;f.y+=f.vy*dt;f.t-=dt;
+  if(Math.abs(f.x-hero.x)<.42&&Math.abs(f.y-hero.y)<.55&&hero.stun<=0){
+   hero.stun=1000;f.t=0;msg("熱っ！ 1秒動けない！");
+  }
+ }
+ bossFireballs=bossFireballs.filter(f=>f.t>0&&f.x>-.5&&f.x<W+.5&&f.y>-.5&&f.y<H+.5);
  // Any falling/propelled slime touching boss damages it and disappears.
  for(const p of [...pairs]){
   for(const part of [0,1]){
@@ -463,7 +492,7 @@ function slime(x,y,s){if(y<-1)return;ctx.fillStyle=s.color||"#aeb4bf";ctx.beginP
 
 function drawBoss(){
  if(!bossMode)return;
- let x=W-.58,y=H*.48;
+ let x=W-.58,y=H*.62;
  ctx.save();ctx.translate(x,y);
  let q=bossHitT>0?Math.sin(bossHitT*.08)*.06:0;ctx.scale(1+q,1-q);
  ctx.fillStyle="#5d376f";ctx.beginPath();ctx.arc(0,0,.52,Math.PI,0);ctx.lineTo(.48,.5);ctx.lineTo(-.48,.5);ctx.closePath();ctx.fill();
@@ -472,6 +501,12 @@ function drawBoss(){
  ctx.fillStyle="#222";ctx.beginPath();ctx.arc(-.1,-.15,.03,0,Math.PI*2);ctx.arc(.1,-.15,.03,0,Math.PI*2);ctx.fill();
  ctx.fillStyle="#e5bd4c";ctx.beginPath();ctx.moveTo(-.3,-.42);ctx.lineTo(-.18,-.7);ctx.lineTo(0,-.48);ctx.lineTo(.18,-.7);ctx.lineTo(.3,-.42);ctx.closePath();ctx.fill();
  ctx.restore();
+ for(const f of bossFireballs){
+  ctx.save();ctx.translate(f.x,f.y);
+  ctx.fillStyle="#ff6a2a";ctx.beginPath();ctx.arc(0,0,.16,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#ffd35a";ctx.beginPath();ctx.arc(-.04,-.02,.08,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+ }
 }
 function drawHero(){
  let x=hero.x,y=hero.y,bob=hero.onGround&&hero.vx?Math.sin(hero.walk)*.035:0,f=hero.face;
@@ -586,6 +621,10 @@ window.beginSelectedJob=function(job){
 document.querySelector("#nextStageBtn")?.addEventListener("click",()=>{
  document.querySelector("#stageMenu").style.display="none";
  if(bossMode){startNormalStage(1)}else if(stage>=3){startBossStage()}else{startNormalStage(stage+1)}
+});
+document.querySelector("#continueBtn")?.addEventListener("click",()=>{
+ document.querySelector("#stageMenu").style.display="none";
+ if(bossMode)startBossStage();else startNormalStage(stage);
 });
 document.querySelector("#titleBtn")?.addEventListener("click",()=>{
  document.querySelector("#stageMenu").style.display="none";bossMode=false;stage=1;resetStageBoard();updateStageHud();
