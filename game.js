@@ -633,23 +633,7 @@ function startNormalStage(n){
  stage=n;bossMode=false;GOAL=300+(stage-1)*100;enemies=[];enemySpawnT=stage>=7?2600:stage>=4?4200:999999;resetStageBoard();
  // Start with a little material already on the field.
  seedOpeningBoard();
- // Mage must start in open air. Previously resetStageBoard left every class
- // at ground height, so the opening slimes could spawn around/inside the mage
- // and solidAt() then rejected every movement direction.
- if(playerClass==="mage"){
-  hero.floating=true;hero.x=W/2;hero.y=Math.max(1.5,H-4.0);hero.vx=0;hero.vy=0;
-  // If that cell is occupied, walk upward until a free air cell is found.
-  const mageSpawnBlocked=()=>{
-   if(solidAt(hero.x,hero.y))return true;
-   for(const p of pairs)for(const part of [0,1]){
-    if((part===0&&p.a==null)||(part===1&&p.b==null))continue;
-    const z=pairPos(p,part);
-    if(Math.abs((z.x+.5)-hero.x)<.48&&Math.abs((z.y+.5)-hero.y)<.62)return true;
-   }
-   return false;
-  };
-  while(hero.y>1.0&&mageSpawnBlocked())hero.y-=1;
- }
+ // Class-specific placement is handled after the common stage boot.
  spawnClock=0;if(typeof spawnPair==="function")spawnPair();
  updateStageHud();
 }
@@ -953,14 +937,22 @@ function setActionLabels(){
 }
 window.beginSelectedJob=function(job){
  if(!job)return;
- selectedClass=job;playerClass=job;
+ selectedClass=job;
  hero.grab=null;hero.carry=null;hero.guard=false;hero.stun=0;hero.vx=0;hero.vy=0;hero.liftRide=-1;
- hero.floating=(job==="mage");
+ // Mage normal-start uses the exact same safe stage boot path as Hero/Monk.
+ // Switch to mage only AFTER the board, opening slimes and first pair are initialized.
+ // This deliberately avoids every mage-only collision/startup branch during boot.
+ if(job==="mage"){
+   playerClass="hero";hero.floating=false;
+   startNormalStage(1);
+   playerClass="mage";selectedClass="mage";hero.floating=true;
+   hero.x=W/2;hero.y=Math.max(1.5,H-4.0);hero.vx=0;hero.vy=0;hero.onGround=false;
+ }else{
+   playerClass=job;hero.floating=false;
+   startNormalStage(1);
+   playerClass=job;selectedClass=job;
+ }
  setActionLabels();
- startNormalStage(1);
- // Re-assert the selected job after all stage reset/setup code.
- playerClass=job;selectedClass=job;hero.floating=(job==="mage");
- if(job==="mage"){hero.floating=true;hero.vx=0;hero.vy=0;}
  let cn=document.querySelector("#className");
  if(cn)cn.textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
 };
