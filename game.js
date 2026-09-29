@@ -549,7 +549,14 @@ function bossRectHit(x,y,range=.75){
 function spawnBossSingle(){
  let neutral=bossTier===2||Math.random()<.22;
  let type=neutral?-1:Math.floor(Math.random()*COLORS.length);
- let p={id:(Date.now()+Math.random()),x:Math.floor(Math.random()*Math.max(1,W-2)),y:-1,a:type,b:null,hpA:neutral?3:2,hpB:0,rot:0,targetX:0,targetRot:0,aiT:999};
+ let spawnX;
+ if(bossTier===2){
+  // Keep the moving-lift columns completely clear of falling slimes.
+  const liftCols=new Set(strongLiftRects().map(r=>Math.floor(r.x)));
+  const cols=[];for(let x=0;x<Math.max(1,W-2);x++)if(!liftCols.has(x))cols.push(x);
+  spawnX=cols[Math.floor(Math.random()*cols.length)]??0;
+ }else spawnX=Math.floor(Math.random()*Math.max(1,W-2));
+ let p={id:(Date.now()+Math.random()),x:spawnX,y:-1,a:type,b:null,hpA:neutral?3:2,hpB:0,rot:0,targetX:0,targetRot:0,aiT:999};
  p.targetX=p.x;pairs.push(p);
 }
 function spawnBossLeftNeutral(){
