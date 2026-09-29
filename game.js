@@ -77,7 +77,7 @@ function resolve(){
   if(g.length>=4)groups.push(g);
  }
  if(!groups.length){chain=0;return}
- chain++;chainPoints+=25*chain;document.querySelector("#chainPoints").textContent=bossMode?chainPoints:`${chainPoints} / ${GOAL}`;if(!bossMode&&chainPoints>=GOAL){finishStage();}
+ chain++;chainPoints+=25*chain;document.querySelector("#chainPoints").textContent=chainPoints;let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=GOAL;if(!bossMode&&chainPoints>=GOAL){finishStage();}
  groups.flat().forEach(([x,y])=>{board[y][x]=null;score+=10*chain;special=Math.min(100,special+3*chain)});
  setTimeout(()=>{gravity();resolve()},160);
 }
@@ -592,7 +592,7 @@ function resetStageBoard(){
  score=0;special=0;chain=0;chainPoints=0;cleared=false;gameOver=false;
  hero.x=W/2;hero.y=H-1.2;hero.vx=0;hero.vy=0;hero.grab=null;hero.carry=null;
  document.querySelector("#score").textContent=0;
- let cp=document.querySelector("#chainPoints");if(cp)cp.textContent=bossMode?"0":`0 / ${GOAL}`;
+ let cp=document.querySelector("#chainPoints");if(cp)cp.textContent="0";let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=GOAL;
  document.querySelector("#message").textContent="";
  document.querySelector("#message").classList.remove("clear");
 }
@@ -600,7 +600,7 @@ function updateStageHud(){
  let s=document.querySelector("#stageText");if(s)s.textContent=bossMode?(bossTier===3?"魔王":bossTier===2?"BOSS 2":"BOSS"):stage;
  let bh=document.querySelector("#bossHud");if(bh)bh.style.display=bossMode?"inline":"none";
  let hp=document.querySelector("#bossHpText");if(hp)hp.textContent=Math.max(0,bossHp)+" / "+bossMaxHp;
- let cp=document.querySelector("#chainPoints");if(cp)cp.textContent=bossMode?String(chainPoints):`${chainPoints} / ${GOAL}`;
+ let cp=document.querySelector("#chainPoints");if(cp)cp.textContent=String(chainPoints);let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=GOAL;
 }
 function showGameOver(){
  if(gameOver)return;gameOver=true;
@@ -764,7 +764,7 @@ function update(dt){
  updatePairs(dt);updateHero(dt);updateLiftRide();
  {let lateFast=(stage>=7&&!bossMode);fallSpeed=Math.min(lateFast?.00195:.00145,(lateFast?.00105:.00075)+score/9000000);}
  document.querySelector("#score").textContent=score;
- document.querySelector("#chainPoints").textContent=chainPoints;
+ document.querySelector("#chainPoints").textContent=chainPoints;let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=GOAL;
  document.querySelector("#specialText").textContent=Math.floor(special)+"%";
  document.querySelector("#specialBar").style.width=special+"%";
 }
