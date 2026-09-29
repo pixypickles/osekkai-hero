@@ -619,7 +619,7 @@ function resetStageBoard(){
 function updateStageHud(){
  let s=document.querySelector("#stageText");if(s)s.textContent=bossMode?(bossTier===3?"魔王":bossTier===2?"BOSS 2":"BOSS"):stage;
  let bh=document.querySelector("#bossHud");if(bh)bh.style.display=bossMode?"inline":"none";
- let hp=document.querySelector("#bossHpText");if(hp)hp.textContent=Math.max(0,bossHp)+" / "+bossMaxHp;
+ let hp=document.querySelector("#bossHpText");if(hp)hp.textContent=Math.max(0,bossHp)+" / "+bossMaxHp;let hb=document.querySelector("#bossHpBar");if(hb)hb.style.width=(bossMaxHp?Math.max(0,bossHp)/bossMaxHp*100:0)+"%";
  let cp=document.querySelector("#chainPoints");if(cp)cp.textContent=String(chainPoints);let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=gameMode==="endless"?"∞":GOAL;
 }
 function showGameOver(){
@@ -660,7 +660,7 @@ function startNormalStage(n){
  spawnClock=0;
  updateStageHud();
 }
-function strongLiftRects(){if(!bossMode||(bossTier!==2&&bossTier!==3))return [];if(bossTier===3){let t=performance.now()*.001;return [{x:2,y:3.0+(Math.sin(t*.68)+1)*(H-5.0)/2,w:1,h:.28,moving:true},{x:5,y:3.6+(Math.sin(t*.55+2.0)+1)*(H-5.8)/2,w:1,h:.28,moving:true}]}let t=performance.now()*.001;return [{x:1,y:2.2+(Math.sin(t*.72)+1)*(H-4.0)/2,w:1,h:.28,moving:true},{x:6,y:2.8+(Math.sin(t*.58+2.1)+1)*(H-4.6)/2,w:1,h:.28,moving:true},{x:4,y:H*.56,w:1,h:.28,moving:false}]}
+function strongLiftRects(){if(!bossMode||(bossTier!==2&&bossTier!==3))return [];if(bossTier===3){let t=performance.now()*.001;return [{x:2,y:H*.61+Math.sin(t*.62)*1.15,w:1,h:.28,moving:true},{x:5,y:H*.51+Math.sin(t*.52+2.0)*1.05,w:1,h:.28,moving:true}]}let t=performance.now()*.001;return [{x:1,y:2.2+(Math.sin(t*.72)+1)*(H-4.0)/2,w:1,h:.28,moving:true},{x:6,y:2.8+(Math.sin(t*.58+2.1)+1)*(H-4.6)/2,w:1,h:.28,moving:true},{x:4,y:H*.56,w:1,h:.28,moving:false}]}
 function bossPlatformAt(x,y){if(!bossMode)return false;if(bossTier===2||bossTier===3)return strongLiftRects().some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18);let ix=Math.floor(x),iy=Math.floor(y),c=W-1;return (ix===c&&iy>=H-3&&iy<H)||(ix===c-1&&iy>=H-2&&iy<H)||(ix===c-2&&iy===H-1)}
 function seedBossPlatforms(){
  let cells=[[1,H-1],[2,H-1],[4,H-1],[6,H-1],[6,H-2]];
@@ -674,7 +674,7 @@ function startBossStage(tier=1){
  resetStageBoard();
  hero.floating=playerClass==="mage";
  if(playerClass==="mage"){hero.y=H-3.0;hero.vy=0}else{hero.y=H-1.2;hero.vy=0}
- bossY=tier===3?H*.58:tier===2?H*.48:H-3.95;
+ bossY=tier===3?H*.68:tier===2?H*.48:H-3.95;
  if(tier!==3)seedBossPlatforms();
  updateStageHud();msg(tier===3?"魔王戦！":tier===2?"STRONG BOSS!":"BOSS!");
 }
@@ -707,7 +707,7 @@ function spawnBossLeftNeutral(){
 function updateBoss(dt){
  if(!bossMode)return;
  if(bossTier===3){
-  demonPhase+=dt*.00072;bossX=W*.5+Math.cos(demonPhase)*2.35;bossY=H*.59+Math.sin(demonPhase)*1.55;
+  demonPhase+=dt*.00072;bossX=W*.5+Math.cos(demonPhase)*2.35;bossY=H*.68+Math.sin(demonPhase)*1.05;
   demonSwordT-=dt;demonSwordFx=Math.max(0,demonSwordFx-dt);
   if(demonSwordT<=0&&Math.hypot(hero.x-bossX,hero.y-bossY)<1.55){
    demonSwordT=1250;demonSwordFx=300;

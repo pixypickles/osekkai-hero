@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>転生したら落ちゲーの中でした。Prototype v70</title><link rel="stylesheet" href="style.css">
+<title>転生したら落ちゲーの中でした。Prototype v71</title><link rel="stylesheet" href="style.css">
 <script>
 window.pendingClass=null;
 window.CLASS_HELP_SAFE={
@@ -42,7 +42,7 @@ window.startSelectedJob=function(){
  var overlay=document.getElementById("classSelect");if(overlay)overlay.style.display="none";
 };
 </script></head>
-<body><button type="button" onclick="openGameSettings()" style="position:fixed;right:10px;top:10px;z-index:70">⚙ 設定</button>
+<body><button type="button" onclick="openGameSettings()" style="position:fixed;right:10px;top:72px;z-index:70">⚙ 設定</button>
 <div id="settingsPanel" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(10,20,38,.9);align-items:center;justify-content:center;padding:20px"><div style="max-width:420px;width:100%;background:#263d5c;border:2px solid #91b7dc;border-radius:18px;padding:20px;color:white">
 <h2>ゲーム設定</h2>
 <label style="display:flex;justify-content:space-between;margin:18px 0"><span><b>シビアな押し潰し</b><br><small>OFF：にゅるっと脱出（デフォルト）<br>ON：下敷きでゲームオーバー</small></span><input id="setCrush" type="checkbox"></label>
@@ -64,8 +64,8 @@ window.startSelectedJob=function(){
 <button id="continueBtn" class="startBtn" style="display:none">コンティニュー</button>
 <button id="titleBtn" class="classBtn">タイトルへ戻る</button>
 </div></div><main>
-<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v70</small></div>
-<div class="hud"><span>STAGE <b id="stageText">1</b></span><span>連鎖P <b id="chainPoints">0</b>/<b id="goalPoints">12</b></span><span>SCORE <b id="score">0</b></span><span>必殺 <b id="specialText">0%</b></span><span id="bossHud" style="display:none">BOSS <b id="bossHpText">30</b></span><span id="modeText"></span><span id="modeTime"></span><button id="modeExitBtn" style="display:none">離脱</button></div>
+<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v71</small></div>
+<div class="hud"><span>STAGE <b id="stageText">1</b></span><span>連鎖P <b id="chainPoints">0</b>/<b id="goalPoints">12</b></span><span>SCORE <b id="score">0</b></span><span>必殺 <b id="specialText">0%</b></span><span id="bossHud" style="display:none">BOSS <b id="bossHpText">30</b></span><span id="bossHpGauge" style="display:inline-block;width:110px;height:9px;background:#2a2638;border-radius:8px;overflow:hidden;vertical-align:middle;margin-left:4px"><span id="bossHpBar" style="display:block;width:100%;height:100%;background:#e76565"></span></span><span id="modeText"></span><span id="modeTime"></span><button id="modeExitBtn" style="display:none">離脱</button></div>
 <div class="gauge"><div id="specialBar"></div></div>
 <canvas id="game" width="360" height="630"></canvas><div id="message"></div>
 <div class="controls">
@@ -73,4 +73,5 @@ window.startSelectedJob=function(){
  <div class="actions"><button data-key="grab">掴</button><button data-key="jump">跳</button><button data-key="attack">剣</button><button data-key="kick" class="kick">蹴</button></div>
 </div>
 <p id="className">職業: -</p><p class="help">方向キー＋攻撃 / 跳 / 攻撃長押し=チャージ必殺 / 魔法使い: 剣=炎・蹴=氷・掴=風・跳=浮遊</p>
-<script src="game.js?v=70"></script></main></body></html>
+<script src="game.js?v=71"></script></main></body></html>
+<style>#specialBar{max-width:100%} .specialMeter,.specialWrap{max-width:46%;}</style>
