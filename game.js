@@ -116,7 +116,7 @@ function updateLiftRide(){
  }
 }
 function heroSolidAt(x,y,prevY=null){
- if(bossMode&&bossTier===2){
+ if(bossMode&&(bossTier===2||bossTier===3)){
   for(const r of strongLiftRects()){
    if(x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18){
     // Moving lifts are one-way: rising through from below is allowed.
@@ -352,7 +352,8 @@ function spawnBat(){
 }
 function spawnSkeleton(){
  let fromLeft=Math.random()<.5;
- enemies.push({type:"skeleton",x:fromLeft?.35:W-.35,y:H-1.15,vx:0,vy:0,hp:2,t:15000,attackT:700+Math.random()*700,jumpT:900+Math.random()*1000,face:fromLeft?1:-1});
+ if(enemies.some(e=>e.type==="skeleton"&&!e.dead))return;
+ enemies.push({type:"skeleton",x:fromLeft?.35:W-.35,y:H-1.15,vx:0,vy:0,hp:2,t:15000,attackT:700+Math.random()*700,jumpT:900+Math.random()*1000,curseT:2600+Math.random()*2600,face:fromLeft?1:-1});
 }
 function enemyHitRay(x,y,dx,dy,range,width=.5,power=1){
  let best=null;
@@ -383,6 +384,19 @@ function updateEnemies(dt){
    if(Math.abs(dx)>.78)e.x+=Math.sign(dx)*.00115*dt;
    e.jumpT-=dt;if(e.jumpT<=0){e.vy=-.0105;e.jumpT=1300+Math.random()*1300}
    e.vy+=.000024*dt;e.y+=e.vy*dt;if(e.y>H-1.15){e.y=H-1.15;e.vy=0}
+   e.curseT-=dt;
+   if(e.curseT<=0){
+    let targets=[];
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]&&board[y][x].color!=="#aeb4bf")targets.push({kind:"board",x,y});
+    for(const p of pairs)for(const part of [0,1]){let v=part===0?p.a:p.b;if(v!=null&&v!==-1)targets.push({kind:"pair",p,part})}
+    if(targets.length){
+     let q=targets[Math.floor(Math.random()*targets.length)];
+     if(q.kind==="board"){q.board=board[q.y][q.x];q.board.color="#aeb4bf";q.board.hp=3;q.board.frozen=false;slimeHurtEffect(q.x+.5,q.y+.5,"#aeb4bf")}
+     else if(q.part===0){q.p.a=-1;q.p.hpA=3}else{q.p.b=-1;q.p.hpB=3}
+     msg("スケルトンがスライムを無色にした！");
+    }
+    e.curseT=4200+Math.random()*3600;
+   }
    e.attackT-=dt;
    if(Math.abs(hero.x-e.x)<1.05&&Math.abs(hero.y-e.y)<.85&&e.attackT<=0){
     e.attackT=1200;
@@ -402,6 +416,8 @@ function drawEnemies(){
    ctx.fillStyle="#ff6f8f";ctx.fillRect(-.08,-.04,.04,.04);ctx.fillRect(.04,-.04,.04,.04);
   }else{
    ctx.fillStyle="#ddd9cf";ctx.beginPath();ctx.arc(0,-.48,.22,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#392b48";ctx.beginPath();ctx.arc(-.075,-.51,.042,0,Math.PI*2);ctx.arc(.075,-.51,.042,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#9ef2ff";ctx.beginPath();ctx.arc(-.075,-.515,.018,0,Math.PI*2);ctx.arc(.075,-.515,.018,0,Math.PI*2);ctx.fill();
    ctx.strokeStyle="#d9d4ca";ctx.lineWidth=.09;ctx.beginPath();ctx.moveTo(0,-.25);ctx.lineTo(0,.35);ctx.moveTo(-.22,-.05);ctx.lineTo(.22,-.05);ctx.moveTo(0,.32);ctx.lineTo(-.2,.62);ctx.moveTo(0,.32);ctx.lineTo(.2,.62);ctx.stroke();
    ctx.strokeStyle="#d7e8ff";ctx.lineWidth=.055;ctx.beginPath();ctx.moveTo(.2*e.face,-.08);ctx.lineTo(.62*e.face,-.42);ctx.stroke();
   }ctx.restore()}
@@ -628,7 +644,7 @@ function startNormalStage(n){
  spawnClock=0;if(typeof spawnPair==="function")spawnPair();
  updateStageHud();
 }
-function strongLiftRects(){if(!bossMode||(bossTier!==2&&bossTier!==3))return [];if(bossTier===3)return [{x:2,y:H*.64,w:1,h:.28,moving:false},{x:5,y:H*.48,w:1,h:.28,moving:false}];let t=performance.now()*.001;return [{x:1,y:2.2+(Math.sin(t*.72)+1)*(H-4.0)/2,w:1,h:.28,moving:true},{x:6,y:2.8+(Math.sin(t*.58+2.1)+1)*(H-4.6)/2,w:1,h:.28,moving:true},{x:4,y:H*.56,w:1,h:.28,moving:false}]}
+function strongLiftRects(){if(!bossMode||(bossTier!==2&&bossTier!==3))return [];if(bossTier===3){let t=performance.now()*.001;return [{x:2,y:3.0+(Math.sin(t*.68)+1)*(H-5.0)/2,w:1,h:.28,moving:true},{x:5,y:3.6+(Math.sin(t*.55+2.0)+1)*(H-5.8)/2,w:1,h:.28,moving:true}]}let t=performance.now()*.001;return [{x:1,y:2.2+(Math.sin(t*.72)+1)*(H-4.0)/2,w:1,h:.28,moving:true},{x:6,y:2.8+(Math.sin(t*.58+2.1)+1)*(H-4.6)/2,w:1,h:.28,moving:true},{x:4,y:H*.56,w:1,h:.28,moving:false}]}
 function bossPlatformAt(x,y){if(!bossMode)return false;if(bossTier===2||bossTier===3)return strongLiftRects().some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18);let ix=Math.floor(x),iy=Math.floor(y),c=W-1;return (ix===c&&iy>=H-3&&iy<H)||(ix===c-1&&iy>=H-2&&iy<H)||(ix===c-2&&iy===H-1)}
 function seedBossPlatforms(){
  let cells=[[1,H-1],[2,H-1],[4,H-1],[6,H-1],[6,H-2]];
@@ -643,7 +659,7 @@ function startBossStage(tier=1){
  hero.floating=playerClass==="mage";
  if(playerClass==="mage"){hero.y=H-3.0;hero.vy=0}else{hero.y=H-1.2;hero.vy=0}
  bossY=tier===3?H*.58:tier===2?H*.48:H-3.95;
- seedBossPlatforms();
+ if(tier!==3)seedBossPlatforms();
  updateStageHud();msg(tier===3?"魔王戦！":tier===2?"STRONG BOSS!":"BOSS!");
 }
 function bossDamage(amount,label="HIT!"){
