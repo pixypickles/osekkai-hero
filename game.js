@@ -474,11 +474,12 @@ function cancelBossFireAlong(x,y,dx,dy,range,label){
 }
 function bossChargeProjectile(){
  if(!bossMode||(playerClass!=="hero"&&playerClass!=="monk"))return false;
- let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}
- let col=playerClass==="hero"?"#ffe38a":"#9dffb0";
- effects.push({x:hero.x,y:hero.y,t:520,max:520,type:"projectile",color:col,dx,dy});
- cancelBossFireAlong(hero.x,hero.y,dx,dy,5.2,playerClass==="hero"?"聖剣波で相殺！":"気功波で相殺！");
- if(attackHitsBoss(hero.x,hero.y,dx,dy,5.8,.55))bossDamage(playerClass==="hero"?2:2,playerClass==="hero"?"聖剣波！":"気功波！");
+ let tx=bossTier===3?bossX:W-.62,ty=bossY,rx=tx-hero.x,ry=ty-hero.y,len=Math.hypot(rx,ry)||1,dx=rx/len,dy=ry/len;
+ let isHero=playerClass==="hero",col=isHero?"#ff334f":"#9dffb0";
+ effects.push({x:hero.x,y:hero.y,t:1050,max:1050,type:isHero?"crescentProjectile":"projectile",color:col,dx,dy,speed:.0105,pierce:true});
+ // Boss-only charged shots ignore slimes/platforms and reach across the whole arena.
+ cancelBossFireAlong(hero.x,hero.y,dx,dy,14,isHero?"聖剣波で相殺！":"気功波で相殺！");
+ if(attackHitsBoss(hero.x,hero.y,dx,dy,14,1.0))bossDamage(2,isHero?"聖剣波！":"気功波！");
  return true;
 }
 function attack(){
@@ -673,7 +674,7 @@ function startNormalStage(n){
  updateStageHud();
 }
 function strongLiftRects(){if(!bossMode||(bossTier!==2&&bossTier!==3))return [];if(bossTier===3){let t=performance.now()*.001;return [{x:2,y:H*.72+Math.sin(t*.62)*.75,w:1,h:.28,moving:true},{x:5,y:H*.63+Math.sin(t*.52+2.0)*.7,w:1,h:.28,moving:true}]}let t=performance.now()*.001;return [{x:1,y:2.2+(Math.sin(t*.72)+1)*(H-4.0)/2,w:1,h:.28,moving:true},{x:6,y:2.8+(Math.sin(t*.58+2.1)+1)*(H-4.6)/2,w:1,h:.28,moving:true},{x:4,y:H*.56,w:1,h:.28,moving:false}]}
-function bossPlatformAt(x,y){if(!bossMode)return false;if(bossTier===2||bossTier===3)return strongLiftRects().some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18);let ix=Math.floor(x),iy=Math.floor(y),c=Math.floor(W/2);return (ix===c&&iy>=H-3&&iy<H)||(ix===c-1&&iy>=H-2&&iy<H)||(ix===c-2&&iy===H-1)}
+function bossPlatformAt(x,y){if(!bossMode)return false;if(bossTier===2||bossTier===3)return strongLiftRects().some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18);return false}
 function seedBossPlatforms(){
  let cells=[[1,H-1],[2,H-1],[4,H-1],[6,H-1],[6,H-2]];
  for(const [x,y] of cells)if(x>=0&&x<W&&y>=0&&y<H&&!board[y][x])board[y][x]=makeSlime(-1);
@@ -687,7 +688,7 @@ function startBossStage(tier=1){
  hero.floating=playerClass==="mage";
  if(playerClass==="mage"){hero.y=H-3.0;hero.vy=0}else{hero.y=H-1.2;hero.vy=0}
  bossY=tier===3?H*.68:tier===2?H*.48:H-3.95;
- if(tier!==3)seedBossPlatforms();
+ /* Boss arenas stay clear: no seeded footholds. */
  updateStageHud();msg(tier===3?"魔王戦！":tier===2?"STRONG BOSS!":"BOSS!");
 }
 function bossDamage(amount,label="HIT!"){
@@ -941,7 +942,10 @@ function drawEffects(){
    if(e.type==="hit"){
      ctx.strokeStyle="#fff6b0";ctx.lineWidth=.06;
      for(let i=0;i<6;i++){let a=i*Math.PI/3,r=.12+p*.32;ctx.beginPath();ctx.moveTo(e.x+Math.cos(a)*.05,e.y+Math.sin(a)*.05);ctx.lineTo(e.x+Math.cos(a)*r,e.y+Math.sin(a)*r);ctx.stroke()}
-   }else if(e.type==="projectile"){let q=1-e.t/e.max;ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(e.x+(e.dx||0)*q*4,e.y+(e.dy||0)*q*4,.13,0,Math.PI*2);ctx.fill();
+   }else if(e.type==="crescentProjectile"){
+   let q=1-e.t/e.max,px=e.x+(e.dx||0)*q*10,py=e.y+(e.dy||0)*q*10,ang=Math.atan2(e.dy||0,e.dx||1);
+   ctx.save();ctx.translate(px,py);ctx.rotate(ang);ctx.strokeStyle=e.color||"#ff334f";ctx.lineWidth=.14;ctx.beginPath();ctx.arc(0,0,.38,-1.15,1.15);ctx.stroke();ctx.strokeStyle="rgba(255,170,170,.55)";ctx.lineWidth=.06;ctx.beginPath();ctx.arc(-.08,0,.5,-1.05,1.05);ctx.stroke();ctx.restore();
+  }else if(e.type==="projectile"){let q=1-e.t/e.max;ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(e.x+(e.dx||0)*q*4,e.y+(e.dy||0)*q*4,.13,0,Math.PI*2);ctx.fill();
    }else if(e.type==="wind"){let q=1-e.t/e.max,xx=e.x+(e.dx||0)*q*4;ctx.strokeStyle=e.color;ctx.lineWidth=.05;ctx.beginPath();ctx.arc(xx,e.y,.12+.1*q,0,Math.PI*1.7);ctx.stroke();
    }else if(e.type==="wave"){
      ctx.strokeStyle=e.color;ctx.lineWidth=.13*(1-p)+.035;
