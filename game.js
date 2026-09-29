@@ -93,6 +93,19 @@ function gravity(){
  }
 }
 function solidAt(x,y){let ix=Math.floor(x),iy=Math.floor(y);return ix<0||ix>=W||iy>=H||bossPlatformAt(x,y)||(iy>=0&&board[iy][ix])}
+function heroSolidAt(x,y,prevY=null){
+ if(bossMode&&bossTier===2){
+  for(const r of strongLiftRects()){
+   if(x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18){
+    // Moving lifts are one-way: rising through from below is allowed.
+    if(prevY!=null&&prevY>r.y+.18)return false;
+    return true;
+   }
+  }
+ }
+ let ix=Math.floor(x),iy=Math.floor(y);
+ return ix<0||ix>=W||iy>=H||(bossTier===1&&bossPlatformAt(x,y))||(iy>=0&&board[iy][ix]);
+}
 function pairRect(p,part){
  if(!p)return null;
  if(part===0&&p.a==null)return null;if(part===1&&p.b==null)return null;
@@ -142,7 +155,7 @@ function destroyHeroGrabbed(){
  hero.grab=null;return false;
 }
 function updateHero(dt){
- if(hero.stun>0){hero.stun=Math.max(0,hero.stun-dt);hero.vy+=.000024*dt;let sx=Math.max(.3,Math.min(W-.3,hero.x+hero.vx*dt));if(!solidAt(sx,hero.y)&&!heroHitsPair(sx,hero.y))hero.x=sx;else hero.vx=0;let sy=Math.min(H-.48,hero.y+hero.vy*dt);if(!solidAt(hero.x,sy)&&!heroHitsPair(hero.x,sy))hero.y=sy;else hero.vy=0;hero.vx*=Math.pow(.985,dt/16.67);return}
+ if(hero.stun>0){hero.stun=Math.max(0,hero.stun-dt);hero.vy+=.000024*dt;let sx=Math.max(.3,Math.min(W-.3,hero.x+hero.vx*dt));if(!solidAt(sx,hero.y)&&!heroHitsPair(sx,hero.y))hero.x=sx;else hero.vx=0;let sy=Math.min(H-.48,hero.y+hero.vy*dt);if(!heroSolidAt(hero.x,sy,hero.y)&&!heroHitsPair(hero.x,sy))hero.y=sy;else hero.vy=0;hero.vx*=Math.pow(.985,dt/16.67);return}
  if(playerClass==="mage"){
   hero.grab=null;hero.onGround=false;
   let ax=(keys.right?1:0)-(keys.left?1:0),ay=(keys.down?1:0)-(keys.up?1:0);
@@ -151,7 +164,7 @@ function updateHero(dt){
   hero.vx=Math.max(-.0048,Math.min(.0048,hero.vx));hero.vy=Math.max(-.0048,Math.min(.0048,hero.vy));
   let nx=Math.max(.3,Math.min(W-.3,hero.x+hero.vx*dt)),ny=Math.max(.5,Math.min(H-.5,hero.y+hero.vy*dt));
   if(!solidAt(nx,hero.y)&&!heroHitsPair(nx,hero.y))hero.x=nx;else hero.vx=0;
-  if(!solidAt(hero.x,ny)&&!heroHitsPair(hero.x,ny))hero.y=ny;else hero.vy=0;
+  if(!heroSolidAt(hero.x,ny,hero.y)&&!heroHitsPair(hero.x,ny))hero.y=ny;else hero.vy=0;
   if(keys.attack)hero.charge=Math.min(100,hero.charge+dt*.09);
   return;
  }
@@ -324,7 +337,7 @@ function attack(){
  if(playerClass==="hero"&&hero.grab){hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;destroyHeroGrabbed();return}
  if(charged&&special>=100){doSpecial();return}
  hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;
- if(playerClass==="hero"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.55,"聖剣で相殺！"))return;if(attackHitsBoss(hero.x,hero.y,dx,dy,1.8,.45)){bossDamage(1,"剣撃！");return}}
+ if(playerClass==="hero"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.55,"聖剣で相殺！"))return;if(attackHitsBoss(hero.x,hero.y,dx,dy,1.8,.45)){bossDamage(2,"剣撃！");return}}
 
  if(playerClass==="mage"){
   let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}
@@ -336,7 +349,7 @@ function attack(){
    let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){hitEffect(tx+.5,ty+.5,"#ff8a3d");if(board[ty][tx].frozen){board[ty][tx].frozen=false;msg("解凍！");gravity();resolve();return}board[ty][tx]=null;gravity();resolve();return}
   }return;
  }
- if(playerClass==="monk"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.25,"拳で相殺！"))return;if(attackHitsBoss(hero.x,hero.y,dx,dy,1.5,.45)){bossDamage(1,"拳撃！");return}}
+ if(playerClass==="monk"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.25,"拳で相殺！"))return;if(attackHitsBoss(hero.x,hero.y,dx,dy,1.5,.45)){bossDamage(2,"拳撃！");return}}
  if(playerClass==="monk"){
    // UP: uppercut. Counter/destroy a slime directly overhead, including falling slime.
    if(keys.up){
@@ -414,7 +427,7 @@ function kickHeroGrabbed(){
 }
 function kick(){
  if(playerClass==="hero"&&hero.grab&&kickHeroGrabbed())return;
- if(playerClass==="hero"&&bossMode&&bossRectHit(hero.x+hero.face*1.0,hero.y,.9)){hero.kickT=180;bossDamage(1,"蹴り！");return}
+ if(playerClass==="hero"&&bossMode&&bossRectHit(hero.x+hero.face*1.0,hero.y,.9)){hero.kickT=180;bossDamage(2,"蹴り！");return}
  hero.kickT=180;let dir=hero.face,hy=Math.floor(hero.y);
  if(playerClass==="mage"){
   let dir=hero.face;effects.push({x:hero.x,y:hero.y,t:360,max:360,type:"projectile",color:"#9de9ff",dx:dir,dy:0});
@@ -423,7 +436,7 @@ function kick(){
    let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){board[ty][tx].frozen=true;msg("凍結！");return}
   }return;
  }
- if(playerClass==="monk"&&bossMode&&bossRectHit(hero.x+hero.face*1.0,hero.y,1.0)){hero.kickT=180;bossDamage(1,"モンクキック！");return}
+ if(playerClass==="monk"&&bossMode&&bossRectHit(hero.x+hero.face*1.0,hero.y,1.0)){hero.kickT=180;bossDamage(2,"モンクキック！");return}
  if(playerClass==="monk"){
    let best=null;for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let d=Math.hypot(p.x+.5-hero.x,p.y+part+.5-hero.y);if(d<1.2&&(!best||d<best.d))best={p,part,d}}
    if(best){let nx=best.p.x;if(nx+dir<0||nx+dir>=W){if(best.part===0)best.p.a=null;else best.p.b=null;return}while(nx+dir>=0&&nx+dir<W&&!board[Math.max(0,Math.floor(best.p.y+best.part))]?.[nx+dir])nx+=dir;if(nx===best.p.x){if(best.part===0)best.p.a=null;else best.p.b=null}else best.p.x=nx;return}
@@ -507,7 +520,7 @@ function startNormalStage(n){
  spawnClock=0;if(typeof spawnPair==="function")spawnPair();
  updateStageHud();
 }
-function strongLiftRects(){if(!bossMode||bossTier!==2)return [];let t=performance.now()*.001;return [{x:2,y:3.2+(Math.sin(t*.72)+1)*2.2,w:2,h:.34},{x:5,y:5+(Math.sin(t*.58+2.1)+1)*1.8,w:2,h:.34}]}
+function strongLiftRects(){if(!bossMode||bossTier!==2)return [];let t=performance.now()*.001;return [{x:2,y:2.2+(Math.sin(t*.72)+1)*(H-4.0)/2,w:1,h:.28},{x:5,y:2.8+(Math.sin(t*.58+2.1)+1)*(H-4.6)/2,w:1,h:.28}]}
 function bossPlatformAt(x,y){if(!bossMode)return false;if(bossTier===2)return strongLiftRects().some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18);let ix=Math.floor(x),iy=Math.floor(y),c=W-1;return (ix===c&&iy>=H-3&&iy<H)||(ix===c-1&&iy>=H-2&&iy<H)||(ix===c-2&&iy===H-1)}
 function seedBossPlatforms(){
  let cells=[[1,H-1],[2,H-1],[4,H-1],[6,H-1],[6,H-2]];
