@@ -70,7 +70,7 @@ function settlePair(p){
 }
 function resolve(){
  let groups=[],vis=Array.from({length:H},()=>Array(W).fill(false));
- for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]&&!board[y][x].frozen&&!vis[y][x]){
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]&&!board[y][x].frozen&&board[y][x].color!=="#aeb4bf"&&!vis[y][x]){
   let q=[[x,y]],g=[],col=board[y][x].color;vis[y][x]=true;
   while(q.length){let [cx,cy]=q.pop();g.push([cx,cy]);for(const[dX,dY]of[[1,0],[-1,0],[0,1],[0,-1]]){let nx=cx+dX,ny=cy+dY;if(nx>=0&&nx<W&&ny>=0&&ny<H&&!vis[ny][nx]&&board[ny][nx]?.color===col&&!board[ny][nx]?.frozen){vis[ny][nx]=true;q.push([nx,ny])}}}
   if(g.length>=4)groups.push(g);
@@ -564,7 +564,7 @@ bossLeftT-=dt;
 if(bossLeftT<=0){
  spawnBossLeftNeutral();
  // One-by-one neutral slimes keep threatening the far-left column.
- bossLeftT=bossTier===2?1250:1550;
+ bossLeftT=bossTier===2?2800:3400;
 }
  if(bossHitT>0)bossHitT-=dt;
  bossFireT-=dt;
