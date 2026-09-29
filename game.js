@@ -50,7 +50,8 @@ function pairBlocked(p,nextY,nextX=p.x,nextOrient=p.orient){
  return false;
 }
 function updatePairs(dt){
- spawnClock+=dt;if(pairs.length===0||(spawnClock>720&&pairs.every(p=>p.y>1.7))){spawnPair();spawnClock=0}
+ spawnClock+=dt;
+ if(!(bossMode&&bossTier===3)&&(pairs.length===0||(spawnClock>720&&pairs.every(p=>p.y>1.7)))){spawnPair();spawnClock=0}
  let landed=[];
  for(const p of [...pairs].sort((a,b)=>b.y-a.y)){
   p.aiClock+=dt;
@@ -444,14 +445,6 @@ function attackHitsBoss(x,y,dx,dy,range,width=.55){
 function cancelBossFireAlong(x,y,dx,dy,range,label){
  if(!bossMode||!bossFireballs.length)return false;
  let best=null;
- if(bossTier===3){
-  demonSwordT-=dt;
-  if(demonSwordT<=0&&Math.hypot(hero.x-bossX,hero.y-bossY)<1.55){
-   demonSwordT=1250;
-   if(hero.guard&&(playerClass==="hero"||playerClass==="monk"))msg("魔王の剣をガード！");
-   else knockHero(hero.x<bossX?-1:1,"魔王の剣！ 2秒ダウン！");
-  }
- }
  for(const f of bossFireballs){
   let rx=f.x-x,ry=f.y-y,along=rx*dx+ry*dy,side=Math.abs(rx*(-dy)+ry*dx);
   if(along>=0&&along<=range&&side<.42&&(!best||along<best.along))best={f,along};
@@ -693,6 +686,12 @@ function updateBoss(dt){
  if(!bossMode)return;
  if(bossTier===3){
   demonPhase+=dt*.00072;bossX=W*.5+Math.cos(demonPhase)*2.35;bossY=H*.59+Math.sin(demonPhase)*1.55;
+  demonSwordT-=dt;
+  if(demonSwordT<=0&&Math.hypot(hero.x-bossX,hero.y-bossY)<1.55){
+   demonSwordT=1250;
+   if(hero.guard&&(playerClass==="hero"||playerClass==="monk"))msg("魔王の剣をガード！");
+   else knockHero(hero.x<bossX?-1:1,"魔王の剣！ 2秒ダウン！");
+  }
  }else if(bossTier===2){
   bossY+=bossDir*.00115*dt;
   if(bossY>H-2.2){bossY=H-2.2;bossDir=-1}
