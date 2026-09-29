@@ -1,6 +1,6 @@
 const cv=document.querySelector("#game"),ctx=cv.getContext("2d");
 const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
-let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,chainPoints=0,GOAL=300,gameOver=false,cleared=false,playerClass=null,activeJob=null;
+let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,chainPoints=0,GOAL=300,gameOver=false,cleared=false,playerClass=null;
 let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossLeftT=0,bossFireT=1200,bossFireballs=[]; let bossOnlyRun=false;
 let enemies=[],enemySpawnT=0,demonSwordT=0,demonPhase=0,bossX=W-.62;
 
@@ -181,7 +181,7 @@ function updateHero(dt){
  updateLiftRide();
  if(hero.guard&&!keys.grab)hero.guard=false;
  if(hero.stun>0){hero.stun=Math.max(0,hero.stun-dt);hero.vy+=.000024*dt;let sx=Math.max(.3,Math.min(W-.3,hero.x+hero.vx*dt));if(!solidAt(sx,hero.y)&&!heroHitsPair(sx,hero.y))hero.x=sx;else hero.vx=0;let sy=Math.min(H-.48,hero.y+hero.vy*dt);if(!heroSolidAt(hero.x,sy,hero.y)&&!heroHitsPair(hero.x,sy))hero.y=sy;else hero.vy=0;hero.vx*=Math.pow(.985,dt/16.67);return}
- if((activeJob||playerClass)==="mage"){
+ if(playerClass==="mage"){
   hero.grab=null;hero.onGround=false;
   let ax=(keys.right?1:0)-(keys.left?1:0),ay=(keys.down?1:0)-(keys.up?1:0);
   hero.vx=hero.vx*(ax?0.78:0.42)+ax*.00070*dt;
@@ -277,10 +277,10 @@ function updateHero(dt){
        hero.x=Math.max(.3,Math.min(W-.3,hero.x+escape*.68));
        hero.vy=0;
      }
-   }else if(hero.vy>0){hero.y=ph.r.t-hero.h/2;hero.vy=0;hero.onGround=true;if((activeJob||playerClass)==="monk")hero.jumps=0}
+   }else if(hero.vy>0){hero.y=ph.r.t-hero.h/2;hero.vy=0;hero.onGround=true;if(playerClass==="monk")hero.jumps=0}
    else if(hero.vy<0){hero.y=ph.r.b+hero.h/2;hero.vy=.0015}
  }else if(hero.vy>=0&&solidAt(hero.x,ny+hero.h/2)){
-   hero.vy=0;hero.y=Math.floor(ny+hero.h/2)-hero.h/2;hero.onGround=true;if((activeJob||playerClass)==="monk")hero.jumps=0;
+   hero.vy=0;hero.y=Math.floor(ny+hero.h/2)-hero.h/2;hero.onGround=true;if(playerClass==="monk")hero.jumps=0;
  }else if(hero.vy<0&&solidAt(hero.x,ny-hero.h/2)){hero.vy=.002}else hero.y=ny;
  if(hero.y>H){hero.y=H-1.5;hero.vy=0}
  if(keys.attack)hero.charge=Math.min(100,hero.charge+dt*.09);
@@ -318,9 +318,9 @@ function mageGustPush(){
  }
 }
 function jump(){
- if((activeJob||playerClass)==="hero"&&hero.grab){releaseHeroGrab();hero.vy=-.0128;hero.onGround=false;return}
- if((activeJob||playerClass)==="mage"){mageGustPush();return}
- if((activeJob||playerClass)==="monk"){
+ if(playerClass==="hero"&&hero.grab){releaseHeroGrab();hero.vy=-.0128;hero.onGround=false;return}
+ if(playerClass==="mage"){mageGustPush();return}
+ if(playerClass==="monk"){
    // Monk cannot jump from a grabbed slime. He gets a true double jump instead.
    if(hero.grab)return;
    if(hero.onGround){hero.jumps=0;hero.vy=-.0128;hero.jumps=1;hero.onGround=false;return}
@@ -400,7 +400,7 @@ function updateEnemies(dt){
    e.attackT-=dt;
    if(Math.abs(hero.x-e.x)<1.05&&Math.abs(hero.y-e.y)<.85&&e.attackT<=0){
     e.attackT=1200;
-    if(hero.guard&&((activeJob||playerClass)==="hero"||(activeJob||playerClass)==="monk"))msg("ガード！");
+    if(hero.guard&&(playerClass==="hero"||playerClass==="monk"))msg("ガード！");
     else knockHero(e.face,"スケルトンの剣！ 2秒ダウン！");
    }
   }
@@ -440,7 +440,7 @@ function cancelBossFireAlong(x,y,dx,dy,range,label){
   demonSwordT-=dt;
   if(demonSwordT<=0&&Math.hypot(hero.x-bossX,hero.y-bossY)<1.55){
    demonSwordT=1250;
-   if(hero.guard&&((activeJob||playerClass)==="hero"||(activeJob||playerClass)==="monk"))msg("魔王の剣をガード！");
+   if(hero.guard&&(playerClass==="hero"||playerClass==="monk"))msg("魔王の剣をガード！");
    else knockHero(hero.x<bossX?-1:1,"魔王の剣！ 2秒ダウン！");
   }
  }
@@ -454,13 +454,13 @@ function cancelBossFireAlong(x,y,dx,dy,range,label){
 }
 function attack(){
  let charged=hero.charge>=75;hero.charge=0;
- if((activeJob||playerClass)==="hero"&&hero.grab){hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;destroyHeroGrabbed();return}
+ if(playerClass==="hero"&&hero.grab){hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;destroyHeroGrabbed();return}
  if(charged&&special>=100){doSpecial();return}
  hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;
- if((activeJob||playerClass)==="hero"&&!bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(enemyHitRay(hero.x,hero.y,dx,dy,charged?2.05:1.25,.55,charged?2:1))return}
- if((activeJob||playerClass)==="hero"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.55,"聖剣で相殺！"))return;if(attackHitsBoss(hero.x,hero.y,dx,dy,1.8,.45)){bossDamage(2,"剣撃！");return}}
+ if(playerClass==="hero"&&!bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(enemyHitRay(hero.x,hero.y,dx,dy,charged?2.05:1.25,.55,charged?2:1))return}
+ if(playerClass==="hero"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.55,"聖剣で相殺！"))return;if(attackHitsBoss(hero.x,hero.y,dx,dy,1.8,.45)){bossDamage(2,"剣撃！");return}}
 
- if((activeJob||playerClass)==="mage"){
+ if(playerClass==="mage"){
   let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}
   effects.push({x:hero.x,y:hero.y,t:360,max:360,type:"projectile",color:"#ff8a3d",dx,dy});
   if(!bossMode&&enemyHitRay(hero.x,hero.y,dx,dy,4.8,.48,1))return;
@@ -471,9 +471,9 @@ function attack(){
    let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){hitEffect(tx+.5,ty+.5,"#ff8a3d");if(board[ty][tx].frozen){board[ty][tx].frozen=false;msg("解凍！");gravity();resolve();return}board[ty][tx]=null;gravity();resolve();return}
   }return;
  }
- if((activeJob||playerClass)==="monk"&&!bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(enemyHitRay(hero.x,hero.y,dx,dy,1.45,.6,1))return}
- if((activeJob||playerClass)==="monk"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.25,"拳で相殺！"))return;if(attackHitsBoss(hero.x,hero.y,dx,dy,1.5,.45)){bossDamage(2,"拳撃！");return}}
- if((activeJob||playerClass)==="monk"){
+ if(playerClass==="monk"&&!bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(enemyHitRay(hero.x,hero.y,dx,dy,1.45,.6,1))return}
+ if(playerClass==="monk"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.25,"拳で相殺！"))return;if(attackHitsBoss(hero.x,hero.y,dx,dy,1.5,.45)){bossDamage(2,"拳撃！");return}}
+ if(playerClass==="monk"){
    // UP: uppercut. Counter/destroy a slime directly overhead, including falling slime.
    if(keys.up){
      let best=null;
@@ -512,14 +512,14 @@ function attack(){
 }
 function grab(){
  hero.guard=false;hero.grabT=220;hero.grabHold=0;hero.grabColorTick=0;
- if((activeJob||playerClass)==="mage"){
+ if(playerClass==="mage"){
   hero.grabT=180;let dir=hero.face;effects.push({x:hero.x,y:hero.y,t:420,max:420,type:"wind",color:"#c8f2ff",dx:dir,dy:0});
   for(let r=.45;r<=4.5;r+=.25){let fx=hero.x+dir*r,fy=hero.y;
    for(const p of pairs){for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;if(Math.abs(pairPos(p,part).x+.5-fx)<.4&&Math.abs(pairPos(p,part).y+.5-fy)<.42){if(p.a!=null&&p.b!=null){[p.a,p.b]=[p.b,p.a];[p.hpA,p.hpB]=[p.hpB,p.hpA];msg("風転！")}return}}}
    let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=1&&ty<H&&board[ty][tx]){let t=board[ty][tx];board[ty][tx]=board[ty-1][tx];board[ty-1][tx]=t;msg("風転！");return}
   }return;
  }
- if((activeJob||playerClass)==="monk"){
+ if(playerClass==="monk"){
    if(hero.carry){let tx=Math.max(0,Math.min(W-1,Math.floor(hero.x+hero.face*.7))),ty=Math.max(0,Math.min(H-1,Math.floor(hero.y)));if(!board[ty][tx]){board[ty][tx]=hero.carry;hero.carry=null;gravity();resolve()}return}
    let best=null;for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let d=Math.hypot(p.x+.5-hero.x,p.y+part+.5-hero.y);if(d<1.55&&(!best||d<best.d))best={p,part,d}}
    if(best){let type=best.part===0?best.p.a:best.p.b;if(best.part===0)best.p.a=null;else best.p.b=null;hero.carry=makeSlime(type);return}
@@ -550,18 +550,18 @@ function kickHeroGrabbed(){
  return false;
 }
 function kick(){
- if((activeJob||playerClass)==="hero"&&hero.grab&&kickHeroGrabbed())return;
- if((activeJob||playerClass)==="hero"&&bossMode&&bossRectHit(hero.x+hero.face*1.0,hero.y,.9)){hero.kickT=180;bossDamage(2,"蹴り！");return}
+ if(playerClass==="hero"&&hero.grab&&kickHeroGrabbed())return;
+ if(playerClass==="hero"&&bossMode&&bossRectHit(hero.x+hero.face*1.0,hero.y,.9)){hero.kickT=180;bossDamage(2,"蹴り！");return}
  hero.kickT=180;let dir=hero.face,hy=Math.floor(hero.y);
- if((activeJob||playerClass)==="mage"){
+ if(playerClass==="mage"){
   let dir=hero.face;effects.push({x:hero.x,y:hero.y,t:360,max:360,type:"projectile",color:"#9de9ff",dx:dir,dy:0});
   for(let r=.45;r<=4.5;r+=.25){let fx=hero.x+dir*r,fy=hero.y;if(bossRectHit(fx,fy,.55)){bossDamage(1,"アイスショット！");return}
    for(const p of [...pairs])for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;if(Math.abs(pairPos(p,part).x+.5-fx)<.38&&Math.abs(pairPos(p,part).y+.5-fy)<.42){let type=part===0?p.a:p.b,ty=Math.max(0,Math.min(H-1,Math.floor(p.y+part+.5)));if(!board[ty][p.x]){let s=makeSlime(type);s.frozen=true;board[ty][p.x]=s;if(part===0)p.a=null;else p.b=null;msg("凍結！")}return}}
    let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){board[ty][tx].frozen=true;msg("凍結！");return}
   }return;
  }
- if((activeJob||playerClass)==="monk"&&bossMode&&bossRectHit(hero.x+hero.face*1.0,hero.y,1.0)){hero.kickT=180;bossDamage(2,"モンクキック！");return}
- if((activeJob||playerClass)==="monk"){
+ if(playerClass==="monk"&&bossMode&&bossRectHit(hero.x+hero.face*1.0,hero.y,1.0)){hero.kickT=180;bossDamage(2,"モンクキック！");return}
+ if(playerClass==="monk"){
    let best=null;for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;let d=Math.hypot(p.x+.5-hero.x,p.y+part+.5-hero.y);if(d<1.2&&(!best||d<best.d))best={p,part,d}}
    if(best){let nx=best.p.x;if(nx+dir<0||nx+dir>=W){if(best.part===0)best.p.a=null;else best.p.b=null;return}while(nx+dir>=0&&nx+dir<W&&!board[Math.max(0,Math.floor(best.p.y+best.part))]?.[nx+dir])nx+=dir;if(nx===best.p.x){if(best.part===0)best.p.a=null;else best.p.b=null}else best.p.x=nx;return}
    let tx=Math.floor(hero.x+dir*.82),ty=hy;if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){let m=board[ty][tx],nx=tx;board[ty][tx]=null;if(nx+dir<0||nx+dir>=W||board[ty][nx+dir]){}else{while(nx+dir>=0&&nx+dir<W&&!board[ty][nx+dir])nx+=dir;board[ty][nx]=m}gravity();resolve()}return;
@@ -580,9 +580,9 @@ function kick(){
 }
 function doSpecial(){
  if(special<100)return;special=0;
- let target=(activeJob||playerClass)==="monk"?COLORS[0]:(activeJob||playerClass)==="mage"?COLORS[2]:COLORS[1];
- let name=(activeJob||playerClass)==="monk"?"翠気功波！":(activeJob||playerClass)==="mage"?"蒼氷解放！":"紅蓮斬！";
- for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]){if(board[y][x].color===target)board[y][x]=null;else if((activeJob||playerClass)==="mage")board[y][x].frozen=false}
+ let target=playerClass==="monk"?COLORS[0]:playerClass==="mage"?COLORS[2]:COLORS[1];
+ let name=playerClass==="monk"?"翠気功波！":playerClass==="mage"?"蒼氷解放！":"紅蓮斬！";
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]){if(board[y][x].color===target)board[y][x]=null;else if(playerClass==="mage")board[y][x].frozen=false}
  for(const p of pairs){if(p.a!=null&&COLORS[p.a]===target)p.a=null;if(p.b!=null&&COLORS[p.b]===target)p.b=null}
  effects.push({x:hero.x,y:hero.y,t:520,max:520,type:"wave",color:target});gravity();resolve();msg(name);
 }
@@ -613,12 +613,12 @@ function showGameOver(){
 }
 window.beginBossOnly=function(job){
  if(!job)return; bossOnlyRun=true;
- activeJob=job;selectedClass=job;playerClass=job;
- hero.floating=(activeJob||playerClass)==="mage";
+ selectedClass=job;playerClass=job;
+ hero.floating=playerClass==="mage";
  setActionLabels();
  startBossStage();
  let cn=document.querySelector("#className");
- if(cn)cn.textContent="職業: "+((activeJob||playerClass)==="hero"?"勇者（赤・紅蓮斬）":(activeJob||playerClass)==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
+ if(cn)cn.textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
 };
 function finishStage(){
  if(cleared)return;cleared=true;
@@ -649,8 +649,8 @@ function startBossStage(tier=1){
  bossMode=true;bossTier=tier;bossMaxHp=tier===3?64:tier===2?48:30;bossHp=bossMaxHp;bossLeftT=450;enemies=[];demonPhase=0;demonSwordT=900;
  bossSpawnT=0;bossFireT=tier===3?1100:tier===2?650:900;bossFireballs=[];bossDir=1;
  resetStageBoard();
- hero.floating=(activeJob||playerClass)==="mage";
- if((activeJob||playerClass)==="mage"){hero.y=H-3.0;hero.vy=0}else{hero.y=H-1.2;hero.vy=0}
+ hero.floating=playerClass==="mage";
+ if(playerClass==="mage"){hero.y=H-3.0;hero.vy=0}else{hero.y=H-1.2;hero.vy=0}
  bossY=tier===3?H*.58:tier===2?H*.48:H-3.95;
  if(tier!==3)seedBossPlatforms();
  updateStageHud();msg(tier===3?"魔王戦！":tier===2?"STRONG BOSS!":"BOSS!");
@@ -728,7 +728,7 @@ if(bossLeftT<=0){
   }
   if(blocked){f.t=0;effects.push({x:f.x,y:f.y,t:180,max:180,type:"hit",color:"#ff8a3d"});continue}
   if(Math.abs(f.x-hero.x)<.42&&Math.abs(f.y-hero.y)<.55&&hero.stun<=0){
-    if(hero.guard&&((activeJob||playerClass)==="hero"||(activeJob||playerClass)==="monk")){
+    if(hero.guard&&(playerClass==="hero"||playerClass==="monk")){
       f.t=0;effects.push({x:f.x,y:f.y,t:220,max:220,type:"hit",color:"#d9f2ff"});msg("ガード！");
       continue;
     }
@@ -799,11 +799,11 @@ function drawBoss(){
 }
 function drawHero(){
  let x=hero.x,y=hero.y,bob=hero.onGround&&hero.vx?Math.sin(hero.walk)*.035:0,f=hero.face;
- ctx.save();ctx.translate(x,y+bob);if(hero.guard&&((activeJob||playerClass)==="hero"||(activeJob||playerClass)==="monk")){ctx.save();ctx.strokeStyle="#d9f2ff";ctx.lineWidth=.07;ctx.beginPath();ctx.arc(f*.34,-.03,.34,f>0?-Math.PI/2:Math.PI/2,f>0?Math.PI/2:Math.PI*1.5);ctx.stroke();ctx.restore()}if(hero.stun>0){ctx.rotate(-.78);ctx.translate(-.08,.18)}
+ ctx.save();ctx.translate(x,y+bob);if(hero.guard&&(playerClass==="hero"||playerClass==="monk")){ctx.save();ctx.strokeStyle="#d9f2ff";ctx.lineWidth=.07;ctx.beginPath();ctx.arc(f*.34,-.03,.34,f>0?-Math.PI/2:Math.PI/2,f>0?Math.PI/2:Math.PI*1.5);ctx.stroke();ctx.restore()}if(hero.stun>0){ctx.rotate(-.78);ctx.translate(-.08,.18)}
  if(hero.squeezeT>0){let q=Math.sin((hero.squeezeT/320)*Math.PI);if(hero.squeezeDir===2){ctx.scale(1-.42*q,1+.55*q);ctx.translate(0,-.18*q)}else{ctx.scale(1+.42*q,1-.36*q);ctx.translate(-hero.squeezeDir*.12*q,.12*q)}}
  let step=hero.vx?Math.sin(hero.walk)*.12:0,kp=hero.kickT>0?Math.sin((1-hero.kickT/180)*Math.PI):0;
 
- if((activeJob||playerClass)==="monk"){
+ if(playerClass==="monk"){
    // Original monk: green sleeveless gi, dark green pants, belt/wrist wraps, bare hands, headband.
    ctx.strokeStyle="#246944";ctx.lineWidth=.18;ctx.beginPath();
    if(hero.kickT>0){ctx.moveTo(-f*.07,.24);ctx.lineTo(-f*.12,.49);ctx.moveTo(f*.08,.24);ctx.lineTo(f*(.28+.4*kp),.28-.04*kp)}
@@ -830,7 +830,7 @@ function drawHero(){
    ctx.beginPath();ctx.moveTo(-f*.18,-.08);ctx.lineTo(-f*.3,.03);ctx.stroke();
    if(hero.attackT>0){ctx.strokeStyle="#e6c09d";ctx.lineWidth=.15;ctx.beginPath();ctx.moveTo(0,-.05);ctx.lineTo(pdx*(.32+.42*punch),-.05+pdy*(.48+.3*punch));ctx.stroke()}
    if(hero.grabT>0&&!hero.grab&&!hero.carry){let gp=Math.sin((1-hero.grabT/220)*Math.PI),reach=.28+.28*gp;ctx.strokeStyle="#e6c09d";ctx.lineWidth=.115;ctx.beginPath();ctx.moveTo(f*.18,-.08);ctx.lineTo(f*reach,-.12);ctx.stroke();ctx.fillStyle="#e6c09d";ctx.beginPath();ctx.arc(f*(reach+.07),-.12,.085,0,Math.PI*2);ctx.fill()}
- }else if((activeJob||playerClass)==="mage"){
+ }else if(playerClass==="mage"){
    ctx.fillStyle="#223a83";ctx.beginPath();ctx.moveTo(-.31,-.14);ctx.lineTo(.31,-.14);ctx.lineTo(.42,.5);ctx.lineTo(-.42,.5);ctx.closePath();ctx.fill();
    ctx.fillStyle="#315eb9";ctx.beginPath();ctx.moveTo(-.25,-.12);ctx.lineTo(.25,-.12);ctx.lineTo(.28,.43);ctx.lineTo(-.28,.43);ctx.closePath();ctx.fill();
    ctx.fillStyle="#76a9f2";ctx.beginPath();ctx.moveTo(-.27,-.15);ctx.lineTo(.05,-.15);ctx.lineTo(-.08,.1);ctx.lineTo(-.32,.04);ctx.closePath();ctx.fill();
@@ -881,7 +881,7 @@ function drawHero(){
    }
  }
  if(hero.grab){ctx.strokeStyle="#ffe071";ctx.lineWidth=.055;ctx.setLineDash([.08,.06]);ctx.beginPath();ctx.moveTo(0,-.15);if(hero.grab.kind==="pair"&&getPair(hero.grab.id)){let gp=getPair(hero.grab.id),py=gp.y+hero.grab.part+.5;ctx.lineTo(gp.x+.5-hero.x,py-hero.y)}else ctx.lineTo(0,-.78);ctx.stroke();ctx.setLineDash([])}
- if(hero.charge>0){ctx.strokeStyle=(activeJob||playerClass)==="monk"?"#59dc76":"#ff5f78";ctx.lineWidth=.045;ctx.beginPath();ctx.arc(0,0,.57,0,Math.PI*2*hero.charge/100);ctx.stroke()}
+ if(hero.charge>0){ctx.strokeStyle=playerClass==="monk"?"#59dc76":"#ff5f78";ctx.lineWidth=.045;ctx.beginPath();ctx.arc(0,0,.57,0,Math.PI*2*hero.charge/100);ctx.stroke()}
  ctx.restore();
 }
 function drawEffects(){
@@ -925,22 +925,21 @@ const CLASS_HELP={
 };
 let selectedClass=null;
 function setActionLabels(){
- const labels=(activeJob||playerClass)==="hero"?{grab:"掴",jump:"跳",attack:"剣",kick:"蹴"}:
- (activeJob||playerClass)==="monk"?{grab:"持",jump:"二段",attack:"拳",kick:"蹴"}:
+ const labels=playerClass==="hero"?{grab:"掴",jump:"跳",attack:"剣",kick:"蹴"}:
+ playerClass==="monk"?{grab:"持",jump:"二段",attack:"拳",kick:"蹴"}:
  {grab:"風替",jump:"風押",attack:"炎",kick:"氷"};
  for(const [k,v] of Object.entries(labels)){let el=document.querySelector('[data-key="'+k+'"]');if(el)el.textContent=v}
 }
 window.beginSelectedJob=function(job){
- if(!["hero","monk","mage"].includes(job))return;
- bossOnlyRun=false;
- activeJob=job;selectedClass=job;playerClass=job;
+ if(job!=="hero"&&job!=="monk"&&job!=="mage")return;
+ bossOnlyRun=false;selectedClass=job;playerClass=job;
+ resetStageBoard();
+ stage=1;bossMode=false;GOAL=300;enemies=[];enemySpawnT=999999;
+ seedOpeningBoard();spawnClock=0;
  hero.grab=null;hero.carry=null;hero.guard=false;hero.stun=0;hero.vx=0;hero.vy=0;hero.liftRide=-1;
  hero.floating=(job==="mage");
- setActionLabels();
- startNormalStage(1);
- // Only class-specific placement happens after the shared board has been created.
- playerClass=job;selectedClass=job;hero.floating=(job==="mage");
- if(job==="mage"){hero.x=W/2;hero.y=H-4.0;hero.vx=0;hero.vy=0;hero.onGround=false;}
+ hero.x=W/2;hero.y=job==="mage"?H-4.0:H-1.2;hero.onGround=(job!=="mage");
+ setActionLabels();updateStageHud();
  let cn=document.querySelector("#className");
  if(cn)cn.textContent="職業: "+(job==="hero"?"勇者（赤・紅蓮斬）":job==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
 };
@@ -969,7 +968,7 @@ document.querySelector("#continueBtn")?.addEventListener("click",()=>{
 });
 document.querySelector("#titleBtn")?.addEventListener("click",()=>{
  document.querySelector("#stageMenu").style.display="none";bossMode=false;stage=1;resetStageBoard();updateStageHud();
- activeJob=null;selectedClass=null;playerClass=null;window.pendingClass=null;document.querySelector("#classSelect").style.display="flex";
+ selectedClass=null;playerClass=null;window.pendingClass=null;document.querySelector("#classSelect").style.display="flex";
  document.querySelectorAll(".classBtn").forEach(x=>x.classList.remove("selected"));
  document.querySelector("#startBtn").disabled=true;document.querySelector("#classHelp").textContent="職業をタップすると操作説明が表示されます。";
 });
@@ -981,7 +980,7 @@ function heroGrabDirection(dir){
 }
 const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",z:"jump",x:"attack",c:"grab",k:"kick"};
 addEventListener("keydown",e=>{let k=map[e.key];if(!k)return;e.preventDefault();
- if(!e.repeat&&["left","right","up","down"].includes(k)){if((activeJob||playerClass)==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
+ if(!e.repeat&&["left","right","up","down"].includes(k)){if(playerClass==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
  if(!e.repeat&&heroGrabDirection(k)){keys[k]=false;return}keys[k]=true;if(k==="jump"&&!e.repeat)jump();if(k==="grab"&&!e.repeat)grab();if(k==="kick"&&!e.repeat)kick();});
 addEventListener("keyup",e=>{let k=map[e.key];if(!k)return;e.preventDefault();if(k==="attack")attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0;hero.guard=false}});
 const fastFallBtn=document.querySelector("#fastFall");
@@ -989,7 +988,7 @@ if(fastFallBtn){
  const setFast=v=>{fastFall=v;fastFallBtn.classList.toggle("active",v);fastFallBtn.innerHTML=v?"▶▶<small>高速 ON</small>":"▼▼<small>早送り</small>"};
  fastFallBtn.addEventListener("pointerdown",e=>{e.preventDefault();setFast(!fastFall)},{passive:false});
 }
-const moveStick=document.querySelector("#moveStick"),stickKnob=document.querySelector("#stickKnob");if(moveStick&&stickKnob){let sid=null,sdir=null;const clear=()=>{if(sdir)keys[sdir]=false;sdir=null;sid=null;stickKnob.style.transform="translate(0px,0px)"};const set=e=>{let r=moveStick.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2,d=Math.hypot(dx,dy),mx=r.width*.28;if(d>mx){dx=dx/d*mx;dy=dy/d*mx}stickKnob.style.transform=`translate(${dx}px,${dy}px)`;let next=d<r.width*.1?null:(Math.abs(dx)>=Math.abs(dy)?(dx<0?"left":"right"):(dy<0?"up":"down"));if(next!==sdir){if(sdir)keys[sdir]=false;sdir=next;if(next){if(heroGrabDirection(next)){keys[next]=false}else{keys[next]=true}if((activeJob||playerClass)==="mage"&&(next==="left"||next==="right"))hero.face=next==="left"?-1:1}}};moveStick.addEventListener("pointerdown",e=>{e.preventDefault();sid=e.pointerId;try{moveStick.setPointerCapture(sid)}catch(_){}set(e)});moveStick.addEventListener("pointermove",e=>{if(e.pointerId===sid){e.preventDefault();set(e)}});moveStick.addEventListener("pointerup",e=>{if(e.pointerId===sid)clear()});moveStick.addEventListener("pointercancel",clear)}
+const moveStick=document.querySelector("#moveStick"),stickKnob=document.querySelector("#stickKnob");if(moveStick&&stickKnob){let sid=null,sdir=null;const clear=()=>{if(sdir)keys[sdir]=false;sdir=null;sid=null;stickKnob.style.transform="translate(0px,0px)"};const set=e=>{let r=moveStick.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2,d=Math.hypot(dx,dy),mx=r.width*.28;if(d>mx){dx=dx/d*mx;dy=dy/d*mx}stickKnob.style.transform=`translate(${dx}px,${dy}px)`;let next=d<r.width*.1?null:(Math.abs(dx)>=Math.abs(dy)?(dx<0?"left":"right"):(dy<0?"up":"down"));if(next!==sdir){if(sdir)keys[sdir]=false;sdir=next;if(next){if(heroGrabDirection(next)){keys[next]=false}else{keys[next]=true}if(playerClass==="mage"&&(next==="left"||next==="right"))hero.face=next==="left"?-1:1}}};moveStick.addEventListener("pointerdown",e=>{e.preventDefault();sid=e.pointerId;try{moveStick.setPointerCapture(sid)}catch(_){}set(e)});moveStick.addEventListener("pointermove",e=>{if(e.pointerId===sid){e.preventDefault();set(e)}});moveStick.addEventListener("pointerup",e=>{if(e.pointerId===sid)clear()});moveStick.addEventListener("pointercancel",clear)}
 document.querySelectorAll("button[data-key]").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}
- if(["left","right","up","down"].includes(k)){if((activeJob||playerClass)==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
+ if(["left","right","up","down"].includes(k)){if(playerClass==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
  if(heroGrabDirection(k)){keys[k]=false;return}keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack"&&keys[k])attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}b.classList.remove("pressed");try{if(b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId)}catch(_){}};b.addEventListener("pointerdown",down,{passive:false});b.addEventListener("pointerup",up,{passive:false});b.addEventListener("pointercancel",up,{passive:false});});
