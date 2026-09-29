@@ -357,12 +357,13 @@ function spawnBat(){
 function spawnSkeleton(){
  let fromLeft=Math.random()<.5;
  if(enemies.some(e=>e.type==="skeleton"&&!e.dead))return;
- enemies.push({type:"skeleton",x:fromLeft?.35:W-.35,y:H-1.15,vx:0,vy:0,hp:2,t:15000,attackT:700+Math.random()*700,jumpT:900+Math.random()*1000,curseT:2600+Math.random()*2600,face:fromLeft?1:-1});
+ enemies.push({type:"skeleton",x:fromLeft?.35:W-.35,y:H-.68,vx:0,vy:0,hp:2,t:15000,attackT:700+Math.random()*700,jumpT:900+Math.random()*1000,curseT:2600+Math.random()*2600,swingT:0,face:fromLeft?1:-1});
 }
 function enemyHitRay(x,y,dx,dy,range,width=.5,power=1){
  let best=null;
  for(const e of enemies){let rx=e.x-x,ry=e.y-y,along=rx*dx+ry*dy,side=Math.abs(rx*(-dy)+ry*dx);
-  if(along>=0&&along<=range&&side<width&&(!best||along<best.along))best={e,along};
+  let extra=e.type==="skeleton"?.42:0,back=e.type==="skeleton"?.28:0;
+  if(along>=-back&&along<=range+extra&&side<width+extra&&(!best||along<best.along))best={e,along};
  }
  if(!best)return false;
  best.e.hp-=power;hitEffect(best.e.x,best.e.y,"#fff2a8");
@@ -387,7 +388,7 @@ function updateEnemies(dt){
    let dx=hero.x-e.x;
    if(Math.abs(dx)>.78)e.x+=Math.sign(dx)*.00115*dt;
    e.jumpT-=dt;if(e.jumpT<=0){e.vy=-.0105;e.jumpT=1300+Math.random()*1300}
-   e.vy+=.000024*dt;e.y+=e.vy*dt;if(e.y>H-1.15){e.y=H-1.15;e.vy=0}
+   e.vy+=.000024*dt;e.y+=e.vy*dt;if(e.y>H-.68){e.y=H-.68;e.vy=0}
    e.curseT-=dt;
    if(e.curseT<=0){
     let targets=[];
@@ -401,9 +402,9 @@ function updateEnemies(dt){
     }
     e.curseT=4200+Math.random()*3600;
    }
-   e.attackT-=dt;
-   if(Math.abs(hero.x-e.x)<1.05&&Math.abs(hero.y-e.y)<.85&&e.attackT<=0){
-    e.attackT=1200;
+   e.attackT-=dt;e.swingT=Math.max(0,(e.swingT||0)-dt);
+   if(Math.abs(hero.x-e.x)<1.05&&Math.abs(hero.y-e.y)<1.05&&e.attackT<=0){
+    e.attackT=1200;e.swingT=260;
     if(hero.guard&&(playerClass==="hero"||playerClass==="monk"))msg("ガード！");
     else knockHero(e.face,"スケルトンの剣！ 2秒ダウン！");
    }
@@ -423,7 +424,10 @@ function drawEnemies(){
    ctx.fillStyle="#392b48";ctx.beginPath();ctx.arc(-.075,-.51,.042,0,Math.PI*2);ctx.arc(.075,-.51,.042,0,Math.PI*2);ctx.fill();
    ctx.fillStyle="#9ef2ff";ctx.beginPath();ctx.arc(-.075,-.515,.018,0,Math.PI*2);ctx.arc(.075,-.515,.018,0,Math.PI*2);ctx.fill();
    ctx.strokeStyle="#d9d4ca";ctx.lineWidth=.09;ctx.beginPath();ctx.moveTo(0,-.25);ctx.lineTo(0,.35);ctx.moveTo(-.22,-.05);ctx.lineTo(.22,-.05);ctx.moveTo(0,.32);ctx.lineTo(-.2,.62);ctx.moveTo(0,.32);ctx.lineTo(.2,.62);ctx.stroke();
-   ctx.strokeStyle="#d7e8ff";ctx.lineWidth=.055;ctx.beginPath();ctx.moveTo(.2*e.face,-.08);ctx.lineTo(.62*e.face,-.42);ctx.stroke();
+   let sw=e.swingT>0?1-e.swingT/260:0,ang=e.swingT>0?(-1.05+sw*2.15):-.65;
+   let sx=.2*e.face,sy=-.08,ex=sx+Math.cos(ang)*.58*e.face,ey=sy+Math.sin(ang)*.58;
+   ctx.strokeStyle="#d7e8ff";ctx.lineWidth=.065;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);ctx.stroke();
+   if(e.swingT>0){ctx.strokeStyle="rgba(220,240,255,.55)";ctx.lineWidth=.035;ctx.beginPath();ctx.arc(.18*e.face,-.08,.62,e.face>0?-1.1:.0,e.face>0?1.0:2.1);ctx.stroke()}
   }ctx.restore()}
 }
 function hitEffect(x,y,color="#fff"){
