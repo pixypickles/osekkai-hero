@@ -142,7 +142,7 @@ function destroyHeroGrabbed(){
  hero.grab=null;return false;
 }
 function updateHero(dt){
- if(hero.stun>0){hero.stun-=dt;hero.vx*=.8;hero.vy*=.8;return}
+ if(hero.stun>0){hero.stun=Math.max(0,hero.stun-dt);hero.vy+=.000024*dt;let sx=Math.max(.3,Math.min(W-.3,hero.x+hero.vx*dt));if(!solidAt(sx,hero.y)&&!heroHitsPair(sx,hero.y))hero.x=sx;else hero.vx=0;let sy=Math.min(H-.48,hero.y+hero.vy*dt);if(!solidAt(hero.x,sy)&&!heroHitsPair(hero.x,sy))hero.y=sy;else hero.vy=0;hero.vx*=Math.pow(.985,dt/16.67);return}
  if(playerClass==="mage"){
   hero.grab=null;hero.onGround=false;
   let ax=(keys.right?1:0)-(keys.left?1:0),ay=(keys.down?1:0)-(keys.up?1:0);
@@ -507,11 +507,8 @@ function startNormalStage(n){
  spawnClock=0;if(typeof spawnPair==="function")spawnPair();
  updateStageHud();
 }
-function bossPlatformAt(x,y){
- if(!bossMode||bossTier!==1)return false;
- let ix=Math.floor(x),iy=Math.floor(y),c=W-1;
- return (ix===c&&iy>=H-3&&iy<H)||(ix===c-1&&iy>=H-2&&iy<H)||(ix===c-2&&iy===H-1);
-}
+function strongLiftRects(){if(!bossMode||bossTier!==2)return [];let t=performance.now()*.001;return [{x:2,y:3.2+(Math.sin(t*.72)+1)*2.2,w:2,h:.34},{x:5,y:5+(Math.sin(t*.58+2.1)+1)*1.8,w:2,h:.34}]}
+function bossPlatformAt(x,y){if(!bossMode)return false;if(bossTier===2)return strongLiftRects().some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18);let ix=Math.floor(x),iy=Math.floor(y),c=W-1;return (ix===c&&iy>=H-3&&iy<H)||(ix===c-1&&iy>=H-2&&iy<H)||(ix===c-2&&iy===H-1)}
 function seedBossPlatforms(){
  let cells=[[1,H-1],[2,H-1],[4,H-1],[6,H-1],[6,H-2]];
  for(const [x,y] of cells)if(x>=0&&x<W&&y>=0&&y<H&&!board[y][x])board[y][x]=makeSlime(-1);
@@ -593,7 +590,7 @@ if(bossLeftT<=0){
   }
   if(blocked){f.t=0;effects.push({x:f.x,y:f.y,t:180,max:180,type:"hit",color:"#ff8a3d"});continue}
   if(Math.abs(f.x-hero.x)<.42&&Math.abs(f.y-hero.y)<.55&&hero.stun<=0){
-   hero.stun=1000;f.t=0;msg("熱っ！ 1秒動けない！");
+   hero.grab=null;hero.stun=2000;hero.attackT=0;hero.kickT=0;hero.grabT=0;hero.charge=0;hero.vx=-.0065;hero.vy=-.0048;hero.x=Math.max(.35,hero.x-.38);f.t=0;effects.push({x:hero.x,y:hero.y,t:260,max:260,type:"hit",color:"#ffb15a"});msg("吹き飛ばされた！ 2秒ダウン！");
   }
  }
  bossFireballs=bossFireballs.filter(f=>f.t>0&&f.x>-.5&&f.x<W+.5&&f.y>-.5&&f.y<H+.5);
@@ -633,6 +630,7 @@ function slime(x,y,s){if(y<-1)return;ctx.fillStyle="rgba(0,0,0,.18)";ctx.beginPa
 
 function drawBoss(){
  if(!bossMode)return;
+ if(bossTier===2){for(const r of strongLiftRects()){ctx.save();ctx.fillStyle="#536579";ctx.fillRect(r.x,r.y,r.w,r.h);ctx.fillStyle="#91a9bd";ctx.fillRect(r.x+.08,r.y+.05,r.w-.16,.08);ctx.strokeStyle="#b9e8ff";ctx.lineWidth=.035;ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.restore();}}
  let x=W-.62,y=bossY;
  // Permanent three-step stone pedestal: terrain, not slime data.
  if(bossTier===1){ctx.save();for(let step=0;step<3;step++){let bx=W-1-step,h=3-step;for(let yy=H-h;yy<H;yy++){ctx.fillStyle="#596372";ctx.fillRect(bx+.04,yy+.04,.92,.92);ctx.fillStyle="#7c8796";ctx.fillRect(bx+.09,yy+.09,.82,.16);ctx.strokeStyle="#3f4753";ctx.lineWidth=.035;ctx.strokeRect(bx+.04,yy+.04,.92,.92);}}ctx.restore();}
@@ -663,7 +661,7 @@ function drawBoss(){
 }
 function drawHero(){
  let x=hero.x,y=hero.y,bob=hero.onGround&&hero.vx?Math.sin(hero.walk)*.035:0,f=hero.face;
- ctx.save();ctx.translate(x,y+bob);
+ ctx.save();ctx.translate(x,y+bob);if(hero.stun>0){ctx.rotate(-.78);ctx.translate(-.08,.18)}
  if(hero.squeezeT>0){let q=Math.sin((hero.squeezeT/320)*Math.PI);if(hero.squeezeDir===2){ctx.scale(1-.42*q,1+.55*q);ctx.translate(0,-.18*q)}else{ctx.scale(1+.42*q,1-.36*q);ctx.translate(-hero.squeezeDir*.12*q,.12*q)}}
  let step=hero.vx?Math.sin(hero.walk)*.12:0,kp=hero.kickT>0?Math.sin((1-hero.kickT/180)*Math.PI):0;
 
