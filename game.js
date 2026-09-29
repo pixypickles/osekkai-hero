@@ -634,7 +634,7 @@ function startNormalStage(n){
  // Start with a little material already on the field.
  seedOpeningBoard();
  // Class-specific placement is handled after the common stage boot.
- spawnClock=0;if(typeof spawnPair==="function")spawnPair();
+ spawnClock=0;
  updateStageHud();
 }
 function strongLiftRects(){if(!bossMode||(bossTier!==2&&bossTier!==3))return [];if(bossTier===3){let t=performance.now()*.001;return [{x:2,y:3.0+(Math.sin(t*.68)+1)*(H-5.0)/2,w:1,h:.28,moving:true},{x:5,y:3.6+(Math.sin(t*.55+2.0)+1)*(H-5.8)/2,w:1,h:.28,moving:true}]}let t=performance.now()*.001;return [{x:1,y:2.2+(Math.sin(t*.72)+1)*(H-4.0)/2,w:1,h:.28,moving:true},{x:6,y:2.8+(Math.sin(t*.58+2.1)+1)*(H-4.6)/2,w:1,h:.28,moving:true},{x:4,y:H*.56,w:1,h:.28,moving:false}]}
@@ -746,14 +746,9 @@ if(bossLeftT<=0){
  }
 }
 function seedOpeningBoard(){
- if(!board||!board.length||typeof makeSlime!=="function")return;
- let usable=Math.min(4,COLORS.length), xs=[];
- for(let i=0;i<usable;i++)xs.push(Math.max(0,Math.min(W-1,1+i*2)));
- for(let i=0;i<xs.length;i++){
-  let x=xs[i],y=H-1;
-  if(board[y]&&!board[y][x])board[y][x]=makeSlime(i);
-  if(y-1>=0&&board[y-1]&&!board[y-1][x])board[y-1][x]=makeSlime(i);
- }
+ if(!board||!board.length)return;
+ const opening=[[0,H-1,0],[1,H-1,0],[2,H-1,1],[2,H-2,1],[5,H-1,2],[5,H-2,2],[6,H-1,3],[7,H-1,3]];
+ for(const [x,y,c] of opening)if(x>=0&&x<W&&y>=0&&y<H)board[y][x]=makeSlime(c);
 }
 function msg(t){let m=document.querySelector("#message");m.textContent=t;if(!gameOver)setTimeout(()=>m.textContent="",850)}
 function update(dt){
@@ -936,19 +931,18 @@ function setActionLabels(){
  for(const [k,v] of Object.entries(labels)){let el=document.querySelector('[data-key="'+k+'"]');if(el)el.textContent=v}
 }
 window.beginSelectedJob=function(job){
- if(!job)return;
- selectedClass=job;
+ if(!["hero","monk","mage"].includes(job))return;
+ bossOnlyRun=false;
+ selectedClass=job;playerClass=job;
  hero.grab=null;hero.carry=null;hero.guard=false;hero.stun=0;hero.vx=0;hero.vy=0;hero.liftRide=-1;
- // Mage normal-start uses the exact same safe stage boot path as Hero/Monk.
- // Switch to mage only AFTER the board, opening slimes and first pair are initialized.
- // This deliberately avoids every mage-only collision/startup branch during boot.
- playerClass=job;selectedClass=job;hero.floating=(job==="mage");
+ hero.floating=(job==="mage");
+ setActionLabels();
  startNormalStage(1);
+ // Only class-specific placement happens after the shared board has been created.
  playerClass=job;selectedClass=job;hero.floating=(job==="mage");
  if(job==="mage"){hero.x=W/2;hero.y=H-4.0;hero.vx=0;hero.vy=0;hero.onGround=false;}
- setActionLabels();
  let cn=document.querySelector("#className");
- if(cn)cn.textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
+ if(cn)cn.textContent="職業: "+(job==="hero"?"勇者（赤・紅蓮斬）":job==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
 };
 
 document.querySelector("#nextStageBtn")?.addEventListener("click",()=>{
