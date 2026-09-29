@@ -1,3 +1,7 @@
+window.addEventListener("error",function(e){
+ const m=document.querySelector("#message");
+ if(m){m.textContent="ERROR: "+(e.message||"unknown");m.style.display="block";}
+});
 const cv=document.querySelector("#game"),ctx=cv.getContext("2d");
 const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
 let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,chainPoints=0,GOAL=300,gameOver=false,cleared=false,playerClass=null;
@@ -182,14 +186,14 @@ function updateHero(dt){
  if(hero.guard&&!keys.grab)hero.guard=false;
  if(hero.stun>0){hero.stun=Math.max(0,hero.stun-dt);hero.vy+=.000024*dt;let sx=Math.max(.3,Math.min(W-.3,hero.x+hero.vx*dt));if(!solidAt(sx,hero.y)&&!heroHitsPair(sx,hero.y))hero.x=sx;else hero.vx=0;let sy=Math.min(H-.48,hero.y+hero.vy*dt);if(!heroSolidAt(hero.x,sy,hero.y)&&!heroHitsPair(hero.x,sy))hero.y=sy;else hero.vy=0;hero.vx*=Math.pow(.985,dt/16.67);return}
  if(playerClass==="mage"){
-  hero.grab=null;hero.onGround=false;
+  hero.grab=null;hero.onGround=false;hero.floating=true;
   let ax=(keys.right?1:0)-(keys.left?1:0),ay=(keys.down?1:0)-(keys.up?1:0);
-  hero.vx=hero.vx*(ax?0.78:0.42)+ax*.00070*dt;
-  hero.vy=hero.vy*(ay?0.78:0.42)+ay*.00070*dt;
+  if(ax)hero.face=ax<0?-1:1;
+  hero.vx=hero.vx*(ax?.78:.42)+ax*.00070*dt;
+  hero.vy=hero.vy*(ay?.78:.42)+ay*.00070*dt;
   hero.vx=Math.max(-.0048,Math.min(.0048,hero.vx));hero.vy=Math.max(-.0048,Math.min(.0048,hero.vy));
-  let nx=Math.max(.3,Math.min(W-.3,hero.x+hero.vx*dt)),ny=Math.max(.5,Math.min(H-.5,hero.y+hero.vy*dt));
-  if(!solidAt(nx,hero.y)&&!heroHitsPair(nx,hero.y))hero.x=nx;else hero.vx=0;
-  if(!heroSolidAt(hero.x,ny,hero.y)&&!heroHitsPair(hero.x,ny))hero.y=ny;else hero.vy=0;
+  hero.x=Math.max(.35,Math.min(W-.35,hero.x+hero.vx*dt));
+  hero.y=Math.max(.75,Math.min(H-.75,hero.y+hero.vy*dt));
   if(keys.attack)hero.charge=Math.min(100,hero.charge+dt*.09);
   return;
  }
@@ -940,6 +944,7 @@ window.beginSelectedJob=function(job){
  hero.floating=(job==="mage");
  hero.x=W/2;hero.y=job==="mage"?H-4.0:H-1.2;hero.onGround=(job!=="mage");
  setActionLabels();updateStageHud();
+ draw();
  let cn=document.querySelector("#className");
  if(cn)cn.textContent="職業: "+(job==="hero"?"勇者（赤・紅蓮斬）":job==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
 };
