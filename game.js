@@ -493,22 +493,9 @@ function chargedWave(){
   gravity();resolve();
  }
  let col=isHero?"#ff334f":"#9dffb0";
- effects.push({x:hero.x,y:hero.y,t:1050,max:1050,type:isHero?"crescentProjectile":"projectile",color:col,dx,dy,speed:.0105});
+ effects.push({x:hero.x,y:hero.y,t:1800,max:1800,type:bossMode?"bossWave":(isHero?"crescentProjectile":"projectile"),color:col,dx,dy,speed:isHero?.0105:.0092,isHero,travel:0,hit:false});
  if(bossMode){
-  // Boss fight: the wave cuts through the slime wall, destroying every slime on its path.
-  let destroyed=0,bossDist=Math.hypot(tx-hero.x,ty-hero.y);
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]){
-   let rx=x+.5-hero.x,ry=y+.5-hero.y,a=rx*dx+ry*dy,s=Math.abs(rx*(-dy)+ry*dx);
-   if(a>.25&&a<bossDist+1&&s<.62){hitEffect(x+.5,y+.5,col);board[y][x]=null;destroyed++}
-  }
-  for(const q of pairs)for(const part of [0,1]){
-   if((part===0&&q.a==null)||(part===1&&q.b==null))continue;
-   let z=pairPos(q,part),rx=z.x+.5-hero.x,ry=z.y+.5-hero.y,a=rx*dx+ry*dy,s=Math.abs(rx*(-dy)+ry*dx);
-   if(a>.25&&a<bossDist+1&&s<.62){hitEffect(z.x+.5,z.y+.5,col);if(part===0)q.a=null;else q.b=null;destroyed++}
-  }
-  if(destroyed){gravity();resolve()}
-  cancelBossFireAlong(hero.x,hero.y,dx,dy,14,isHero?"聖剣波で相殺！":"気功波で相殺！");
-  if(attackHitsBoss(hero.x,hero.y,dx,dy,14,1.0))bossDamage(2,isHero?"聖剣波！":"気功波！");
+  // Collision is processed over time in update(), synchronized with the visible projectile.
  }
  return true;
 }
@@ -824,6 +811,22 @@ function seedOpeningBoard(){
 }
 function msg(t){let m=document.querySelector("#message");m.textContent=t;if(!gameOver)setTimeout(()=>m.textContent="",850)}
 function update(dt){
+ for(const e of effects)if(e.type==="bossWave"&&!e.hit){
+   e.travel=(e.travel||0)+(e.speed||.0085)*dt;
+   let px=e.x+e.dx*e.travel,py=e.y+e.dy*e.travel;
+   // Destroy slimes only when the visible wave actually reaches them.
+   for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]&&!board[y][x]._waveHit){
+     if(Math.hypot(x+.5-px,y+.5-py)<.58){hitEffect(x+.5,y+.5,e.color);board[y][x]=null;e.changed=true}
+   }
+   for(const q of pairs)for(const part of [0,1]){
+     if((part===0&&q.a==null)||(part===1&&q.b==null))continue;let z=pairPos(q,part);
+     if(Math.hypot(z.x+.5-px,z.y+.5-py)<.58){hitEffect(z.x+.5,z.y+.5,e.color);if(part===0)q.a=null;else q.b=null;e.changed=true}
+   }
+   if(e.changed){gravity();resolve();e.changed=false}
+   // Damage only when the travelling wave visibly reaches the boss.
+   let bx=bossTier===3?bossX:W-.62,by=bossY;
+   if(bossMode&&Math.hypot(px-bx,py-by)<1.05){e.hit=true;bossDamage(2,e.isHero?"聖剣波！":"気功波！");effects.push({x:px,y:py,t:280,max:280,type:"hit",color:e.color})}
+ }
  effects.forEach(e=>e.t-=dt);effects=effects.filter(e=>e.t>0);
  if(gameOver||cleared||!playerClass)return;
  updateBoss(dt);
@@ -972,6 +975,10 @@ function drawEffects(){
    if(e.type==="hit"){
      ctx.strokeStyle="#fff6b0";ctx.lineWidth=.06;
      for(let i=0;i<6;i++){let a=i*Math.PI/3,r=.12+p*.32;ctx.beginPath();ctx.moveTo(e.x+Math.cos(a)*.05,e.y+Math.sin(a)*.05);ctx.lineTo(e.x+Math.cos(a)*r,e.y+Math.sin(a)*r);ctx.stroke()}
+   }else if(e.type==="bossWave"){
+     let px=e.x+e.dx*(e.travel||0),py=e.y+e.dy*(e.travel||0),ang=Math.atan2(e.dy||0,e.dx||1);
+     if(e.isHero){ctx.translate(px,py);ctx.rotate(ang);ctx.strokeStyle=e.color;ctx.lineWidth=.15;ctx.beginPath();ctx.arc(0,0,.4,-1.15,1.15);ctx.stroke();ctx.strokeStyle="rgba(255,175,175,.6)";ctx.lineWidth=.065;ctx.beginPath();ctx.arc(-.08,0,.52,-1.05,1.05);ctx.stroke()}
+     else{ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(px,py,.24,0,Math.PI*2);ctx.fill();ctx.strokeStyle="rgba(230,255,235,.75)";ctx.lineWidth=.07;ctx.beginPath();ctx.arc(px,py,.34,0,Math.PI*2);ctx.stroke()}
    }else if(e.type==="crescentProjectile"){
    let q=1-e.t/e.max,px=e.x+(e.dx||0)*q*10,py=e.y+(e.dy||0)*q*10,ang=Math.atan2(e.dy||0,e.dx||1);
    ctx.save();ctx.translate(px,py);ctx.rotate(ang);ctx.strokeStyle=e.color||"#ff334f";ctx.lineWidth=.14;ctx.beginPath();ctx.arc(0,0,.38,-1.15,1.15);ctx.stroke();ctx.strokeStyle="rgba(255,170,170,.55)";ctx.lineWidth=.06;ctx.beginPath();ctx.arc(-.08,0,.5,-1.05,1.05);ctx.stroke();ctx.restore();
