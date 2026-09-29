@@ -5,8 +5,13 @@ window.addEventListener("error",function(e){
 const cv=document.querySelector("#game"),ctx=cv.getContext("2d");
 const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
 let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,chainPoints=0,GOAL=300,gameOver=false,cleared=false,playerClass=null;
-let gameMode="normal",runStartMs=0,elapsedMs=0; let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossLeftT=0,bossFireT=1200,bossFireballs=[]; let bossOnlyRun=false;
-let enemies=[],enemySpawnT=0,demonSwordT=0,demonSwordSwing=0,demonPhase=0,bossX=W-.62;
+let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossLeftT=0,bossFireT=1200,bossFireballs=[]; let bossOnlyRun=false;
+let enemies=[],enemySpawnT=0,demonSwordT=0,demonSwordFx=0,demonPhase=0,bossX=W-.62;
+let gameMode="campaign",modeElapsed=0;
+let gameSettings={crushGameOver:false,bats:true,skeletons:true};
+try{gameSettings={...gameSettings,...JSON.parse(localStorage.getItem("osekkaiSettings")||"{}")}}catch(e){}
+window.setGameSetting=(k,v)=>{if(k in gameSettings){gameSettings[k]=!!v;try{localStorage.setItem("osekkaiSettings",JSON.stringify(gameSettings))}catch(e){}}};
+window.getGameSettings=()=>({...gameSettings});
 
 const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0,carry:null,jumps:0,grabHold:0,grabColorTick:0,floating:false,liftRide:-1,liftPrevY:0,guard:false};
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
@@ -84,8 +89,9 @@ function resolve(){
  if(!groups.length){chain=0;return}
  chain++;
  let chainGain=Math.max(0,chain-1),simulGain=Math.max(0,groups.length-1),gain=chainGain+simulGain;
- chainPoints+=gain;document.querySelector("#chainPoints").textContent=chainPoints;let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=gameMode==="endless"?"∞":GOAL;
- if(gain>0)msg(`連鎖P +${gain}${simulGain?`（同時+${simulGain}）`:""}`);
+ chainPoints+=gain;
+ document.querySelector("#chainPoints").textContent=chainPoints;let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=gameMode==="endless"?"∞":GOAL;
+ if(gain>0)msg(`連鎖P +${gain}${simulGain?`（同時消し+${simulGain}）`:""}`);
  if(!bossMode&&gameMode!=="endless"&&chainPoints>=GOAL){finishStage();}
  groups.flat().forEach(([x,y])=>{board[y][x]=null;score+=10*chain;special=Math.min(100,special+3*chain)});
  setTimeout(()=>{gravity();resolve()},160);
@@ -271,7 +277,16 @@ function updateHero(dt){
    if(hero.vy>=-.001 && (ph.r.b<=heroTop+.28 || (ph.p.y+ph.part)<hero.y-.28)){
      let leftBlocked=solidAt(hero.x-.62,hero.y),rightBlocked=solidAt(hero.x+.62,hero.y);
      hero.grab=null;hero.stun=0;hero.squashT=0;hero.squeezeT=320;
-     if(leftBlocked&&rightBlocked){
+     if(gameSettings.crushGameOver){
+        gameOver=true;hero.squeezeT=0;msg("押し潰された！");
+        let result=document.querySelector("#stageResult"),info=document.querySelector("#stageInfo");
+        if(result)result.textContent="GAME OVER";
+        if(info)info.textContent="シビア設定：スライムの下敷きでゲームオーバー";
+        let cont=document.querySelector("#continueBtn"),next=document.querySelector("#nextStageBtn");
+        if(cont)cont.style.display="inline-block";if(next)next.style.display="none";
+        document.querySelector("#stageMenu").style.display="flex";return;
+      }
+      if(leftBlocked&&rightBlocked){
        // Boxed on both sides: squeeze upward through the nearest open space.
        hero.squeezeDir=2;
        let targetY=hero.y;
@@ -379,8 +394,8 @@ function updateEnemies(dt){
  if(bossMode||stage<4)return;
  enemySpawnT-=dt;
  if(enemySpawnT<=0){
-  if(stage>=4&&Math.random()<.72)spawnBat();
-  if(stage>=7&&Math.random()<.62)spawnSkeleton();
+  if(gameSettings.bats&&stage>=4&&Math.random()<.72)spawnBat();
+  if(gameSettings.skeletons&&stage>=7&&Math.random()<.62)spawnSkeleton();
   enemySpawnT=stage>=7?4200+Math.random()*3200:6500+Math.random()*5000;
  }
  for(const e of enemies){
@@ -597,7 +612,7 @@ function resetStageBoard(){
  score=0;special=0;chain=0;chainPoints=0;cleared=false;gameOver=false;
  hero.x=W/2;hero.y=H-1.2;hero.vx=0;hero.vy=0;hero.grab=null;hero.carry=null;
  document.querySelector("#score").textContent=0;
- let cp=document.querySelector("#chainPoints");if(cp)cp.textContent="0";let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=GOAL;
+ let cp=document.querySelector("#chainPoints");if(cp)cp.textContent="0";let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=gameMode==="endless"?"∞":GOAL;
  document.querySelector("#message").textContent="";
  document.querySelector("#message").classList.remove("clear");
 }
@@ -605,7 +620,7 @@ function updateStageHud(){
  let s=document.querySelector("#stageText");if(s)s.textContent=bossMode?(bossTier===3?"魔王":bossTier===2?"BOSS 2":"BOSS"):stage;
  let bh=document.querySelector("#bossHud");if(bh)bh.style.display=bossMode?"inline":"none";
  let hp=document.querySelector("#bossHpText");if(hp)hp.textContent=Math.max(0,bossHp)+" / "+bossMaxHp;
- let cp=document.querySelector("#chainPoints");if(cp)cp.textContent=String(chainPoints);let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=GOAL;
+ let cp=document.querySelector("#chainPoints");if(cp)cp.textContent=String(chainPoints);let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=gameMode==="endless"?"∞":GOAL;
 }
 function showGameOver(){
  if(gameOver)return;gameOver=true;
@@ -617,7 +632,7 @@ function showGameOver(){
  document.querySelector("#stageMenu").style.display="flex";
 }
 window.beginBossOnly=function(job){
- if(!job)return; bossOnlyRun=true;
+ if(!job)return; gameMode="campaign";modeElapsed=0;setModeHud();bossOnlyRun=true;
  selectedClass=job;playerClass=job;
  hero.floating=playerClass==="mage";
  setActionLabels();
@@ -630,12 +645,15 @@ function finishStage(){
  let nextBtn=document.querySelector("#nextStageBtn"),contBtn=document.querySelector("#continueBtn");
  if(nextBtn)nextBtn.style.display="block";if(contBtn)contBtn.style.display="none";
  let result=document.querySelector("#stageResult"),info=document.querySelector("#stageInfo");
- if(result)result.textContent=bossMode?"BOSS CLEAR!":gameMode==="time"?`TIME ${(elapsedMs/1000).toFixed(2)}s`:"STAGE CLEAR!";
- if(info)info.textContent=bossMode?(bossTier===1?"ボス撃破！ 次はステージ4へ。":bossTier===2?"強ボス撃破！ 次はステージ7へ。":"魔王撃破！ ステージ1へ。"):(stage===3||stage===6||stage===9?"次はボス戦です。":"次は落下が少し激しくなります。");
+ if(result)result.textContent=gameMode==="timeAttack"?"TIME ATTACK CLEAR!":bossMode?"BOSS CLEAR!":"STAGE CLEAR!";
+ if(gameMode==="timeAttack"){
+  if(info)info.textContent=`20ポイント到達！ タイム ${(modeElapsed/1000).toFixed(2)}秒`;
+  if(nextBtn)nextBtn.style.display="none";
+ }else if(info)info.textContent=bossMode?(bossTier===1?"ボス撃破！ 次はステージ4へ。":bossTier===2?"強ボス撃破！ 次はステージ7へ。":"魔王撃破！ ステージ1へ。"):(stage===3||stage===6||stage===9?"次はボス戦です。":"次は落下が少し激しくなります。");
  document.querySelector("#stageMenu").style.display="flex";
 }
 function startNormalStage(n){
- stage=n;bossMode=false;GOAL=gameMode==="time"?20:gameMode==="endless"?999999:12;enemies=[];enemySpawnT=stage>=7?2600:stage>=4?4200:999999;resetStageBoard();
+ stage=n;bossMode=false;GOAL=12;enemies=[];enemySpawnT=stage>=7?2600:stage>=4?4200:999999;resetStageBoard();
  // Start with a little material already on the field.
  seedOpeningBoard();
  // Class-specific placement is handled after the common stage boot.
@@ -651,7 +669,7 @@ function seedBossPlatforms(){
 function startBossStage(tier=1){
  try{localStorage.setItem("osekkaiBossUnlocked","1")}catch(e){}
  let bb=document.querySelector("#bossOnlyBtn");if(bb)bb.style.display="block";
- bossMode=true;bossTier=tier;bossMaxHp=tier===3?64:tier===2?48:30;bossHp=bossMaxHp;bossLeftT=450;enemies=[];demonPhase=0;demonSwordT=900;
+ bossMode=true;bossTier=tier;bossMaxHp=tier===3?64:tier===2?48:30;bossHp=bossMaxHp;bossLeftT=450;enemies=[];demonPhase=0;demonSwordT=900;demonSwordFx=0;
  bossSpawnT=0;bossFireT=tier===3?1100:tier===2?650:900;bossFireballs=[];bossDir=1;
  resetStageBoard();
  hero.floating=playerClass==="mage";
@@ -690,9 +708,9 @@ function updateBoss(dt){
  if(!bossMode)return;
  if(bossTier===3){
   demonPhase+=dt*.00072;bossX=W*.5+Math.cos(demonPhase)*2.35;bossY=H*.59+Math.sin(demonPhase)*1.55;
-  demonSwordT-=dt;demonSwordSwing=Math.max(0,demonSwordSwing-dt);
+  demonSwordT-=dt;demonSwordFx=Math.max(0,demonSwordFx-dt);
   if(demonSwordT<=0&&Math.hypot(hero.x-bossX,hero.y-bossY)<1.55){
-   demonSwordT=1250;demonSwordSwing=320;
+   demonSwordT=1250;demonSwordFx=300;
    if(hero.guard&&(playerClass==="hero"||playerClass==="monk"))msg("魔王の剣をガード！");
    else knockHero(hero.x<bossX?-1:1,"魔王の剣！ 2秒ダウン！");
   }
@@ -770,10 +788,10 @@ function update(dt){
  updatePairs(dt);updateHero(dt);updateLiftRide();
  {let lateFast=(stage>=7&&!bossMode);fallSpeed=Math.min(lateFast?.00195:.00145,(lateFast?.00105:.00075)+score/9000000);}
  document.querySelector("#score").textContent=score;
- if(gameMode==="time"&&runStartMs){elapsedMs=performance.now()-runStartMs;let tm=document.querySelector("#timeText");if(tm)tm.textContent=(elapsedMs/1000).toFixed(1)+"s"}
  document.querySelector("#chainPoints").textContent=chainPoints;let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=gameMode==="endless"?"∞":GOAL;
  document.querySelector("#specialText").textContent=Math.floor(special)+"%";
  document.querySelector("#specialBar").style.width=special+"%";
+ if(gameMode==="timeAttack"&&!bossMode){modeElapsed+=dt;let mt=document.querySelector("#modeTime");if(mt)mt.textContent=(modeElapsed/1000).toFixed(1)+"秒";}
 }
 
 function slime(x,y,s){if(y<-1)return;ctx.fillStyle="rgba(0,0,0,.18)";ctx.beginPath();ctx.ellipse(x+.5,y+.91,.34,.075,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=s.color||"#aeb4bf";ctx.beginPath();ctx.roundRect(x+.055,y+.055,.89,.89,.36);ctx.fill();ctx.fillStyle="rgba(0,0,0,.10)";ctx.beginPath();ctx.roundRect(x+.12,y+.58,.76,.29,.16);ctx.fill();ctx.fillStyle="rgba(255,255,255,.22)";ctx.beginPath();ctx.ellipse(x+.31,y+.25,.17,.10,-.45,0,Math.PI*2);ctx.fill();ctx.fillStyle="rgba(255,255,255,.48)";ctx.beginPath();ctx.arc(x+.245,y+.205,.045,0,Math.PI*2);ctx.fill();ctx.fillStyle="#202438";ctx.beginPath();ctx.arc(x+.32,y+.42,.055,0,Math.PI*2);ctx.arc(x+.68,y+.42,.055,0,Math.PI*2);ctx.fill();if(s.hard){ctx.strokeStyle="#e7e8f0";ctx.lineWidth=.065;ctx.beginPath();ctx.roundRect(x+.13,y+.13,.74,.64,.25);ctx.stroke()}if(s.frozen){ctx.fillStyle="rgba(190,238,255,.5)";ctx.beginPath();ctx.roundRect(x+.04,y+.04,.92,.9,.25);ctx.fill();ctx.strokeStyle="#e4fbff";ctx.lineWidth=.04;ctx.stroke()}}
@@ -803,10 +821,18 @@ function drawBoss(){
  // chest jewel and gold trim
  ctx.strokeStyle="#d9ad4a";ctx.lineWidth=.04;ctx.beginPath();ctx.moveTo(-.27,.08);ctx.lineTo(0,.25);ctx.lineTo(.27,.08);ctx.stroke();
  ctx.fillStyle="#d84c61";ctx.beginPath();ctx.moveTo(0,.12);ctx.lineTo(.09,.23);ctx.lineTo(0,.35);ctx.lineTo(-.09,.23);ctx.closePath();ctx.fill();
+ if(bossTier===3){
+  let f=hero.x<x?-1:1,sw=demonSwordFx>0?1-demonSwordFx/300:0;
+  let ang=demonSwordFx>0?(-1.15+sw*2.35):-.72;
+  let sx=.28*f,sy=-.03,ex=sx+Math.cos(ang)*.82*f,ey=sy+Math.sin(ang)*.82;
+  ctx.strokeStyle="#f4e6c0";ctx.lineWidth=.085;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);ctx.stroke();
+  ctx.strokeStyle="#d6a94b";ctx.lineWidth=.11;ctx.beginPath();ctx.moveTo(sx-.09*f,sy-.03);ctx.lineTo(sx+.09*f,sy+.03);ctx.stroke();
+  if(demonSwordFx>0){ctx.strokeStyle="rgba(255,220,150,.62)";ctx.lineWidth=.055;ctx.beginPath();ctx.arc(.16*f,-.02,.88,f>0?-1.2:0,f>0?1.15:2.35);ctx.stroke();}
+ }
  ctx.restore();
  for(const f of bossFireballs){
   ctx.save();ctx.translate(f.x,f.y);ctx.fillStyle="#ff6a2a";ctx.beginPath();ctx.arc(0,0,.16,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#ffd35a";ctx.beginPath();ctx.arc(-.04,-.02,.08,0,Math.PI*2);ctx.fill();if(bossTier===3){let sw=demonSwordSwing>0?1-demonSwordSwing/320:0,ang=demonSwordSwing>0?(-1.25+sw*2.5):-.72,sx=.34,sy=-.05,ex=sx+Math.cos(ang)*.9,ey=sy+Math.sin(ang)*.9;ctx.strokeStyle="#f2e7c5";ctx.lineWidth=.085;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);ctx.stroke();ctx.strokeStyle="#d9a94e";ctx.lineWidth=.07;ctx.beginPath();ctx.moveTo(sx-.1,sy-.06);ctx.lineTo(sx+.1,sy+.06);ctx.stroke();if(demonSwordSwing>0){ctx.strokeStyle="rgba(255,225,160,.65)";ctx.lineWidth=.045;ctx.beginPath();ctx.arc(.28,-.03,1,-1.2,1.25);ctx.stroke()}}ctx.restore();
+  ctx.fillStyle="#ffd35a";ctx.beginPath();ctx.arc(-.04,-.02,.08,0,Math.PI*2);ctx.fill();ctx.restore();
  }
 }
 function drawHero(){
@@ -942,13 +968,27 @@ function setActionLabels(){
  {grab:"風替",jump:"風押",attack:"炎",kick:"氷"};
  for(const [k,v] of Object.entries(labels)){let el=document.querySelector('[data-key="'+k+'"]');if(el)el.textContent=v}
 }
-window.beginMode=function(job,mode){gameMode=mode||"normal";window.beginSelectedJob(job);};
-window.exitEndless=function(){if(gameMode!=="endless")return;cleared=true;let r=document.querySelector("#stageResult"),i=document.querySelector("#stageInfo");if(r)r.textContent="ENDLESS 終了";if(i)i.textContent=`連鎖P ${chainPoints} / SCORE ${score}`;document.querySelector("#nextStageBtn").style.display="none";document.querySelector("#continueBtn").style.display="none";document.querySelector("#stageMenu").style.display="flex";};
+function setModeHud(){
+ let mt=document.querySelector("#modeText"),tm=document.querySelector("#modeTime"),ex=document.querySelector("#modeExitBtn");
+ if(mt)mt.textContent=gameMode==="timeAttack"?"TIME ATTACK":gameMode==="endless"?"ひたすら":"";
+ if(tm)tm.textContent=gameMode==="timeAttack"?"0.0秒":"";
+ if(ex)ex.style.display=gameMode==="campaign"?"none":"inline-block";
+}
+window.beginSpecialMode=function(job,mode){
+ if(job!=="hero"&&job!=="monk"&&job!=="mage")return;
+ gameMode=mode;modeElapsed=0;bossOnlyRun=false;selectedClass=job;playerClass=job;
+ stage=1;bossMode=false;GOAL=mode==="timeAttack"?20:0;enemies=[];enemySpawnT=999999;
+ resetStageBoard();seedOpeningBoard();spawnClock=0;
+ hero.grab=null;hero.carry=null;hero.guard=false;hero.stun=0;hero.vx=0;hero.vy=0;hero.liftRide=-1;
+ hero.floating=(job==="mage");hero.x=W/2;hero.y=job==="mage"?H-4.0:H-1.2;hero.onGround=(job!=="mage");
+ setActionLabels();setModeHud();updateStageHud();draw();
+ let cn=document.querySelector("#className");if(cn)cn.textContent="職業: "+(job==="hero"?"勇者（赤・紅蓮斬）":job==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
+};
 window.beginSelectedJob=function(job){
  if(job!=="hero"&&job!=="monk"&&job!=="mage")return;
- bossOnlyRun=false;selectedClass=job;playerClass=job;runStartMs=performance.now();elapsedMs=0;
+ gameMode="campaign";modeElapsed=0;setModeHud();bossOnlyRun=false;selectedClass=job;playerClass=job;
  resetStageBoard();
- stage=1;bossMode=false;GOAL=gameMode==="time"?20:gameMode==="endless"?999999:12;enemies=[];enemySpawnT=999999;
+ stage=1;bossMode=false;GOAL=12;enemies=[];enemySpawnT=999999;
  seedOpeningBoard();spawnClock=0;
  hero.grab=null;hero.carry=null;hero.guard=false;hero.stun=0;hero.vx=0;hero.vy=0;hero.liftRide=-1;
  hero.floating=(job==="mage");
@@ -959,6 +999,14 @@ window.beginSelectedJob=function(job){
  if(cn)cn.textContent="職業: "+(job==="hero"?"勇者（赤・紅蓮斬）":job==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
 };
 
+document.querySelector("#modeExitBtn")?.addEventListener("click",()=>{
+ gameOver=true;cleared=true;
+ let result=document.querySelector("#stageResult"),info=document.querySelector("#stageInfo");
+ if(result)result.textContent=gameMode==="endless"?"ひたすら終了":"TIME ATTACK終了";
+ if(info)info.textContent=gameMode==="endless"?`最終ポイント ${chainPoints}`:`${chainPoints}ポイント / ${(modeElapsed/1000).toFixed(2)}秒`;
+ document.querySelector("#nextStageBtn").style.display="none";document.querySelector("#continueBtn").style.display="none";
+ document.querySelector("#stageMenu").style.display="flex";
+});
 document.querySelector("#nextStageBtn")?.addEventListener("click",()=>{
  document.querySelector("#stageMenu").style.display="none";
  if(bossMode){
@@ -982,7 +1030,7 @@ document.querySelector("#continueBtn")?.addEventListener("click",()=>{
  if(bossMode)startBossStage();else startNormalStage(stage);
 });
 document.querySelector("#titleBtn")?.addEventListener("click",()=>{
- document.querySelector("#stageMenu").style.display="none";bossMode=false;stage=1;resetStageBoard();updateStageHud();
+ document.querySelector("#stageMenu").style.display="none";gameMode="campaign";modeElapsed=0;setModeHud();bossMode=false;stage=1;GOAL=12;resetStageBoard();updateStageHud();
  selectedClass=null;playerClass=null;window.pendingClass=null;document.querySelector("#classSelect").style.display="flex";
  document.querySelectorAll(".classBtn").forEach(x=>x.classList.remove("selected"));
  document.querySelector("#startBtn").disabled=true;document.querySelector("#classHelp").textContent="職業をタップすると操作説明が表示されます。";
