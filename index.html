@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>転生したら落ちゲーの中でした。Prototype v68</title><link rel="stylesheet" href="style.css">
+<title>転生したら落ちゲーの中でした。Prototype v69</title><link rel="stylesheet" href="style.css">
 <script>
 window.pendingClass=null;
 window.CLASS_HELP_SAFE={
@@ -17,6 +17,7 @@ window.selectJob=function(job,el){
  if(help)help.textContent=window.CLASS_HELP_SAFE[job]||"";
  if(start)start.disabled=false;
 };
+window.startSpecialMode=function(mode){var chosen=document.querySelector("#classSelect .classBtn[data-class].selected");if(!chosen){var h=document.getElementById("classHelp");if(h)h.textContent="先に職業を選んでください。";return}var job=chosen.getAttribute("data-class");if(typeof window.beginMode!=="function")return;window.beginMode(job,mode);document.getElementById("classSelect").style.display="none";var e=document.getElementById("endlessExit");if(e)e.style.display=mode==="endless"?"block":"none";};
 window.startBossOnly=function(){
  if(!window.pendingClass){var h=document.getElementById("classHelp");if(h)h.textContent="先に職業を選んでください。";return}
  var overlay=document.getElementById("classSelect");if(overlay)overlay.style.display="none";
@@ -28,7 +29,7 @@ window.startSelectedJob=function(){
  if(!chosen)return;
  var job=chosen.getAttribute("data-class");
  if(typeof window.beginSelectedJob!=="function")return;
- window.beginSelectedJob(job);
+ window.beginMode(job,"normal");
  var overlay=document.getElementById("classSelect");if(overlay)overlay.style.display="none";
 };
 </script></head>
@@ -37,7 +38,8 @@ window.startSelectedJob=function(){
 <button type="button" data-class="monk" class="classBtn" onclick="selectJob('monk',this)">👊 モンク<small>タップで操作説明</small></button>
 <button type="button" data-class="mage" class="classBtn" onclick="selectJob('mage',this)">🪄 魔法使い<small>タップで操作説明</small></button>
 <div id="classHelp" class="classHelp">職業をタップすると操作説明が表示されます。</div>
-<button type="button" id="startBtn" class="startBtn" onclick="startSelectedJob()" disabled>この職業で開始</button>
+<button type="button" id="startBtn" class="startBtn" onclick="startSelectedJob()" disabled>この職業で開始</button><button type="button" class="classBtn" onclick="startSpecialMode('time')">⏱ タイムアタック<small>連鎖P 20までのタイム勝負</small></button>
+<button type="button" class="classBtn" onclick="startSpecialMode('endless')">♾ ひたすらモード<small>クリアなし・好きな時に離脱</small></button>
 <button type="button" id="bossOnlyBtn" class="classBtn bossOnlyBtn" style="display:none" onclick="startBossOnly()">👑 ボス戦だけ遊ぶ<small>一度戦ったボスへ直接挑戦</small></button>
 </div></div><div id="stageMenu" class="overlay stageMenu" style="display:none"><div class="panel">
 <h2 id="stageResult">STAGE CLEAR!</h2>
@@ -46,13 +48,13 @@ window.startSelectedJob=function(){
 <button id="continueBtn" class="startBtn" style="display:none">コンティニュー</button>
 <button id="titleBtn" class="classBtn">タイトルへ戻る</button>
 </div></div><main>
-<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v68</small></div>
-<div class="hud"><span>STAGE <b id="stageText">1</b></span><span>連鎖P <b id="chainPoints">0</b>/<b id="goalPoints">300</b></span><span>SCORE <b id="score">0</b></span><span>必殺 <b id="specialText">0%</b></span><span id="bossHud" style="display:none">BOSS <b id="bossHpText">30</b></span></div>
+<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v69</small></div>
+<div class="hud"><span>STAGE <b id="stageText">1</b></span><span>連鎖P <b id="chainPoints">0</b>/<b id="goalPoints">300</b></span><span>SCORE <b id="score">0</b></span><span>TIME <b id="timeText">0.0s</b></span><span>必殺 <b id="specialText">0%</b></span><span id="bossHud" style="display:none">BOSS <b id="bossHpText">30</b></span></div>
 <div class="gauge"><div id="specialBar"></div></div>
 <canvas id="game" width="360" height="630"></canvas><div id="message"></div>
 <div class="controls">
  <div class="dpad stick" id="moveStick"><div class="stickRing"><div class="stickKnob" id="stickKnob"></div></div></div><button id="fastFall" class="fastFall" aria-label="早送り落下">▼▼<small>早送り</small></button>
  <div class="actions"><button data-key="grab">掴</button><button data-key="jump">跳</button><button data-key="attack">剣</button><button data-key="kick" class="kick">蹴</button></div>
 </div>
-<p id="className">職業: -</p><p class="help">方向キー＋攻撃 / 跳 / 攻撃長押し=チャージ必殺 / 魔法使い: 剣=炎・蹴=氷・掴=風・跳=浮遊</p>
-<script src="game.js?v=68"></script></main></body></html>
+<button id="endlessExit" class="classBtn" style="display:none" onclick="exitEndless()">ひたすらモードを終了</button><p id="className">職業: -</p><p class="help">方向キー＋攻撃 / 跳 / 攻撃長押し=チャージ必殺 / 魔法使い: 剣=炎・蹴=氷・掴=風・跳=浮遊</p>
+<script src="game.js?v=69"></script></main></body></html>

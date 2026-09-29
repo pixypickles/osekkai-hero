@@ -5,8 +5,8 @@ window.addEventListener("error",function(e){
 const cv=document.querySelector("#game"),ctx=cv.getContext("2d");
 const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
 let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,chainPoints=0,GOAL=300,gameOver=false,cleared=false,playerClass=null;
-let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossLeftT=0,bossFireT=1200,bossFireballs=[]; let bossOnlyRun=false;
-let enemies=[],enemySpawnT=0,demonSwordT=0,demonPhase=0,bossX=W-.62;
+let gameMode="normal",runStartMs=0,elapsedMs=0; let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossLeftT=0,bossFireT=1200,bossFireballs=[]; let bossOnlyRun=false;
+let enemies=[],enemySpawnT=0,demonSwordT=0,demonSwordSwing=0,demonPhase=0,bossX=W-.62;
 
 const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0,carry:null,jumps:0,grabHold:0,grabColorTick:0,floating:false,liftRide:-1,liftPrevY:0,guard:false};
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
@@ -82,7 +82,11 @@ function resolve(){
   if(g.length>=4)groups.push(g);
  }
  if(!groups.length){chain=0;return}
- chain++;chainPoints+=25*chain;document.querySelector("#chainPoints").textContent=chainPoints;let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=GOAL;if(!bossMode&&chainPoints>=GOAL){finishStage();}
+ chain++;
+ let chainGain=Math.max(0,chain-1),simulGain=Math.max(0,groups.length-1),gain=chainGain+simulGain;
+ chainPoints+=gain;document.querySelector("#chainPoints").textContent=chainPoints;let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=gameMode==="endless"?"∞":GOAL;
+ if(gain>0)msg(`連鎖P +${gain}${simulGain?`（同時+${simulGain}）`:""}`);
+ if(!bossMode&&gameMode!=="endless"&&chainPoints>=GOAL){finishStage();}
  groups.flat().forEach(([x,y])=>{board[y][x]=null;score+=10*chain;special=Math.min(100,special+3*chain)});
  setTimeout(()=>{gravity();resolve()},160);
 }
@@ -626,12 +630,12 @@ function finishStage(){
  let nextBtn=document.querySelector("#nextStageBtn"),contBtn=document.querySelector("#continueBtn");
  if(nextBtn)nextBtn.style.display="block";if(contBtn)contBtn.style.display="none";
  let result=document.querySelector("#stageResult"),info=document.querySelector("#stageInfo");
- if(result)result.textContent=bossMode?"BOSS CLEAR!":"STAGE CLEAR!";
+ if(result)result.textContent=bossMode?"BOSS CLEAR!":gameMode==="time"?`TIME ${(elapsedMs/1000).toFixed(2)}s`:"STAGE CLEAR!";
  if(info)info.textContent=bossMode?(bossTier===1?"ボス撃破！ 次はステージ4へ。":bossTier===2?"強ボス撃破！ 次はステージ7へ。":"魔王撃破！ ステージ1へ。"):(stage===3||stage===6||stage===9?"次はボス戦です。":"次は落下が少し激しくなります。");
  document.querySelector("#stageMenu").style.display="flex";
 }
 function startNormalStage(n){
- stage=n;bossMode=false;GOAL=300+(stage-1)*100;enemies=[];enemySpawnT=stage>=7?2600:stage>=4?4200:999999;resetStageBoard();
+ stage=n;bossMode=false;GOAL=gameMode==="time"?20:gameMode==="endless"?999999:12;enemies=[];enemySpawnT=stage>=7?2600:stage>=4?4200:999999;resetStageBoard();
  // Start with a little material already on the field.
  seedOpeningBoard();
  // Class-specific placement is handled after the common stage boot.
@@ -686,9 +690,9 @@ function updateBoss(dt){
  if(!bossMode)return;
  if(bossTier===3){
   demonPhase+=dt*.00072;bossX=W*.5+Math.cos(demonPhase)*2.35;bossY=H*.59+Math.sin(demonPhase)*1.55;
-  demonSwordT-=dt;
+  demonSwordT-=dt;demonSwordSwing=Math.max(0,demonSwordSwing-dt);
   if(demonSwordT<=0&&Math.hypot(hero.x-bossX,hero.y-bossY)<1.55){
-   demonSwordT=1250;
+   demonSwordT=1250;demonSwordSwing=320;
    if(hero.guard&&(playerClass==="hero"||playerClass==="monk"))msg("魔王の剣をガード！");
    else knockHero(hero.x<bossX?-1:1,"魔王の剣！ 2秒ダウン！");
   }
@@ -766,7 +770,8 @@ function update(dt){
  updatePairs(dt);updateHero(dt);updateLiftRide();
  {let lateFast=(stage>=7&&!bossMode);fallSpeed=Math.min(lateFast?.00195:.00145,(lateFast?.00105:.00075)+score/9000000);}
  document.querySelector("#score").textContent=score;
- document.querySelector("#chainPoints").textContent=chainPoints;let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=GOAL;
+ if(gameMode==="time"&&runStartMs){elapsedMs=performance.now()-runStartMs;let tm=document.querySelector("#timeText");if(tm)tm.textContent=(elapsedMs/1000).toFixed(1)+"s"}
+ document.querySelector("#chainPoints").textContent=chainPoints;let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=gameMode==="endless"?"∞":GOAL;
  document.querySelector("#specialText").textContent=Math.floor(special)+"%";
  document.querySelector("#specialBar").style.width=special+"%";
 }
@@ -801,7 +806,7 @@ function drawBoss(){
  ctx.restore();
  for(const f of bossFireballs){
   ctx.save();ctx.translate(f.x,f.y);ctx.fillStyle="#ff6a2a";ctx.beginPath();ctx.arc(0,0,.16,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#ffd35a";ctx.beginPath();ctx.arc(-.04,-.02,.08,0,Math.PI*2);ctx.fill();ctx.restore();
+  ctx.fillStyle="#ffd35a";ctx.beginPath();ctx.arc(-.04,-.02,.08,0,Math.PI*2);ctx.fill();if(bossTier===3){let sw=demonSwordSwing>0?1-demonSwordSwing/320:0,ang=demonSwordSwing>0?(-1.25+sw*2.5):-.72,sx=.34,sy=-.05,ex=sx+Math.cos(ang)*.9,ey=sy+Math.sin(ang)*.9;ctx.strokeStyle="#f2e7c5";ctx.lineWidth=.085;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);ctx.stroke();ctx.strokeStyle="#d9a94e";ctx.lineWidth=.07;ctx.beginPath();ctx.moveTo(sx-.1,sy-.06);ctx.lineTo(sx+.1,sy+.06);ctx.stroke();if(demonSwordSwing>0){ctx.strokeStyle="rgba(255,225,160,.65)";ctx.lineWidth=.045;ctx.beginPath();ctx.arc(.28,-.03,1,-1.2,1.25);ctx.stroke()}}ctx.restore();
  }
 }
 function drawHero(){
@@ -937,11 +942,13 @@ function setActionLabels(){
  {grab:"風替",jump:"風押",attack:"炎",kick:"氷"};
  for(const [k,v] of Object.entries(labels)){let el=document.querySelector('[data-key="'+k+'"]');if(el)el.textContent=v}
 }
+window.beginMode=function(job,mode){gameMode=mode||"normal";window.beginSelectedJob(job);};
+window.exitEndless=function(){if(gameMode!=="endless")return;cleared=true;let r=document.querySelector("#stageResult"),i=document.querySelector("#stageInfo");if(r)r.textContent="ENDLESS 終了";if(i)i.textContent=`連鎖P ${chainPoints} / SCORE ${score}`;document.querySelector("#nextStageBtn").style.display="none";document.querySelector("#continueBtn").style.display="none";document.querySelector("#stageMenu").style.display="flex";};
 window.beginSelectedJob=function(job){
  if(job!=="hero"&&job!=="monk"&&job!=="mage")return;
- bossOnlyRun=false;selectedClass=job;playerClass=job;
+ bossOnlyRun=false;selectedClass=job;playerClass=job;runStartMs=performance.now();elapsedMs=0;
  resetStageBoard();
- stage=1;bossMode=false;GOAL=300;enemies=[];enemySpawnT=999999;
+ stage=1;bossMode=false;GOAL=gameMode==="time"?20:gameMode==="endless"?999999:12;enemies=[];enemySpawnT=999999;
  seedOpeningBoard();spawnClock=0;
  hero.grab=null;hero.carry=null;hero.guard=false;hero.stun=0;hero.vx=0;hero.vy=0;hero.liftRide=-1;
  hero.floating=(job==="mage");
