@@ -752,7 +752,7 @@ function update(dt){
  updateBoss(dt);
  updateEnemies(dt);
  updatePairs(dt);updateHero(dt);updateLiftRide();
- fallSpeed=Math.min(stage>=7&&!bossMode?.00195:.00145,(stage>=7&&!bossMode?.00105:.00075)+score/9000000);
+ {let lateFast=(stage>=7&&!bossMode);fallSpeed=Math.min(lateFast?.00195:.00145,(lateFast?.00105:.00075)+score/9000000);}
  document.querySelector("#score").textContent=score;
  document.querySelector("#chainPoints").textContent=chainPoints;
  document.querySelector("#specialText").textContent=Math.floor(special)+"%";
@@ -927,9 +927,17 @@ function setActionLabels(){
 }
 window.beginSelectedJob=function(job){
  if(!job)return;
- selectedClass=job;playerClass=job;hero.floating=playerClass==="mage";
+ selectedClass=job;playerClass=job;
+ hero.grab=null;hero.carry=null;hero.guard=false;hero.stun=0;hero.vx=0;hero.vy=0;hero.liftRide=-1;
+ hero.floating=(job==="mage");
  setActionLabels();
- try{startNormalStage(1)}catch(err){console.error(err);resetStageBoard();updateStageHud()}
+ startNormalStage(1);
+ // Re-assert the selected job after all stage reset/setup code.
+ playerClass=job;selectedClass=job;hero.floating=(job==="mage");
+ if(job==="mage"){
+  hero.x=W*.5;hero.y=Math.max(1.5,H-4.0);hero.vx=0;hero.vy=0;
+  for(let tries=0;tries<8&&(solidAt(hero.x,hero.y)||heroHitsPair(hero.x,hero.y));tries++)hero.y=Math.max(1.2,hero.y-.65);
+ }
  let cn=document.querySelector("#className");
  if(cn)cn.textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
 };
