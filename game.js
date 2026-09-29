@@ -3,7 +3,7 @@ const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
 let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,chainPoints=0,GOAL=300,gameOver=false,cleared=false,playerClass=null;
 let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossLeftT=0,bossFireT=1200,bossFireballs=[]; let bossOnlyRun=false;
 
-const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0,carry:null,jumps:0,grabHold:0,grabColorTick:0,floating:false};
+const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0,carry:null,jumps:0,grabHold:0,grabColorTick:0,floating:false,liftRide:-1,liftPrevY:0};
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
 let fastFall=false; const FAST_FALL_MULT=4.2;
 
@@ -93,6 +93,25 @@ function gravity(){
  }
 }
 function solidAt(x,y){let ix=Math.floor(x),iy=Math.floor(y);return ix<0||ix>=W||iy>=H||bossPlatformAt(x,y)||(iy>=0&&board[iy][ix])}
+function updateLiftRide(){
+ if(!bossMode||bossTier!==2){hero.liftRide=-1;return}
+ const lifts=strongLiftRects();
+ // Continue riding the same lift while horizontally over it.
+ if(hero.liftRide>=0&&lifts[hero.liftRide]){
+  const r=lifts[hero.liftRide],feet=hero.y+hero.h/2;
+  if(hero.x>=r.x-.12&&hero.x<=r.x+r.w+.12&&Math.abs(feet-r.y)<.72&&hero.vy>=-.0015){
+   hero.y=r.y-hero.h/2-.02;hero.vy=0;hero.onGround=true;hero.liftPrevY=r.y;return
+  }
+  hero.liftRide=-1;
+ }
+ // Acquire a lift when descending/standing just above its top.
+ for(let i=0;i<lifts.length;i++){
+  const r=lifts[i],feet=hero.y+hero.h/2;
+  if(hero.x>=r.x-.12&&hero.x<=r.x+r.w+.12&&feet>=r.y-.28&&feet<=r.y+.28&&hero.vy>=-.001){
+   hero.liftRide=i;hero.liftPrevY=r.y;hero.y=r.y-hero.h/2-.02;hero.vy=0;hero.onGround=true;return
+  }
+ }
+}
 function heroSolidAt(x,y,prevY=null){
  if(bossMode&&bossTier===2){
   for(const r of strongLiftRects()){
@@ -155,6 +174,7 @@ function destroyHeroGrabbed(){
  hero.grab=null;return false;
 }
 function updateHero(dt){
+ updateLiftRide();
  if(hero.stun>0){hero.stun=Math.max(0,hero.stun-dt);hero.vy+=.000024*dt;let sx=Math.max(.3,Math.min(W-.3,hero.x+hero.vx*dt));if(!solidAt(sx,hero.y)&&!heroHitsPair(sx,hero.y))hero.x=sx;else hero.vx=0;let sy=Math.min(H-.48,hero.y+hero.vy*dt);if(!heroSolidAt(hero.x,sy,hero.y)&&!heroHitsPair(hero.x,sy))hero.y=sy;else hero.vy=0;hero.vx*=Math.pow(.985,dt/16.67);return}
  if(playerClass==="mage"){
   hero.grab=null;hero.onGround=false;
@@ -638,7 +658,7 @@ function update(dt){
  effects.forEach(e=>e.t-=dt);effects=effects.filter(e=>e.t>0);
  if(gameOver||cleared||!playerClass)return;
  updateBoss(dt);
- updatePairs(dt);updateHero(dt);
+ updatePairs(dt);updateHero(dt);updateLiftRide();
  fallSpeed=Math.min(.00145,.00075+score/9000000);
  document.querySelector("#score").textContent=score;
  document.querySelector("#chainPoints").textContent=chainPoints;
