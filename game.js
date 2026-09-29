@@ -2,6 +2,7 @@ const cv=document.querySelector("#game"),ctx=cv.getContext("2d");
 const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
 let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,chainPoints=0,GOAL=300,gameOver=false,cleared=false,playerClass=null;
 let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossLeftT=0,bossFireT=1200,bossFireballs=[]; let bossOnlyRun=false;
+let enemies=[],enemySpawnT=0,demonSwordT=0,demonPhase=0,bossX=W-.62;
 
 const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0,carry:null,jumps:0,grabHold:0,grabColorTick:0,floating:false,liftRide:-1,liftPrevY:0,guard:false};
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
@@ -333,6 +334,77 @@ function jump(){
    hero.grab=null;hero.vy=-.0128;
  }
 }
+
+function knockHero(dir,label="吹き飛ばされた！ 2秒ダウン！"){
+ if(hero.stun>0)return;
+ hero.grab=null;hero.guard=false;hero.stun=2000;hero.attackT=0;hero.kickT=0;hero.grabT=0;hero.charge=0;
+ hero.vx=.0065*dir;hero.vy=-.0048;hero.x=Math.max(.35,Math.min(W-.35,hero.x+dir*.38));
+ effects.push({x:hero.x,y:hero.y,t:260,max:260,type:"hit",color:"#ffb15a"});msg(label);
+}
+function spawnNeutralDrop(x){
+ x=Math.max(0,Math.min(W-1,Math.floor(x)));
+ pairs.push({id:++pairSeq,x,y:-1,a:-1,b:null,hpA:3,hpB:0,orient:"v",targetX:x,targetOrient:"v",aiClock:999999,rotated:true,windLock:999999});
+}
+function spawnBat(){
+ let fromLeft=Math.random()<.5;
+ enemies.push({type:"bat",x:fromLeft?-.4:W+.4,y:2+Math.random()*4,vx:fromLeft?.00125:-.00125,hp:1,t:12000,dropT:1100+Math.random()*1200,phase:Math.random()*6.28});
+}
+function spawnSkeleton(){
+ let fromLeft=Math.random()<.5;
+ enemies.push({type:"skeleton",x:fromLeft?.35:W-.35,y:H-1.15,vx:0,vy:0,hp:2,t:15000,attackT:700+Math.random()*700,jumpT:900+Math.random()*1000,face:fromLeft?1:-1});
+}
+function enemyHitRay(x,y,dx,dy,range,width=.5,power=1){
+ let best=null;
+ for(const e of enemies){let rx=e.x-x,ry=e.y-y,along=rx*dx+ry*dy,side=Math.abs(rx*(-dy)+ry*dx);
+  if(along>=0&&along<=range&&side<width&&(!best||along<best.along))best={e,along};
+ }
+ if(!best)return false;
+ best.e.hp-=power;hitEffect(best.e.x,best.e.y,"#fff2a8");
+ if(best.e.hp<=0){effects.push({x:best.e.x,y:best.e.y,t:300,max:300,type:"hit",color:"#d9d0ff"});best.e.dead=true;msg(best.e.type==="bat"?"使い魔を倒した！":"スケルトン撃破！")}
+ return true;
+}
+function updateEnemies(dt){
+ if(bossMode||stage<4)return;
+ enemySpawnT-=dt;
+ if(enemySpawnT<=0){
+  if(stage>=4&&Math.random()<.72)spawnBat();
+  if(stage>=7&&Math.random()<.62)spawnSkeleton();
+  enemySpawnT=stage>=7?4200+Math.random()*3200:6500+Math.random()*5000;
+ }
+ for(const e of enemies){
+  e.t-=dt;
+  if(e.type==="bat"){
+   e.phase+=dt*.004;e.x+=e.vx*dt;e.y+=Math.sin(e.phase)*.00045*dt;e.dropT-=dt;
+   if(e.dropT<=0&&e.x>.5&&e.x<W-.5){spawnNeutralDrop(e.x);e.dropT=999999;msg("使い魔が無色スライムを落とした！")}
+  }else{
+   e.face=hero.x<e.x?-1:1;
+   let dx=hero.x-e.x;
+   if(Math.abs(dx)>.78)e.x+=Math.sign(dx)*.00115*dt;
+   e.jumpT-=dt;if(e.jumpT<=0){e.vy=-.0105;e.jumpT=1300+Math.random()*1300}
+   e.vy+=.000024*dt;e.y+=e.vy*dt;if(e.y>H-1.15){e.y=H-1.15;e.vy=0}
+   e.attackT-=dt;
+   if(Math.abs(hero.x-e.x)<1.05&&Math.abs(hero.y-e.y)<.85&&e.attackT<=0){
+    e.attackT=1200;
+    if(hero.guard&&(playerClass==="hero"||playerClass==="monk"))msg("ガード！");
+    else knockHero(e.face,"スケルトンの剣！ 2秒ダウン！");
+   }
+  }
+ }
+ enemies=enemies.filter(e=>!e.dead&&e.t>0&&e.x>-1&&e.x<W+1);
+}
+function drawEnemies(){
+ for(const e of enemies){ctx.save();ctx.translate(e.x,e.y);
+  if(e.type==="bat"){
+   ctx.fillStyle="#33264d";ctx.beginPath();ctx.arc(0,0,.18,0,Math.PI*2);ctx.fill();
+   ctx.beginPath();ctx.moveTo(-.12,0);ctx.quadraticCurveTo(-.48,-.28,-.52,.05);ctx.quadraticCurveTo(-.34,-.02,-.12,.12);ctx.fill();
+   ctx.beginPath();ctx.moveTo(.12,0);ctx.quadraticCurveTo(.48,-.28,.52,.05);ctx.quadraticCurveTo(.34,-.02,.12,.12);ctx.fill();
+   ctx.fillStyle="#ff6f8f";ctx.fillRect(-.08,-.04,.04,.04);ctx.fillRect(.04,-.04,.04,.04);
+  }else{
+   ctx.fillStyle="#ddd9cf";ctx.beginPath();ctx.arc(0,-.48,.22,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle="#d9d4ca";ctx.lineWidth=.09;ctx.beginPath();ctx.moveTo(0,-.25);ctx.lineTo(0,.35);ctx.moveTo(-.22,-.05);ctx.lineTo(.22,-.05);ctx.moveTo(0,.32);ctx.lineTo(-.2,.62);ctx.moveTo(0,.32);ctx.lineTo(.2,.62);ctx.stroke();
+   ctx.strokeStyle="#d7e8ff";ctx.lineWidth=.055;ctx.beginPath();ctx.moveTo(.2*e.face,-.08);ctx.lineTo(.62*e.face,-.42);ctx.stroke();
+  }ctx.restore()}
+}
 function hitEffect(x,y,color="#fff"){
  effects.push({x,y,t:220,max:220,type:"hit",color});
 }
@@ -341,12 +413,20 @@ function slimeHurtEffect(x,y,color){
 }
 function attackHitsBoss(x,y,dx,dy,range,width=.55){
  if(!bossMode)return false;
- let rx=(W-.62)-x,ry=bossY-y,along=rx*dx+ry*dy,side=Math.abs(rx*(-dy)+ry*dx);
+ let rx=((bossTier===3?bossX:W-.62)-x),ry=bossY-y,along=rx*dx+ry*dy,side=Math.abs(rx*(-dy)+ry*dx);
  return along>=-.2&&along<=range&&side<1.05+width;
 }
 function cancelBossFireAlong(x,y,dx,dy,range,label){
  if(!bossMode||!bossFireballs.length)return false;
  let best=null;
+ if(bossTier===3){
+  demonSwordT-=dt;
+  if(demonSwordT<=0&&Math.hypot(hero.x-bossX,hero.y-bossY)<1.55){
+   demonSwordT=1250;
+   if(hero.guard&&(playerClass==="hero"||playerClass==="monk"))msg("魔王の剣をガード！");
+   else knockHero(hero.x<bossX?-1:1,"魔王の剣！ 2秒ダウン！");
+  }
+ }
  for(const f of bossFireballs){
   let rx=f.x-x,ry=f.y-y,along=rx*dx+ry*dy,side=Math.abs(rx*(-dy)+ry*dx);
   if(along>=0&&along<=range&&side<.42&&(!best||along<best.along))best={f,along};
@@ -360,11 +440,13 @@ function attack(){
  if(playerClass==="hero"&&hero.grab){hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;destroyHeroGrabbed();return}
  if(charged&&special>=100){doSpecial();return}
  hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;
+ if(playerClass==="hero"&&!bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(enemyHitRay(hero.x,hero.y,dx,dy,charged?2.05:1.25,.55,charged?2:1))return}
  if(playerClass==="hero"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.55,"聖剣で相殺！"))return;if(attackHitsBoss(hero.x,hero.y,dx,dy,1.8,.45)){bossDamage(2,"剣撃！");return}}
 
  if(playerClass==="mage"){
   let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}
   effects.push({x:hero.x,y:hero.y,t:360,max:360,type:"projectile",color:"#ff8a3d",dx,dy});
+  if(!bossMode&&enemyHitRay(hero.x,hero.y,dx,dy,4.8,.48,1))return;
   if(cancelBossFireAlong(hero.x,hero.y,dx,dy,4.5,"ファイアボールで相殺！"))return;
   if(attackHitsBoss(hero.x,hero.y,dx,dy,5.2,.38)){bossDamage(1,"ファイアボール！");return}
   for(let r=.45;r<=4.5;r+=.25){let fx=hero.x+dx*r,fy=hero.y+dy*r;
@@ -372,6 +454,7 @@ function attack(){
    let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){hitEffect(tx+.5,ty+.5,"#ff8a3d");if(board[ty][tx].frozen){board[ty][tx].frozen=false;msg("解凍！");gravity();resolve();return}board[ty][tx]=null;gravity();resolve();return}
   }return;
  }
+ if(playerClass==="monk"&&!bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(enemyHitRay(hero.x,hero.y,dx,dy,1.45,.6,1))return}
  if(playerClass==="monk"&&bossMode){let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}if(cancelBossFireAlong(hero.x,hero.y,dx,dy,1.25,"拳で相殺！"))return;if(attackHitsBoss(hero.x,hero.y,dx,dy,1.5,.45)){bossDamage(2,"拳撃！");return}}
  if(playerClass==="monk"){
    // UP: uppercut. Counter/destroy a slime directly overhead, including falling slime.
@@ -497,7 +580,7 @@ function resetStageBoard(){
  document.querySelector("#message").classList.remove("clear");
 }
 function updateStageHud(){
- let s=document.querySelector("#stageText");if(s)s.textContent=bossMode?(bossTier===2?"BOSS 2":"BOSS"):stage;
+ let s=document.querySelector("#stageText");if(s)s.textContent=bossMode?(bossTier===3?"魔王":bossTier===2?"BOSS 2":"BOSS"):stage;
  let bh=document.querySelector("#bossHud");if(bh)bh.style.display=bossMode?"inline":"none";
  let hp=document.querySelector("#bossHpText");if(hp)hp.textContent=Math.max(0,bossHp)+" / "+bossMaxHp;
  let cp=document.querySelector("#chainPoints");if(cp)cp.textContent=bossMode?chainPoints:`${chainPoints} / ${GOAL}`;
@@ -526,11 +609,11 @@ function finishStage(){
  if(nextBtn)nextBtn.style.display="block";if(contBtn)contBtn.style.display="none";
  let result=document.querySelector("#stageResult"),info=document.querySelector("#stageInfo");
  if(result)result.textContent=bossMode?"BOSS CLEAR!":"STAGE CLEAR!";
- if(info)info.textContent=bossMode?"ボス撃破！ 次は通常ステージ1から再開します。":(stage>=3?"次はボス戦です。":"次は落下が少し激しくなります。");
+ if(info)info.textContent=bossMode?(bossTier===1?"ボス撃破！ 次はステージ4へ。":bossTier===2?"強ボス撃破！ 次はステージ7へ。":"魔王撃破！ ステージ1へ。"):(stage===3||stage===6||stage===9?"次はボス戦です。":"次は落下が少し激しくなります。");
  document.querySelector("#stageMenu").style.display="flex";
 }
 function startNormalStage(n){
- stage=n;bossMode=false;GOAL=300+(stage-1)*100;resetStageBoard();
+ stage=n;bossMode=false;GOAL=300+(stage-1)*100;enemies=[];enemySpawnT=stage>=7?2600:stage>=4?4200:999999;resetStageBoard();
  // Start with a little material already on the field.
  seedOpeningBoard();
  // Mage must start in open air. Previously resetStageBoard left every class
@@ -544,8 +627,8 @@ function startNormalStage(n){
  spawnClock=0;if(typeof spawnPair==="function")spawnPair();
  updateStageHud();
 }
-function strongLiftRects(){if(!bossMode||bossTier!==2)return [];let t=performance.now()*.001;return [{x:1,y:2.2+(Math.sin(t*.72)+1)*(H-4.0)/2,w:1,h:.28,moving:true},{x:6,y:2.8+(Math.sin(t*.58+2.1)+1)*(H-4.6)/2,w:1,h:.28,moving:true},{x:4,y:H*.56,w:1,h:.28,moving:false}]}
-function bossPlatformAt(x,y){if(!bossMode)return false;if(bossTier===2)return strongLiftRects().some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18);let ix=Math.floor(x),iy=Math.floor(y),c=W-1;return (ix===c&&iy>=H-3&&iy<H)||(ix===c-1&&iy>=H-2&&iy<H)||(ix===c-2&&iy===H-1)}
+function strongLiftRects(){if(!bossMode||(bossTier!==2&&bossTier!==3))return [];if(bossTier===3)return [{x:2,y:H*.64,w:1,h:.28,moving:false},{x:5,y:H*.48,w:1,h:.28,moving:false}];let t=performance.now()*.001;return [{x:1,y:2.2+(Math.sin(t*.72)+1)*(H-4.0)/2,w:1,h:.28,moving:true},{x:6,y:2.8+(Math.sin(t*.58+2.1)+1)*(H-4.6)/2,w:1,h:.28,moving:true},{x:4,y:H*.56,w:1,h:.28,moving:false}]}
+function bossPlatformAt(x,y){if(!bossMode)return false;if(bossTier===2||bossTier===3)return strongLiftRects().some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18);let ix=Math.floor(x),iy=Math.floor(y),c=W-1;return (ix===c&&iy>=H-3&&iy<H)||(ix===c-1&&iy>=H-2&&iy<H)||(ix===c-2&&iy===H-1)}
 function seedBossPlatforms(){
  let cells=[[1,H-1],[2,H-1],[4,H-1],[6,H-1],[6,H-2]];
  for(const [x,y] of cells)if(x>=0&&x<W&&y>=0&&y<H&&!board[y][x])board[y][x]=makeSlime(-1);
@@ -553,14 +636,14 @@ function seedBossPlatforms(){
 function startBossStage(tier=1){
  try{localStorage.setItem("osekkaiBossUnlocked","1")}catch(e){}
  let bb=document.querySelector("#bossOnlyBtn");if(bb)bb.style.display="block";
- bossMode=true;bossTier=tier;bossMaxHp=tier===2?48:30;bossHp=bossMaxHp;bossLeftT=450;
- bossSpawnT=0;bossFireT=tier===2?650:900;bossFireballs=[];bossDir=1;
+ bossMode=true;bossTier=tier;bossMaxHp=tier===3?64:tier===2?48:30;bossHp=bossMaxHp;bossLeftT=450;enemies=[];demonPhase=0;demonSwordT=900;
+ bossSpawnT=0;bossFireT=tier===3?1100:tier===2?650:900;bossFireballs=[];bossDir=1;
  resetStageBoard();
  hero.floating=playerClass==="mage";
  if(playerClass==="mage"){hero.y=H-3.0;hero.vy=0}else{hero.y=H-1.2;hero.vy=0}
- bossY=tier===2?H*.48:H-3.95;
+ bossY=tier===3?H*.58:tier===2?H*.48:H-3.95;
  seedBossPlatforms();
- updateStageHud();msg(tier===2?"STRONG BOSS!":"BOSS!");
+ updateStageHud();msg(tier===3?"魔王戦！":tier===2?"STRONG BOSS!":"BOSS!");
 }
 function bossDamage(amount,label="HIT!"){
  if(!bossMode||bossHp<=0)return false;
@@ -590,31 +673,33 @@ function spawnBossLeftNeutral(){
 }
 function updateBoss(dt){
  if(!bossMode)return;
- if(bossTier===2){
+ if(bossTier===3){
+  demonPhase+=dt*.00072;bossX=W*.5+Math.cos(demonPhase)*2.35;bossY=H*.59+Math.sin(demonPhase)*1.55;
+ }else if(bossTier===2){
   bossY+=bossDir*.00115*dt;
   if(bossY>H-2.2){bossY=H-2.2;bossDir=-1}
   if(bossY<2.0){bossY=2.0;bossDir=1}
  }
  bossSpawnT-=dt;
 if(bossSpawnT<=0){
- spawnBossSingle();
+ if(bossTier===3){spawnNeutralDrop(Math.random()<.5?0:W-1)}else spawnBossSingle();
  // Overall random rain is a little lighter; the left lane supplies the main board pressure.
- bossSpawnT=bossTier===2?1500+Math.random()*600:1350+Math.random()*650;
+ bossSpawnT=bossTier===3?2100+Math.random()*900:bossTier===2?1500+Math.random()*600:1350+Math.random()*650;
 }
 bossLeftT-=dt;
 if(bossLeftT<=0){
- spawnBossLeftNeutral();
+ if(bossTier!==3)spawnBossLeftNeutral();
  // One-by-one neutral slimes keep threatening the far-left column.
- bossLeftT=bossTier===2?2800:3400;
+ bossLeftT=bossTier===3?999999:bossTier===2?2800:3400;
 }
  if(bossHitT>0)bossHitT-=dt;
  bossFireT-=dt;
  if(bossFireT<=0){
-  bossFireT=bossTier===2?1900+Math.random()*900:2400+Math.random()*1400;
-  let bx=W-.9,by=bossY-.3,dx=hero.x-bx,dy=hero.y-by,len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len;
-  if(bossTier===2){
+  bossFireT=bossTier===3?2200+Math.random()*1000:bossTier===2?1900+Math.random()*900:2400+Math.random()*1400;
+  let bx=bossTier===3?bossX:W-.9,by=bossY-.3,dx=hero.x-bx,dy=hero.y-by,len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len;
+  if(bossTier===2||bossTier===3){
     bossFireballs.push({x:bx,y:by,vx:ux*.00285,vy:uy*.00285,t:3600});
-    msg("強ボス: ファイア！");
+    msg(bossTier===3?"魔王: ファイア！":"強ボス: ファイア！");
    }else{bossFireballs.push({x:bx,y:by,vx:ux*.0030,vy:uy*.0030,t:3200});msg("ボス: ファイア！")}
  }
  for(const f of bossFireballs){
@@ -637,7 +722,7 @@ if(bossLeftT<=0){
       f.t=0;effects.push({x:f.x,y:f.y,t:220,max:220,type:"hit",color:"#d9f2ff"});msg("ガード！");
       continue;
     }
-   hero.grab=null;hero.stun=2000;hero.attackT=0;hero.kickT=0;hero.grabT=0;hero.charge=0;hero.vx=-.0065;hero.vy=-.0048;hero.x=Math.max(.35,hero.x-.38);f.t=0;effects.push({x:hero.x,y:hero.y,t:260,max:260,type:"hit",color:"#ffb15a"});msg("吹き飛ばされた！ 2秒ダウン！");
+   f.t=0;knockHero(f.vx>=0?1:-1);
   }
  }
  bossFireballs=bossFireballs.filter(f=>f.t>0&&f.x>-.5&&f.x<W+.5&&f.y>-.5&&f.y<H+.5);
@@ -665,8 +750,9 @@ function update(dt){
  effects.forEach(e=>e.t-=dt);effects=effects.filter(e=>e.t>0);
  if(gameOver||cleared||!playerClass)return;
  updateBoss(dt);
+ updateEnemies(dt);
  updatePairs(dt);updateHero(dt);updateLiftRide();
- fallSpeed=Math.min(.00145,.00075+score/9000000);
+ fallSpeed=Math.min(stage>=7&&!bossMode?.00195:.00145,(stage>=7&&!bossMode?.00105:.00075)+score/9000000);
  document.querySelector("#score").textContent=score;
  document.querySelector("#chainPoints").textContent=chainPoints;
  document.querySelector("#specialText").textContent=Math.floor(special)+"%";
@@ -677,11 +763,11 @@ function slime(x,y,s){if(y<-1)return;ctx.fillStyle="rgba(0,0,0,.18)";ctx.beginPa
 
 function drawBoss(){
  if(!bossMode)return;
- if(bossTier===2){for(const r of strongLiftRects()){ctx.save();ctx.fillStyle="#536579";ctx.fillRect(r.x,r.y,r.w,r.h);ctx.fillStyle="#91a9bd";ctx.fillRect(r.x+.08,r.y+.05,r.w-.16,.08);ctx.strokeStyle="#b9e8ff";ctx.lineWidth=.035;ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.restore();}}
- let x=W-.62,y=bossY;
+ if(bossTier===2||bossTier===3){for(const r of strongLiftRects()){ctx.save();ctx.fillStyle="#536579";ctx.fillRect(r.x,r.y,r.w,r.h);ctx.fillStyle="#91a9bd";ctx.fillRect(r.x+.08,r.y+.05,r.w-.16,.08);ctx.strokeStyle="#b9e8ff";ctx.lineWidth=.035;ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.restore();}}
+ let x=bossTier===3?bossX:W-.62,y=bossY;
  // Permanent three-step stone pedestal: terrain, not slime data.
  if(bossTier===1){ctx.save();for(let step=0;step<3;step++){let bx=W-1-step,h=3-step;for(let yy=H-h;yy<H;yy++){ctx.fillStyle="#596372";ctx.fillRect(bx+.04,yy+.04,.92,.92);ctx.fillStyle="#7c8796";ctx.fillRect(bx+.09,yy+.09,.82,.16);ctx.strokeStyle="#3f4753";ctx.lineWidth=.035;ctx.strokeRect(bx+.04,yy+.04,.92,.92);}}ctx.restore();}
- ctx.save();ctx.translate(x,y);
+ ctx.save();ctx.translate(x,y);if(bossTier===3){ctx.save();ctx.fillStyle="#e5b94e";ctx.beginPath();ctx.moveTo(-.34,-.76);ctx.lineTo(-.18,-1.05);ctx.lineTo(0,-.79);ctx.lineTo(.2,-1.08);ctx.lineTo(.36,-.74);ctx.closePath();ctx.fill();ctx.restore()}
  let q=bossHitT>0?Math.sin(bossHitT*.08)*.06:0;ctx.scale(1+q,1-q);
  // cloak/body: about two grid cells tall
  ctx.fillStyle="#39234f";ctx.beginPath();ctx.moveTo(-.46,.72);ctx.lineTo(-.5,-.25);ctx.quadraticCurveTo(-.42,-.72,0,-.82);ctx.quadraticCurveTo(.42,-.72,.5,-.25);ctx.lineTo(.46,.72);ctx.closePath();ctx.fill();
@@ -824,7 +910,7 @@ function draw(){
  ctx.strokeStyle="#34394f";ctx.lineWidth=.025;for(let x=0;x<=W;x++){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<=H;y++){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x])slime(x,y,board[y][x]);
  for(const p of pairs){if(p.a!=null){let z=pairPos(p,0);slime(z.x,z.y,makeSlime(p.a))}if(p.b!=null){let z=pairPos(p,1);slime(z.x,z.y,makeSlime(p.b))}}
- drawBoss();drawEffects();drawHero();if(hero.carry)slime(hero.x+hero.face*.42-.5,hero.y-.95,hero.carry);ctx.restore();
+ drawBoss();drawEnemies();drawEffects();drawHero();if(hero.carry)slime(hero.x+hero.face*.42-.5,hero.y-.95,hero.carry);ctx.restore();
 }
 function loop(t){let dt=Math.min(32,t-last);last=t;update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
 const CLASS_HELP={
@@ -854,11 +940,13 @@ document.querySelector("#nextStageBtn")?.addEventListener("click",()=>{
   let strongCleared=false;try{strongCleared=localStorage.getItem("osekkaiStrongBossCleared")==="1"}catch(e){}
   if(bossOnlyRun&&bossTier===1&&strongCleared){startBossStage(2);bossOnlyRun=true}
   else if(bossOnlyRun){bossOnlyRun=false;startNormalStage(1)}
-  else{startNormalStage(bossTier===1?4:1)}
+  else{startNormalStage(bossTier===1?4:bossTier===2?7:1)}
 }else if(stage===3){
   startBossStage(1)
 }else if(stage===6){
   startBossStage(2)
+}else if(stage===9){
+  startBossStage(3)
 }else{
   startNormalStage(stage+1)
 }
