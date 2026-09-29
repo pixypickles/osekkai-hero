@@ -179,6 +179,7 @@ function destroyHeroGrabbed(){
 }
 function updateHero(dt){
  updateLiftRide();
+ if(hero.guard&&!keys.grab)hero.guard=false;
  if(hero.stun>0){hero.stun=Math.max(0,hero.stun-dt);hero.vy+=.000024*dt;let sx=Math.max(.3,Math.min(W-.3,hero.x+hero.vx*dt));if(!solidAt(sx,hero.y)&&!heroHitsPair(sx,hero.y))hero.x=sx;else hero.vx=0;let sy=Math.min(H-.48,hero.y+hero.vy*dt);if(!heroSolidAt(hero.x,sy,hero.y)&&!heroHitsPair(hero.x,sy))hero.y=sy;else hero.vy=0;hero.vx*=Math.pow(.985,dt/16.67);return}
  if(playerClass==="mage"){
   hero.grab=null;hero.onGround=false;
@@ -494,7 +495,7 @@ function attack(){
  for(let r=.55;r<=reach;r+=.45){let tx=Math.floor(hx+dx*r),ty=Math.floor(hy+dy*r);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){let hc=board[ty][tx].color;board[ty][tx].hp-=power;hitEffect(tx+.5,ty+.5);slimeHurtEffect(tx+.5,ty+.5,hc);if(board[ty][tx].hp<=0){board[ty][tx]=null;score+=5;gravity();resolve()}return}}
 }
 function grab(){
- hero.grabT=220;hero.grabHold=0;hero.grabColorTick=0;
+ hero.guard=false;hero.grabT=220;hero.grabHold=0;hero.grabColorTick=0;
  if(playerClass==="mage"){
   hero.grabT=180;let dir=hero.face;effects.push({x:hero.x,y:hero.y,t:420,max:420,type:"wind",color:"#c8f2ff",dx:dir,dy:0});
   for(let r=.45;r<=4.5;r+=.25){let fx=hero.x+dir*r,fy=hero.y;
@@ -575,7 +576,7 @@ function resetStageBoard(){
  score=0;special=0;chain=0;chainPoints=0;cleared=false;gameOver=false;
  hero.x=W/2;hero.y=H-1.2;hero.vx=0;hero.vy=0;hero.grab=null;hero.carry=null;
  document.querySelector("#score").textContent=0;
- let cp=document.querySelector("#chainPoints");if(cp)cp.textContent=0;
+ let cp=document.querySelector("#chainPoints");if(cp)cp.textContent=bossMode?"0":`0 / ${GOAL}`;
  document.querySelector("#message").textContent="";
  document.querySelector("#message").classList.remove("clear");
 }
@@ -583,7 +584,7 @@ function updateStageHud(){
  let s=document.querySelector("#stageText");if(s)s.textContent=bossMode?(bossTier===3?"魔王":bossTier===2?"BOSS 2":"BOSS"):stage;
  let bh=document.querySelector("#bossHud");if(bh)bh.style.display=bossMode?"inline":"none";
  let hp=document.querySelector("#bossHpText");if(hp)hp.textContent=Math.max(0,bossHp)+" / "+bossMaxHp;
- let cp=document.querySelector("#chainPoints");if(cp)cp.textContent=bossMode?chainPoints:`${chainPoints} / ${GOAL}`;
+ let cp=document.querySelector("#chainPoints");if(cp)cp.textContent=bossMode?String(chainPoints):`${chainPoints} / ${GOAL}`;
 }
 function showGameOver(){
  if(gameOver)return;gameOver=true;
@@ -794,7 +795,7 @@ function drawBoss(){
 }
 function drawHero(){
  let x=hero.x,y=hero.y,bob=hero.onGround&&hero.vx?Math.sin(hero.walk)*.035:0,f=hero.face;
- ctx.save();ctx.translate(x,y+bob);if(hero.guard&&(playerClass==="hero"||playerClass==="monk")){ctx.save();ctx.strokeStyle="#d9f2ff";ctx.lineWidth=.07;ctx.beginPath();ctx.arc(f*.34,-.03,.34,-Math.PI/2,Math.PI/2);ctx.stroke();ctx.restore()}if(hero.stun>0){ctx.rotate(-.78);ctx.translate(-.08,.18)}
+ ctx.save();ctx.translate(x,y+bob);if(hero.guard&&(playerClass==="hero"||playerClass==="monk")){ctx.save();ctx.strokeStyle="#d9f2ff";ctx.lineWidth=.07;ctx.beginPath();ctx.arc(f*.34,-.03,.34,f>0?-Math.PI/2:Math.PI/2,f>0?Math.PI/2:Math.PI*1.5);ctx.stroke();ctx.restore()}if(hero.stun>0){ctx.rotate(-.78);ctx.translate(-.08,.18)}
  if(hero.squeezeT>0){let q=Math.sin((hero.squeezeT/320)*Math.PI);if(hero.squeezeDir===2){ctx.scale(1-.42*q,1+.55*q);ctx.translate(0,-.18*q)}else{ctx.scale(1+.42*q,1-.36*q);ctx.translate(-hero.squeezeDir*.12*q,.12*q)}}
  let step=hero.vx?Math.sin(hero.walk)*.12:0,kp=hero.kickT>0?Math.sin((1-hero.kickT/180)*Math.PI):0;
 
