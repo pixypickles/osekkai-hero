@@ -1,7 +1,7 @@
 const cv=document.querySelector("#game"),ctx=cv.getContext("2d");
 const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
 let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,chainPoints=0,GOAL=300,gameOver=false,cleared=false,playerClass=null;
-let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossLeftT=0,bossFireT=1200,bossFireballs=[];
+let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossLeftT=0,bossFireT=1200,bossFireballs=[]; let bossOnlyRun=false;
 
 const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0,carry:null,jumps:0,grabHold:0,grabColorTick:0,floating:false};
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
@@ -475,7 +475,7 @@ function showGameOver(){
  document.querySelector("#stageMenu").style.display="flex";
 }
 window.beginBossOnly=function(job){
- if(!job)return;
+ if(!job)return; bossOnlyRun=true;
  selectedClass=job;playerClass=job;
  hero.floating=playerClass==="mage";
  setActionLabels();
@@ -528,7 +528,7 @@ function startBossStage(tier=1){
 function bossDamage(amount,label="HIT!"){
  if(!bossMode||bossHp<=0)return false;
  bossHp=Math.max(0,bossHp-amount);bossHitT=180;updateStageHud();msg(label);
- if(bossHp<=0)finishStage();return true;
+ if(bossHp<=0){if(bossTier===2){try{localStorage.setItem("osekkaiStrongBossCleared","1")}catch(e){}}finishStage()}return true;
 }
 function bossRectHit(x,y,range=.75){
  return bossMode && Math.abs(x-(W-.62))<range && Math.abs(y-bossY)<1.35;
@@ -804,8 +804,10 @@ window.beginSelectedJob=function(job){
 document.querySelector("#nextStageBtn")?.addEventListener("click",()=>{
  document.querySelector("#stageMenu").style.display="none";
  if(bossMode){
-  // First boss continues to the harder second half; strong boss loops the run.
-  startNormalStage(bossTier===1?4:1)
+  let strongCleared=false;try{strongCleared=localStorage.getItem("osekkaiStrongBossCleared")==="1"}catch(e){}
+  if(bossOnlyRun&&bossTier===1&&strongCleared){startBossStage(2);bossOnlyRun=true}
+  else if(bossOnlyRun){bossOnlyRun=false;startNormalStage(1)}
+  else{startNormalStage(bossTier===1?4:1)}
 }else if(stage===3){
   startBossStage(1)
 }else if(stage===6){
