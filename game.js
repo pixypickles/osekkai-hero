@@ -98,8 +98,10 @@ function updateLiftRide(){
  const lifts=strongLiftRects();
  // Continue riding the same lift while horizontally over it.
  if(hero.liftRide>=0&&lifts[hero.liftRide]){
-  const r=lifts[hero.liftRide],feet=hero.y+hero.h/2;
-  if(hero.x>=r.x-.12&&hero.x<=r.x+r.w+.12&&Math.abs(feet-r.y)<.72&&hero.vy>=-.0015){
+  const r=lifts[hero.liftRide];
+  // Once aboard, the platform owns the vertical position. This prevents an ascending
+  // lift from pushing through / ejecting the character between frames.
+  if(hero.x>=r.x-.12&&hero.x<=r.x+r.w+.12&&hero.vy>=-.0032){
    hero.y=r.y-hero.h/2-.02;hero.vy=0;hero.onGround=true;hero.liftPrevY=r.y;return
   }
   hero.liftRide=-1;
@@ -540,7 +542,7 @@ function startNormalStage(n){
  spawnClock=0;if(typeof spawnPair==="function")spawnPair();
  updateStageHud();
 }
-function strongLiftRects(){if(!bossMode||bossTier!==2)return [];let t=performance.now()*.001;return [{x:2,y:2.2+(Math.sin(t*.72)+1)*(H-4.0)/2,w:1,h:.28},{x:5,y:2.8+(Math.sin(t*.58+2.1)+1)*(H-4.6)/2,w:1,h:.28}]}
+function strongLiftRects(){if(!bossMode||bossTier!==2)return [];let t=performance.now()*.001;return [{x:1,y:2.2+(Math.sin(t*.72)+1)*(H-4.0)/2,w:1,h:.28,moving:true},{x:6,y:2.8+(Math.sin(t*.58+2.1)+1)*(H-4.6)/2,w:1,h:.28,moving:true},{x:4,y:H*.56,w:1,h:.28,moving:false}]}
 function bossPlatformAt(x,y){if(!bossMode)return false;if(bossTier===2)return strongLiftRects().some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18);let ix=Math.floor(x),iy=Math.floor(y),c=W-1;return (ix===c&&iy>=H-3&&iy<H)||(ix===c-1&&iy>=H-2&&iy<H)||(ix===c-2&&iy===H-1)}
 function seedBossPlatforms(){
  let cells=[[1,H-1],[2,H-1],[4,H-1],[6,H-1],[6,H-2]];
@@ -571,7 +573,7 @@ function spawnBossSingle(){
  let type=neutral?-1:Math.floor(Math.random()*COLORS.length);
  let spawnX;
  if(bossTier===2){
-  // Keep the moving-lift columns completely clear of falling slimes.
+  // Keep all lift columns (moving and fixed) completely clear of falling slimes.
   const liftCols=new Set(strongLiftRects().map(r=>Math.floor(r.x)));
   const cols=[];for(let x=0;x<Math.max(1,W-2);x++)if(!liftCols.has(x))cols.push(x);
   spawnX=cols[Math.floor(Math.random()*cols.length)]??0;
