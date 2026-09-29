@@ -472,19 +472,49 @@ function cancelBossFireAlong(x,y,dx,dy,range,label){
  best.f.t=0;effects.push({x:best.f.x,y:best.f.y,t:260,max:260,type:"hit",color:"#fff0a0"});
  msg(label);return true;
 }
-function bossChargeProjectile(){
- if(!bossMode||(playerClass!=="hero"&&playerClass!=="monk"))return false;
- let tx=bossTier===3?bossX:W-.62,ty=bossY,rx=tx-hero.x,ry=ty-hero.y,len=Math.hypot(rx,ry)||1,dx=rx/len,dy=ry/len;
- let isHero=playerClass==="hero",col=isHero?"#ff334f":"#9dffb0";
- effects.push({x:hero.x,y:hero.y,t:1050,max:1050,type:isHero?"crescentProjectile":"projectile",color:col,dx,dy,speed:.0105,pierce:true});
- // Boss-only charged shots ignore slimes/platforms and reach across the whole arena.
- cancelBossFireAlong(hero.x,hero.y,dx,dy,14,isHero?"聖剣波で相殺！":"気功波で相殺！");
- if(attackHitsBoss(hero.x,hero.y,dx,dy,14,1.0))bossDamage(2,isHero?"聖剣波！":"気功波！");
+function chargedWave(){
+ if(playerClass!=="hero"&&playerClass!=="monk")return false;
+ let isHero=playerClass==="hero",dx=hero.face,dy=0,tx=null,ty=null;
+ if(bossMode){
+  tx=bossTier===3?bossX:W-.62;ty=bossY;let rx=tx-hero.x,ry=ty-hero.y,len=Math.hypot(rx,ry)||1;dx=rx/len;dy=ry/len;
+ }else{
+  // Normal stages: straight horizontal row in the facing direction.
+  let row=Math.floor(hero.y);
+  for(let x=0;x<W;x++){
+   let ahead=dx>0?x>hero.x:x<hero.x;
+   if(ahead&&board[row]?.[x]){hitEffect(x+.5,row+.5,isHero?"#ff334f":"#9dffb0");board[row][x]=null}
+  }
+  // Also clear every falling slime occupying that horizontal row in front.
+  for(const q of pairs)for(const part of [0,1]){
+   if((part===0&&q.a==null)||(part===1&&q.b==null))continue;
+   let z=pairPos(q,part),ahead=dx>0?z.x+.5>hero.x:z.x+.5<hero.x;
+   if(ahead&&Math.abs((z.y+.5)-(row+.5))<.62){hitEffect(z.x+.5,z.y+.5,isHero?"#ff334f":"#9dffb0");if(part===0)q.a=null;else q.b=null}
+  }
+  gravity();resolve();
+ }
+ let col=isHero?"#ff334f":"#9dffb0";
+ effects.push({x:hero.x,y:hero.y,t:1050,max:1050,type:isHero?"crescentProjectile":"projectile",color:col,dx,dy,speed:.0105});
+ if(bossMode){
+  // Boss fight: the wave cuts through the slime wall, destroying every slime on its path.
+  let destroyed=0,bossDist=Math.hypot(tx-hero.x,ty-hero.y);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]){
+   let rx=x+.5-hero.x,ry=y+.5-hero.y,a=rx*dx+ry*dy,s=Math.abs(rx*(-dy)+ry*dx);
+   if(a>.25&&a<bossDist+1&&s<.62){hitEffect(x+.5,y+.5,col);board[y][x]=null;destroyed++}
+  }
+  for(const q of pairs)for(const part of [0,1]){
+   if((part===0&&q.a==null)||(part===1&&q.b==null))continue;
+   let z=pairPos(q,part),rx=z.x+.5-hero.x,ry=z.y+.5-hero.y,a=rx*dx+ry*dy,s=Math.abs(rx*(-dy)+ry*dx);
+   if(a>.25&&a<bossDist+1&&s<.62){hitEffect(z.x+.5,z.y+.5,col);if(part===0)q.a=null;else q.b=null;destroyed++}
+  }
+  if(destroyed){gravity();resolve()}
+  cancelBossFireAlong(hero.x,hero.y,dx,dy,14,isHero?"聖剣波で相殺！":"気功波で相殺！");
+  if(attackHitsBoss(hero.x,hero.y,dx,dy,14,1.0))bossDamage(2,isHero?"聖剣波！":"気功波！");
+ }
  return true;
 }
 function attack(){
  let charged=hero.charge>=75;hero.charge=0;
- if(bossMode&&charged&&(playerClass==="hero"||playerClass==="monk")){hero.attackT=180;bossChargeProjectile();return}
+ if(charged&&(playerClass==="hero"||playerClass==="monk")){hero.attackT=180;chargedWave();return}
  if(playerClass==="hero"&&hero.grab){hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;destroyHeroGrabbed();return}
  if(charged&&special>=100){doSpecial();return}
  hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;
