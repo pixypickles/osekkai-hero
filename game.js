@@ -1,7 +1,7 @@
 const cv=document.querySelector("#game"),ctx=cv.getContext("2d");
 const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
 let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,chainPoints=0,GOAL=300,gameOver=false,cleared=false,playerClass=null;
-let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossFireT=1200,bossFireballs=[];
+let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossLeftT=0,bossFireT=1200,bossFireballs=[];
 
 const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0,carry:null,jumps:0,grabHold:0,grabColorTick:0,floating:false};
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
@@ -519,7 +519,7 @@ function seedBossPlatforms(){
 function startBossStage(tier=1){
  try{localStorage.setItem("osekkaiBossUnlocked","1")}catch(e){}
  let bb=document.querySelector("#bossOnlyBtn");if(bb)bb.style.display="block";
- bossMode=true;bossTier=tier;bossMaxHp=tier===2?48:30;bossHp=bossMaxHp;
+ bossMode=true;bossTier=tier;bossMaxHp=tier===2?48:30;bossHp=bossMaxHp;bossLeftT=450;
  bossSpawnT=0;bossFireT=tier===2?650:900;bossFireballs=[];bossDir=1;
  resetStageBoard();
  hero.floating=playerClass==="mage";
@@ -542,6 +542,11 @@ function spawnBossSingle(){
  let p={id:(Date.now()+Math.random()),x:Math.floor(Math.random()*Math.max(1,W-2)),y:-1,a:type,b:null,hpA:neutral?3:2,hpB:0,rot:0,targetX:0,targetRot:0,aiT:999};
  p.targetX=p.x;pairs.push(p);
 }
+function spawnBossLeftNeutral(){
+ // Constant pressure lane: a single neutral slime always enters from the far left.
+ let p={id:(Date.now()+Math.random()),x:0,y:-1,a:-1,b:null,hpA:3,hpB:0,rot:0,targetX:0,targetRot:0,aiT:999,windLock:999999};
+ p.targetX=0;pairs.push(p);
+}
 function updateBoss(dt){
  if(!bossMode)return;
  if(bossTier===2){
@@ -549,7 +554,18 @@ function updateBoss(dt){
   if(bossY>H-2.2){bossY=H-2.2;bossDir=-1}
   if(bossY<2.0){bossY=2.0;bossDir=1}
  }
- bossSpawnT-=dt;if(bossSpawnT<=0){spawnBossSingle();bossSpawnT=bossTier===2?1050+Math.random()*380:850+Math.random()*300}
+ bossSpawnT-=dt;
+if(bossSpawnT<=0){
+ spawnBossSingle();
+ // Overall random rain is a little lighter; the left lane supplies the main board pressure.
+ bossSpawnT=bossTier===2?1500+Math.random()*600:1350+Math.random()*650;
+}
+bossLeftT-=dt;
+if(bossLeftT<=0){
+ spawnBossLeftNeutral();
+ // One-by-one neutral slimes keep threatening the far-left column.
+ bossLeftT=bossTier===2?1250:1550;
+}
  if(bossHitT>0)bossHitT-=dt;
  bossFireT-=dt;
  if(bossFireT<=0){
