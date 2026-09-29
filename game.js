@@ -658,7 +658,7 @@ function startBossStage(tier=1){
 function bossDamage(amount,label="HIT!"){
  if(!bossMode||bossHp<=0)return false;
  bossHp=Math.max(0,bossHp-amount);bossHitT=180;updateStageHud();msg(label);
- if(bossHp<=0){if(bossTier===2){try{localStorage.setItem("osekkaiStrongBossCleared","1")}catch(e){}}finishStage()}return true;
+ if(bossHp<=0){try{if(bossTier===2)localStorage.setItem("osekkaiStrongBossCleared","1");if(bossTier===3)localStorage.setItem("osekkaiDemonCleared","1")}catch(e){}finishStage()}return true;
 }
 function bossRectHit(x,y,range=.75){
  return bossMode && Math.abs(x-(W-.62))<range && Math.abs(y-bossY)<1.35;
@@ -780,8 +780,8 @@ function drawBoss(){
  ctx.save();ctx.translate(x,y);if(bossTier===3){ctx.save();ctx.fillStyle="#e5b94e";ctx.beginPath();ctx.moveTo(-.34,-.76);ctx.lineTo(-.18,-1.05);ctx.lineTo(0,-.79);ctx.lineTo(.2,-1.08);ctx.lineTo(.36,-.74);ctx.closePath();ctx.fill();ctx.restore()}
  let q=bossHitT>0?Math.sin(bossHitT*.08)*.06:0;ctx.scale(1+q,1-q);
  // cloak/body: about two grid cells tall
- ctx.fillStyle="#39234f";ctx.beginPath();ctx.moveTo(-.46,.72);ctx.lineTo(-.5,-.25);ctx.quadraticCurveTo(-.42,-.72,0,-.82);ctx.quadraticCurveTo(.42,-.72,.5,-.25);ctx.lineTo(.46,.72);ctx.closePath();ctx.fill();
- ctx.fillStyle="#6f3b86";ctx.beginPath();ctx.moveTo(-.36,.62);ctx.lineTo(-.34,-.15);ctx.lineTo(0,.05);ctx.lineTo(.34,-.15);ctx.lineTo(.36,.62);ctx.closePath();ctx.fill();
+ ctx.fillStyle=bossTier===3?"#351827":"#39234f";ctx.beginPath();ctx.moveTo(-.46,.72);ctx.lineTo(-.5,-.25);ctx.quadraticCurveTo(-.42,-.72,0,-.82);ctx.quadraticCurveTo(.42,-.72,.5,-.25);ctx.lineTo(.46,.72);ctx.closePath();ctx.fill();
+ ctx.fillStyle=bossTier===3?"#9a3045":"#6f3b86";ctx.beginPath();ctx.moveTo(-.36,.62);ctx.lineTo(-.34,-.15);ctx.lineTo(0,.05);ctx.lineTo(.34,-.15);ctx.lineTo(.36,.62);ctx.closePath();ctx.fill();
  // shoulder armor
  ctx.fillStyle="#b4873c";ctx.beginPath();ctx.ellipse(-.38,-.17,.22,.14,-.2,0,Math.PI*2);ctx.ellipse(.38,-.17,.22,.14,.2,0,Math.PI*2);ctx.fill();
  ctx.fillStyle="#e1b951";ctx.beginPath();ctx.arc(-.38,-.18,.075,0,Math.PI*2);ctx.arc(.38,-.18,.075,0,Math.PI*2);ctx.fill();
@@ -942,16 +942,10 @@ window.beginSelectedJob=function(job){
  // Mage normal-start uses the exact same safe stage boot path as Hero/Monk.
  // Switch to mage only AFTER the board, opening slimes and first pair are initialized.
  // This deliberately avoids every mage-only collision/startup branch during boot.
- if(job==="mage"){
-   playerClass="hero";hero.floating=false;
-   startNormalStage(1);
-   playerClass="mage";selectedClass="mage";hero.floating=true;
-   hero.x=W/2;hero.y=Math.max(1.5,H-4.0);hero.vx=0;hero.vy=0;hero.onGround=false;
- }else{
-   playerClass=job;hero.floating=false;
-   startNormalStage(1);
-   playerClass=job;selectedClass=job;
- }
+ playerClass=job;selectedClass=job;hero.floating=(job==="mage");
+ startNormalStage(1);
+ playerClass=job;selectedClass=job;hero.floating=(job==="mage");
+ if(job==="mage"){hero.x=W/2;hero.y=H-4.0;hero.vx=0;hero.vy=0;hero.onGround=false;}
  setActionLabels();
  let cn=document.querySelector("#className");
  if(cn)cn.textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
@@ -960,8 +954,9 @@ window.beginSelectedJob=function(job){
 document.querySelector("#nextStageBtn")?.addEventListener("click",()=>{
  document.querySelector("#stageMenu").style.display="none";
  if(bossMode){
-  let strongCleared=false;try{strongCleared=localStorage.getItem("osekkaiStrongBossCleared")==="1"}catch(e){}
+  let strongCleared=false,demonCleared=false;try{strongCleared=localStorage.getItem("osekkaiStrongBossCleared")==="1";demonCleared=localStorage.getItem("osekkaiDemonCleared")==="1"}catch(e){}
   if(bossOnlyRun&&bossTier===1&&strongCleared){startBossStage(2);bossOnlyRun=true}
+  else if(bossOnlyRun&&bossTier===2&&demonCleared){startBossStage(3);bossOnlyRun=true}
   else if(bossOnlyRun){bossOnlyRun=false;startNormalStage(1)}
   else{startNormalStage(bossTier===1?4:bossTier===2?7:1)}
 }else if(stage===3){
