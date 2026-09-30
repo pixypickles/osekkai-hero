@@ -6,13 +6,26 @@ let board,piece,score,chain,last=0,acc=0,running=false,resolving=false;
 const scoreEl=document.getElementById("columnsScore"),chainEl=document.getElementById("columnsChain");
 function rnd(){return colors[Math.floor(Math.random()*colors.length)]}
 function reset(){board=Array.from({length:R},()=>Array(C).fill(null));score=chain=0;piece=null;resolving=false;spawn();sync()}
-function spawn(){piece={x:2,y:-2,g:[rnd(),rnd(),rnd()]};if(board[0][2])gameOver()}
+function spawn(){
+ piece={x:2,y:0,g:[rnd(),rnd(),rnd()]};
+ if(board[0][2]||board[1][2]||board[2][2]){piece=null;gameOver()}
+}
 function sync(){scoreEl.textContent=score;chainEl.textContent=chain}
-function can(x,y){for(let i=0;i<3;i++){let yy=Math.floor(y)+i;if(x<0||x>=C||yy>=R)return false;if(yy>=0&&board[yy][x])return false}return true}
+function can(x,y){
+ y=Math.floor(y);
+ if(x<0||x>=C||y<0||y+2>=R)return false;
+ for(let i=0;i<3;i++)if(board[y+i][x])return false;
+ return true
+}
 function move(dx){if(!running||resolving)return;if(can(piece.x+dx,piece.y))piece.x+=dx}
 function rotate(){if(!running||resolving)return;piece.g.unshift(piece.g.pop())}
 function drop(){if(!running||resolving)return;while(can(piece.x,piece.y+1))piece.y++;lock()}
-function lock(){for(let i=0;i<3;i++){let y=Math.floor(piece.y)+i;if(y<0){gameOver();return}board[y][piece.x]=piece.g[i]}piece=null;resolve(1)}
+function lock(){
+ if(!piece)return;
+ let py=Math.floor(piece.y),px=piece.x,gems=piece.g.slice();
+ for(let i=0;i<3;i++)board[py+i][px]=gems[i];
+ piece=null;resolve(1)
+}
 function matches(){
  let hit=new Set(),dirs=[[1,0],[0,1],[1,1],[1,-1]];
  for(let y=0;y<R;y++)for(let x=0;x<C;x++){let c=board[y][x];if(!c)continue;
@@ -35,7 +48,7 @@ function draw(){
  if(piece)for(let i=0;i<3;i++)if(piece.y+i>=0)gem(piece.x,piece.y+i,piece.g[i]);
  ctx.strokeStyle="rgba(180,215,255,.35)";ctx.lineWidth=2;ctx.strokeRect(OX,OY,C*S,R*S)
 }
-function tick(t){if(!last)last=t;let dt=Math.min(40,t-last);last=t;if(running&&!resolving&&piece){acc+=dt;if(acc>520){acc=0;if(can(piece.x,piece.y+1))piece.y++;else lock()}}draw();requestAnimationFrame(tick)}
+function tick(t){if(!last)last=t;let dt=Math.min(40,t-last);last=t;if(running&&!resolving&&piece){acc+=dt;if(acc>650){acc=0;if(can(piece.x,piece.y+1))piece.y++;else lock()}}draw();requestAnimationFrame(tick)}
 window.startColumns=()=>{running=true;last=0;acc=0;reset()};
 if(document.getElementById("columnsScreen")?.style.display==="flex")window.startColumns();
 document.querySelectorAll("[data-col]").forEach(b=>{let a=b.dataset.col;let fn=()=>{if(!running&&a==="rotate"){running=true;reset();return}if(a==="left")move(-1);if(a==="right")move(1);if(a==="rotate")rotate();if(a==="down")drop()};b.addEventListener("pointerdown",e=>{e.preventDefault();fn()})});
