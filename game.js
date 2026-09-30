@@ -12,6 +12,7 @@ let cloudMode=false,cloudY=0,cloudGoal=78,cloudPlatforms=[],cloudCannons=[],clou
 function startCloudClimb(){
  if(playerClass==="mage"){msg("魔法使いは雲登りに参加できない！");return}
  cloudMode=true;bossMode=false;cleared=false;gameOver=false;cloudY=0;cloudCam=0;cloudPlatforms=[];cloudCannons=[];cloudShots=[];cloudSpawn=0;
+ let em=document.querySelector("#message");if(em)em.textContent="";
  board=Array.from({length:H},()=>Array(W).fill(null));pairs=[];enemies=[];
  hero.x=W*.5;hero.y=H-1.4;hero.vx=hero.vy=0;hero.onGround=true;
  for(let i=0;i<12;i++)spawnCloud(i*6);
@@ -1053,7 +1054,7 @@ function drawEffects(){
  }
 }
 function draw(){
- if(cloudMode){ctx.clearRect(0,0,W,H);drawBackground();drawCloudClimb();drawHero();drawEffects();return}
+ if(cloudMode){ctx.clearRect(0,0,W,H);drawCloudClimb();drawHero();drawEffects();return}
 
  ctx.clearRect(0,0,cv.width,cv.height);ctx.save();ctx.scale(S,S);
  let bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,"#526d94");bg.addColorStop(.55,"#405a7d");bg.addColorStop(1,"#30445f");ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
