@@ -438,13 +438,13 @@ function mageGustPush(){
 }
 function jump(){
  if(cloudMode){
-   if(cloudGrip){cloudGrip=null;hero.vy=playerClass==="monk"?-.0082:-.0078;hero.onGround=false;if(playerClass==="monk")hero.jumps=1;return}
+   if(cloudGrip){cloudGrip=null;hero.vy=playerClass==="monk"?-.0138:-.0144;hero.onGround=false;if(playerClass==="monk")hero.jumps=1;return}
    if(playerClass==="monk"){
-     if(hero.onGround){hero.vy=-.0082;hero.jumps=1;hero.onGround=false;return}
-     if(hero.jumps===1){hero.vy=-.0060;hero.jumps=2;return}
+     if(hero.onGround){hero.vy=-.0138;hero.jumps=1;hero.onGround=false;return}
+     if(hero.jumps===1){hero.vy=-.0105;hero.jumps=2;return}
      return;
    }
-   if(hero.onGround){hero.vy=-.0078;hero.onGround=false}
+   if(hero.onGround){hero.vy=-.0144;hero.onGround=false}
    return;
  }
  if(playerClass==="hero"&&hero.grab){releaseHeroGrab();hero.vy=-.0128;hero.onGround=false;return}
