@@ -493,7 +493,7 @@ function chargedWave(){
   gravity();resolve();
  }
  let col=isHero?"#ff334f":isMage?"#ff7a22":"#9dffb0";
- effects.push({x:hero.x,y:hero.y,t:1800,max:1800,type:bossMode?"bossWave":(isHero?"crescentProjectile":"projectile"),color:col,dx,dy,speed:isHero?.0105:isMage?.0100:.0092,isHero,isMage,travel:0,hit:false});
+ effects.push({x:hero.x,y:hero.y,t:1800,max:1800,type:bossMode?"bossWave":isHero?"crescentProjectile":isMage?"giantFireProjectile":"kiProjectile",color:col,dx,dy,speed:isHero?.0125:isMage?.0115:.0108,isHero,isMage,travel:0,hit:false});
  if(bossMode){
   // Collision is processed over time in update(), synchronized with the visible projectile.
  }
@@ -980,7 +980,16 @@ function drawEffects(){
      if(e.isHero){ctx.translate(px,py);ctx.rotate(ang);ctx.strokeStyle=e.color;ctx.lineWidth=.15;ctx.beginPath();ctx.arc(0,0,.4,-1.15,1.15);ctx.stroke();ctx.strokeStyle="rgba(255,175,175,.6)";ctx.lineWidth=.065;ctx.beginPath();ctx.arc(-.08,0,.52,-1.05,1.05);ctx.stroke()}
      else if(e.isMage){ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(px,py,.38,0,Math.PI*2);ctx.fill();ctx.strokeStyle="rgba(255,220,140,.82)";ctx.lineWidth=.09;ctx.beginPath();ctx.arc(px,py,.52,0,Math.PI*2);ctx.stroke();ctx.strokeStyle="rgba(255,120,40,.55)";ctx.lineWidth=.08;ctx.beginPath();ctx.moveTo(px-e.dx*.72,py-e.dy*.72);ctx.lineTo(px-e.dx*.28,py-e.dy*.28);ctx.stroke()}
      else{ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(px,py,.24,0,Math.PI*2);ctx.fill();ctx.strokeStyle="rgba(230,255,235,.75)";ctx.lineWidth=.07;ctx.beginPath();ctx.arc(px,py,.34,0,Math.PI*2);ctx.stroke()}
-   }else if(e.type==="crescentProjectile"){
+   }else if(e.type==="kiProjectile"){
+   let q=1-e.t/e.max,px=e.x+(e.dx||0)*q*10,py=e.y+(e.dy||0)*q*10;
+   ctx.fillStyle=e.color||"#9dffb0";ctx.beginPath();ctx.arc(px,py,.25,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle="rgba(230,255,235,.78)";ctx.lineWidth=.07;ctx.beginPath();ctx.arc(px,py,.36,0,Math.PI*2);ctx.stroke();
+  }else if(e.type==="giantFireProjectile"){
+   let q=1-e.t/e.max,px=e.x+(e.dx||0)*q*10,py=e.y+(e.dy||0)*q*10;
+   ctx.fillStyle=e.color||"#ff7a22";ctx.beginPath();ctx.arc(px,py,.39,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle="rgba(255,220,140,.85)";ctx.lineWidth=.09;ctx.beginPath();ctx.arc(px,py,.53,0,Math.PI*2);ctx.stroke();
+   ctx.strokeStyle="rgba(255,120,40,.58)";ctx.lineWidth=.09;ctx.beginPath();ctx.moveTo(px-(e.dx||0)*.72,py-(e.dy||0)*.72);ctx.lineTo(px-(e.dx||0)*.3,py-(e.dy||0)*.3);ctx.stroke();
+  }else if(e.type==="crescentProjectile"){
    let q=1-e.t/e.max,px=e.x+(e.dx||0)*q*10,py=e.y+(e.dy||0)*q*10,ang=Math.atan2(e.dy||0,e.dx||1);
    ctx.save();ctx.translate(px,py);ctx.rotate(ang);ctx.strokeStyle=e.color||"#ff334f";ctx.lineWidth=.14;ctx.beginPath();ctx.arc(0,0,.38,-1.15,1.15);ctx.stroke();ctx.strokeStyle="rgba(255,170,170,.55)";ctx.lineWidth=.06;ctx.beginPath();ctx.arc(-.08,0,.5,-1.05,1.05);ctx.stroke();ctx.restore();
   }else if(e.type==="projectile"){let q=1-e.t/e.max;ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(e.x+(e.dx||0)*q*4,e.y+(e.dy||0)*q*4,.13,0,Math.PI*2);ctx.fill();
