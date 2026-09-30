@@ -10,15 +10,15 @@ let enemies=[],enemySpawnT=0,demonSwordT=0,demonSwordFx=0,demonPhase=0,bossX=W-.
 let gameMode="campaign",modeElapsed=0,bossChargeShotT=0;
 let cloudMode=false,cloudY=0,cloudGoal=78,cloudPlatforms=[],cloudCannons=[],cloudShots=[],cloudSpawn=0,cloudCam=0,cloudGrip=null;
 const cloudKinds=[
- {name:"赤",fill:"rgba(255,180,190,.72)",shade:"rgba(225,125,145,.42)",speed:.00062},
- {name:"青",fill:"rgba(180,220,255,.72)",shade:"rgba(115,175,225,.42)",speed:.00048},
- {name:"黄",fill:"rgba(255,240,170,.72)",shade:"rgba(225,195,100,.42)",speed:.00040},
- {name:"緑",fill:"rgba(185,245,205,.72)",shade:"rgba(120,205,150,.42)",speed:.00054}
+ {name:"赤",fill:"rgba(255,180,190,.72)",shade:"rgba(225,125,145,.42)",speed:.00125},
+ {name:"青",fill:"rgba(180,220,255,.72)",shade:"rgba(115,175,225,.42)",speed:.00095},
+ {name:"黄",fill:"rgba(255,240,170,.72)",shade:"rgba(225,195,100,.42)",speed:.00078},
+ {name:"緑",fill:"rgba(185,245,205,.72)",shade:"rgba(120,205,150,.42)",speed:.00108}
 ];
 function makeCloud(x,y,start=false){
  if(start)return {x,y,w:2,vy:0,fill:"rgba(245,250,255,.94)",shade:"rgba(185,220,245,.55)",start:true};
  let k=cloudKinds[Math.floor(Math.random()*cloudKinds.length)];
- return {x,y,w:2,vy:k.speed*(.84+Math.random()*.32),fill:k.fill,shade:k.shade,kind:k.name};
+ return {x,y,w:2,vy:k.speed*(.88+Math.random()*.24),fill:k.fill,shade:k.shade,kind:k.name};
 }
 function startCloudClimb(){
  if(playerClass==="mage"){msg("魔法使いは雲登りに参加できない！");return}
@@ -26,9 +26,10 @@ function startCloudClimb(){
  let em=document.querySelector("#message");if(em)em.textContent="";
  board=Array.from({length:H},()=>Array(W).fill(null));pairs=[];enemies=[];
  hero.x=W*.5;hero.y=H-1.4;hero.vx=hero.vy=0;hero.onGround=true;
- cloudPlatforms.push(makeCloud(W*.5-1,.82,true));
- for(let i=1;i<6;i++)cloudPlatforms.push(makeCloud(.35+Math.floor(Math.random()*(W-2)),1+i*2.45));
- hero.x=W*.5;hero.y=H-1.20;hero.onGround=true;hero._cloudPrevY=hero.y;
+ let startCloud=makeCloud(W*.5-1,.22,true);
+ cloudPlatforms.push(startCloud);
+ for(let i=1;i<6;i++)cloudPlatforms.push(makeCloud(.35+Math.floor(Math.random()*(W-2)),.22+i*2.45));
+ hero.x=W*.5;hero.y=(H-startCloud.y-1)-.20;hero.vy=0;hero.onGround=true;hero._cloudPrevY=hero.y;
  msg("雲を乗り継いで頂上を目指せ！");
 }
 function spawnCloud(worldY){
