@@ -473,8 +473,8 @@ function cancelBossFireAlong(x,y,dx,dy,range,label){
  msg(label);return true;
 }
 function chargedWave(){
- if(playerClass!=="hero"&&playerClass!=="monk")return false;
- let isHero=playerClass==="hero",dx=hero.face,dy=0,tx=null,ty=null;
+ if(playerClass!=="hero"&&playerClass!=="monk"&&playerClass!=="mage")return false;
+ let isHero=playerClass==="hero",isMage=playerClass==="mage",dx=hero.face,dy=0,tx=null,ty=null;
  if(bossMode){
   tx=bossTier===3?bossX:W-.62;ty=bossY;let rx=tx-hero.x,ry=ty-hero.y,len=Math.hypot(rx,ry)||1;dx=rx/len;dy=ry/len;
  }else{
@@ -492,8 +492,8 @@ function chargedWave(){
   }
   gravity();resolve();
  }
- let col=isHero?"#ff334f":"#9dffb0";
- effects.push({x:hero.x,y:hero.y,t:1800,max:1800,type:bossMode?"bossWave":(isHero?"crescentProjectile":"projectile"),color:col,dx,dy,speed:isHero?.0105:.0092,isHero,travel:0,hit:false});
+ let col=isHero?"#ff334f":isMage?"#ff7a22":"#9dffb0";
+ effects.push({x:hero.x,y:hero.y,t:1800,max:1800,type:bossMode?"bossWave":(isHero?"crescentProjectile":"projectile"),color:col,dx,dy,speed:isHero?.0105:isMage?.0100:.0092,isHero,isMage,travel:0,hit:false});
  if(bossMode){
   // Collision is processed over time in update(), synchronized with the visible projectile.
  }
@@ -501,7 +501,7 @@ function chargedWave(){
 }
 function attack(){
  let charged=hero.charge>=75;hero.charge=0;
- if(charged&&(playerClass==="hero"||playerClass==="monk")){hero.attackT=180;chargedWave();return}
+ if(charged&&(playerClass==="hero"||playerClass==="monk"||playerClass==="mage")){hero.attackT=180;chargedWave();return}
  if(playerClass==="hero"&&hero.grab){hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;destroyHeroGrabbed();return}
  if(charged&&special>=100){doSpecial();return}
  hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;
@@ -514,7 +514,6 @@ function attack(){
   let dx=hero.face,dy=0;if(keys.up){dx=0;dy=-1}else if(keys.down){dx=0;dy=1}
   effects.push({x:hero.x,y:hero.y,t:360,max:360,type:"projectile",color:"#ff8a3d",dx,dy});
   if(!bossMode&&enemyHitRay(hero.x,hero.y,dx,dy,4.8,.48,1))return;
-  if(cancelBossFireAlong(hero.x,hero.y,dx,dy,4.5,"ファイアボールで相殺！"))return;
   if(attackHitsBoss(hero.x,hero.y,dx,dy,5.2,.38)){bossDamage(1,"ファイアボール！");return}
   for(let r=.45;r<=4.5;r+=.25){let fx=hero.x+dx*r,fy=hero.y+dy*r;
    for(const p of pairs)for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;if(Math.abs(pairPos(p,part).x+.5-fx)<.38&&Math.abs(pairPos(p,part).y+.5-fy)<.38){if(part===0)p.a=null;else p.b=null;hitEffect(pairPos(p,part).x+.5,pairPos(p,part).y+.5,"#ff8a3d");return}}
@@ -605,6 +604,7 @@ function kick(){
  hero.kickT=180;let dir=hero.face,hy=Math.floor(hero.y);
  if(playerClass==="mage"){
   let dir=hero.face;effects.push({x:hero.x,y:hero.y,t:360,max:360,type:"projectile",color:"#9de9ff",dx:dir,dy:0});
+  if(bossMode&&cancelBossFireAlong(hero.x,hero.y,dir,0,4.5,"アイスショットで相殺！"))return;
   for(let r=.45;r<=4.5;r+=.25){let fx=hero.x+dir*r,fy=hero.y;if(bossRectHit(fx,fy,.55)){bossDamage(1,"アイスショット！");return}
    for(const p of [...pairs])for(const part of [0,1]){if((part===0&&p.a==null)||(part===1&&p.b==null))continue;if(Math.abs(pairPos(p,part).x+.5-fx)<.38&&Math.abs(pairPos(p,part).y+.5-fy)<.42){let type=part===0?p.a:p.b,ty=Math.max(0,Math.min(H-1,Math.floor(p.y+part+.5)));if(!board[ty][p.x]){let s=makeSlime(type);s.frozen=true;board[ty][p.x]=s;if(part===0)p.a=null;else p.b=null;msg("凍結！")}return}}
    let tx=Math.floor(fx),ty=Math.floor(fy);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){board[ty][tx].frozen=true;msg("凍結！");return}
@@ -825,7 +825,7 @@ function update(dt){
    if(e.changed){gravity();resolve();e.changed=false}
    // Damage only when the travelling wave visibly reaches the boss.
    let bx=bossTier===3?bossX:W-.62,by=bossY;
-   if(bossMode&&Math.hypot(px-bx,py-by)<1.05){e.hit=true;bossDamage(2,e.isHero?"聖剣波！":"気功波！");effects.push({x:px,y:py,t:280,max:280,type:"hit",color:e.color})}
+   if(bossMode&&Math.hypot(px-bx,py-by)<1.05){e.hit=true;bossDamage(2,e.isHero?"聖剣波！":e.isMage?"特大ファイアボール！":"気功波！");effects.push({x:px,y:py,t:280,max:280,type:"hit",color:e.color})}
  }
  effects.forEach(e=>e.t-=dt);effects=effects.filter(e=>e.t>0);
  if(gameOver||cleared||!playerClass)return;
@@ -978,6 +978,7 @@ function drawEffects(){
    }else if(e.type==="bossWave"){
      let px=e.x+e.dx*(e.travel||0),py=e.y+e.dy*(e.travel||0),ang=Math.atan2(e.dy||0,e.dx||1);
      if(e.isHero){ctx.translate(px,py);ctx.rotate(ang);ctx.strokeStyle=e.color;ctx.lineWidth=.15;ctx.beginPath();ctx.arc(0,0,.4,-1.15,1.15);ctx.stroke();ctx.strokeStyle="rgba(255,175,175,.6)";ctx.lineWidth=.065;ctx.beginPath();ctx.arc(-.08,0,.52,-1.05,1.05);ctx.stroke()}
+     else if(e.isMage){ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(px,py,.38,0,Math.PI*2);ctx.fill();ctx.strokeStyle="rgba(255,220,140,.82)";ctx.lineWidth=.09;ctx.beginPath();ctx.arc(px,py,.52,0,Math.PI*2);ctx.stroke();ctx.strokeStyle="rgba(255,120,40,.55)";ctx.lineWidth=.08;ctx.beginPath();ctx.moveTo(px-e.dx*.72,py-e.dy*.72);ctx.lineTo(px-e.dx*.28,py-e.dy*.28);ctx.stroke()}
      else{ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(px,py,.24,0,Math.PI*2);ctx.fill();ctx.strokeStyle="rgba(230,255,235,.75)";ctx.lineWidth=.07;ctx.beginPath();ctx.arc(px,py,.34,0,Math.PI*2);ctx.stroke()}
    }else if(e.type==="crescentProjectile"){
    let q=1-e.t/e.max,px=e.x+(e.dx||0)*q*10,py=e.y+(e.dy||0)*q*10,ang=Math.atan2(e.dy||0,e.dx||1);
