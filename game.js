@@ -9,14 +9,25 @@ let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossLe
 let enemies=[],enemySpawnT=0,demonSwordT=0,demonSwordFx=0,demonPhase=0,bossX=W-.62;
 let gameMode="campaign",modeElapsed=0,bossChargeShotT=0;
 let cloudMode=false,cloudY=0,cloudGoal=78,cloudPlatforms=[],cloudCannons=[],cloudShots=[],cloudSpawn=0,cloudCam=0,cloudGrip=null;
+const cloudKinds=[
+ {name:"赤",fill:"rgba(255,180,190,.72)",shade:"rgba(225,125,145,.42)",speed:.00062},
+ {name:"青",fill:"rgba(180,220,255,.72)",shade:"rgba(115,175,225,.42)",speed:.00048},
+ {name:"黄",fill:"rgba(255,240,170,.72)",shade:"rgba(225,195,100,.42)",speed:.00040},
+ {name:"緑",fill:"rgba(185,245,205,.72)",shade:"rgba(120,205,150,.42)",speed:.00054}
+];
+function makeCloud(x,y,start=false){
+ if(start)return {x,y,w:2,vy:0,fill:"rgba(245,250,255,.94)",shade:"rgba(185,220,245,.55)",start:true};
+ let k=cloudKinds[Math.floor(Math.random()*cloudKinds.length)];
+ return {x,y,w:2,vy:k.speed*(.84+Math.random()*.32),fill:k.fill,shade:k.shade,kind:k.name};
+}
 function startCloudClimb(){
  if(playerClass==="mage"){msg("魔法使いは雲登りに参加できない！");return}
  cloudMode=true;bossMode=false;cleared=false;gameOver=false;cloudY=0;cloudCam=0;cloudPlatforms=[];cloudCannons=[];cloudShots=[];cloudSpawn=0;cloudGrip=null;
  let em=document.querySelector("#message");if(em)em.textContent="";
  board=Array.from({length:H},()=>Array(W).fill(null));pairs=[];enemies=[];
  hero.x=W*.5;hero.y=H-1.4;hero.vx=hero.vy=0;hero.onGround=true;
- cloudPlatforms.push({x:W*.5-1,y:1.0,w:2,vy:.00034});
- for(let i=1;i<6;i++)cloudPlatforms.push({x:.35+Math.floor(Math.random()*(W-2)),y:1+i*2.55,w:2,vy:.00034+Math.random()*.00007});
+ cloudPlatforms.push(makeCloud(W*.5-1,.82,true));
+ for(let i=1;i<6;i++)cloudPlatforms.push(makeCloud(.35+Math.floor(Math.random()*(W-2)),1+i*2.45));
  hero.x=W*.5;hero.y=H-1.20;hero.onGround=true;hero._cloudPrevY=hero.y;
  msg("雲を乗り継いで頂上を目指せ！");
 }
@@ -82,7 +93,7 @@ function updateCloudMode(dt){
  for(const c of cloudPlatforms)c.y-=c.vy*dt;
  if(cloudSpawn>1250){
   cloudSpawn=0;
-  cloudPlatforms.push({x:.35+Math.floor(Math.random()*(W-2)),y:H+1.2,w:2,vy:.00034+Math.random()*.00007});
+  cloudPlatforms.push(makeCloud(.35+Math.floor(Math.random()*(W-2)),H+1.2));
   if(cloudY>18&&Math.random()<.10)cloudCannons.push({x:Math.random()<.5?.18:W-.18,y:H-.8,t:2300+Math.random()*1800});
  }
  for(const k of cloudCannons){
@@ -1069,7 +1080,10 @@ function drawHero(){
 function drawCloudClimb(){
  if(!cloudMode)return;
  ctx.save();
- for(const c of cloudPlatforms){let sy=H-c.y-1;if(sy<-1||sy>H+1)continue;ctx.fillStyle="rgba(245,250,255,.92)";ctx.beginPath();ctx.roundRect(c.x,sy,c.w,.42,.22);ctx.fill();ctx.fillStyle="rgba(185,220,245,.55)";ctx.beginPath();ctx.ellipse(c.x+.55,sy+.08,.52,.3,0,0,Math.PI*2);ctx.ellipse(c.x+1.35,sy+.08,.58,.32,0,0,Math.PI*2);ctx.fill();ctx.fillStyle="#315170";ctx.beginPath();ctx.arc(c.x+.48,sy+.13,.045,0,Math.PI*2);ctx.arc(c.x+1.48,sy+.13,.045,0,Math.PI*2);ctx.fill()}
+ for(const c of cloudPlatforms){let sy=H-c.y-1;if(sy<-1||sy>H+1)continue;ctx.fillStyle=c.fill||"rgba(245,250,255,.92)";ctx.beginPath();ctx.roundRect(c.x,sy,c.w,.42,.22);ctx.fill();ctx.fillStyle=c.shade||"rgba(185,220,245,.55)";ctx.beginPath();ctx.ellipse(c.x+.5,sy+.08,.49,.3,0,0,Math.PI*2);ctx.ellipse(c.x+1.5,sy+.08,.49,.3,0,0,Math.PI*2);ctx.fill();
+ // Two cloud slimes joined side-by-side: each slime has two eyes.
+ ctx.fillStyle="#315170";for(const ex of [c.x+.34,c.x+.62,c.x+1.34,c.x+1.62]){ctx.beginPath();ctx.arc(ex,sy+.12,.042,0,Math.PI*2);ctx.fill()}
+ ctx.strokeStyle="rgba(70,100,125,.65)";ctx.lineWidth=.022;for(const mx of [c.x+.5,c.x+1.5]){ctx.beginPath();ctx.arc(mx,sy+.19,.105,.15,2.8);ctx.stroke()}}
  for(const k of cloudCannons){let sy=H-k.y-1;if(sy<-1||sy>H+1)continue;ctx.fillStyle="#33283f";ctx.fillRect(k.x-.22,sy-.18,.44,.36);ctx.strokeStyle="#9a6bca";ctx.lineWidth=.12;ctx.beginPath();ctx.moveTo(k.x,sy);ctx.lineTo(k.x+(k.x<W/2?.48:-.48),sy);ctx.stroke()}
  for(const s of cloudShots){ctx.fillStyle="#b04cff";ctx.beginPath();ctx.arc(s.x,s.y,.16,0,Math.PI*2);ctx.fill();ctx.strokeStyle="rgba(235,160,255,.65)";ctx.lineWidth=.06;ctx.beginPath();ctx.arc(s.x,s.y,.25,0,Math.PI*2);ctx.stroke()}
  ctx.fillStyle="rgba(20,30,55,.75)";ctx.font=".34px sans-serif";ctx.fillText("☁ "+Math.floor(cloudY)+" / "+cloudGoal, .25,.55);
