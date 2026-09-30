@@ -16,16 +16,24 @@ function render(){
 }
 function spawn(){
  let preferred=[2,3,1,4,0,5],sx=-1;
- for(const x of preferred){let open=true;for(let y=0;y<3;y++)if(board[y][x]){open=false;break}if(open){sx=x;break}}
+ for(const x of preferred)if(columnRoom(x)){sx=x;break}
  if(sx<0){piece=null;render();gameOver();return}
  piece={x:sx,y:0,g:[rnd(),rnd(),rnd()]};render()
 }
 function can(x,y){if(x<0||x>=C||y<0||y+2>=R)return false;for(let i=0;i<3;i++)if(board[y+i][x])return false;return true}
+function columnRoom(x){let n=0;for(let y=0;y<R;y++)if(!board[y][x])n++;return n>=3}
 function move(dx){if(running&&!resolving&&piece&&can(piece.x+dx,piece.y)){piece.x+=dx;render()}}
 function rotate(){if(!running){reset();return}if(resolving||!piece)return;piece.g.unshift(piece.g.pop());render()}
 function hardDrop(){if(!running||resolving||!piece)return;while(can(piece.x,piece.y+1))piece.y++;render();setTimeout(lock,70)}
 function step(){if(!running||resolving||!piece)return;if(can(piece.x,piece.y+1)){piece.y++;render()}else lock()}
-function lock(){if(!piece)return;for(let i=0;i<3;i++)board[piece.y+i][piece.x]=piece.g[i];piece=null;render();resolve(1)}
+function lock(){
+ if(!piece)return;
+ let x=piece.x,gems=piece.g.slice(),empty=[];
+ for(let y=R-1;y>=0;y--)if(!board[y][x])empty.push(y);
+ if(empty.length<3){piece=null;render();gameOver();return}
+ board[empty[2]][x]=gems[0];board[empty[1]][x]=gems[1];board[empty[0]][x]=gems[2];
+ piece=null;render();resolve(1)
+}
 function matches(){
  let hit=new Set(),dirs=[[1,0],[0,1],[1,1],[1,-1]];
  for(let y=0;y<R;y++)for(let x=0;x<C;x++){let c=board[y][x];if(!c)continue;
