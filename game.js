@@ -8,7 +8,7 @@ let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain
 let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossLeftT=0,bossFireT=1200,bossFireballs=[]; let bossOnlyRun=false;
 let enemies=[],enemySpawnT=0,demonSwordT=0,demonSwordFx=0,demonPhase=0,bossX=W-.62;
 let gameMode="campaign",modeElapsed=0,bossChargeShotT=0;
-let cloudMode=false,cloudY=0,cloudGoal=78,cloudPlatforms=[],cloudCannons=[],cloudShots=[],cloudSpawn=0,cloudCam=0,cloudGrip=null;
+let cloudMode=false,cloudY=0,cloudGoal=220,cloudPlatforms=[],cloudCannons=[],cloudShots=[],cloudSpawn=0,cloudCam=0,cloudGrip=null;
 const cloudKinds=[
  {name:"赤",fill:"rgba(255,180,190,.72)",shade:"rgba(225,125,145,.42)",speed:.00125},
  {name:"青",fill:"rgba(180,220,255,.72)",shade:"rgba(115,175,225,.42)",speed:.00095},
@@ -87,11 +87,39 @@ function cloudGrab(){
  msg("つかめる雲がない");return true;
 }
 
+function resolveCloudPairs(){
+ // If two 2-wide cloud slimes of the same color touch/overlap as a 2x2-ish cluster, both pop.
+ for(let i=0;i<cloudPlatforms.length;i++){
+  let a=cloudPlatforms[i];if(a.start||!a.kind||a.pop)continue;
+  for(let j=i+1;j<cloudPlatforms.length;j++){
+   let b=cloudPlatforms[j];if(b.start||b.kind!==a.kind||b.pop)continue;
+   let ax=a.x+1,bx=b.x+1,syA=H-a.y-1,syB=H-b.y-1;
+   if(Math.abs(ax-bx)<1.35&&Math.abs(syA-syB)<.72){
+    a.pop=b.pop=true;
+    effects.push({x:(ax+bx)/2,y:(syA+syB)/2,t:420,max:420,type:"wave",color:a.fill||"#fff"});
+    msg(a.kind+"雲スライム 2×2消し！");
+    break;
+   }
+  }
+ }
+ cloudPlatforms=cloudPlatforms.filter(c=>!c.pop);
+}
 function updateCloudMode(dt){
- if(hero.y<hero._cloudPrevY)cloudY+=hero._cloudPrevY-hero.y;
- hero._cloudPrevY=hero.y; cloudCam=0; cloudSpawn+=dt;
+ let climbed=Math.max(0,hero._cloudPrevY-hero.y);
+ cloudY+=climbed;
+ hero._cloudPrevY=hero.y;
+ // When the hero reaches the upper third, scroll the whole playfield down promptly.
+ if(hero.y<3.6){
+   let shift=(3.6-hero.y)*.72;
+   hero.y+=shift;hero._cloudPrevY=hero.y;
+   for(const c of cloudPlatforms)c.y-=shift;
+   for(const k of cloudCannons)k.y-=shift;
+   cloudY+=shift;
+ }
+ cloudCam=0; cloudSpawn+=dt;
  // The two-wide cloud slimes visibly descend. The player must climb faster than they fall.
  for(const c of cloudPlatforms)c.y-=c.vy*dt;
+ resolveCloudPairs();
  if(cloudSpawn>1250){
   cloudSpawn=0;
   cloudPlatforms.push(makeCloud(.35+Math.floor(Math.random()*(W-2)),H+1.2));
