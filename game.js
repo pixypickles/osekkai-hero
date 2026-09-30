@@ -1168,9 +1168,12 @@ document.querySelectorAll("button[data-key]").forEach(b=>{let k=b.dataset.key;co
  if(["left","right","up","down"].includes(k)){if(playerClass==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
  if(heroGrabDirection(k)){keys[k]=false;return}keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack"&&keys[k])attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}b.classList.remove("pressed");try{if(b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId)}catch(_){}};b.addEventListener("pointerdown",down,{passive:false});b.addEventListener("pointerup",up,{passive:false});b.addEventListener("pointercancel",up,{passive:false});});
 
-window.addEventListener("DOMContentLoaded",()=>{
- let host=document.querySelector("#titleScreen")||document.querySelector("#stageMenu")||document.body;
- let b=document.createElement("button");b.id="cloudModeBtn";b.textContent="☁ 雲登り";b.style.cssText="margin:6px;padding:10px 16px;border-radius:12px;font-weight:700";
- b.onclick=()=>{if(!playerClass){msg("先に勇者かモンクを選んでください");return}if(playerClass==="mage"){msg("魔法使いは雲登り不可！");return}host.style.display="none";startCloudClimb()};
- host.appendChild(b);
-});
+
+
+window.startCloudClimb=startCloudClimb;
+window.beginCloudMode=function(job){
+ if(job==="mage"){msg("魔法使いは雲登り不可！");return}
+ if(typeof window.beginSelectedJob==="function"){window.beginSelectedJob(job)}
+ else {playerClass=job}
+ setTimeout(()=>startCloudClimb(),0);
+};
