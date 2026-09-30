@@ -73,3 +73,12 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 .columnsControls button{height:58px;border-radius:15px;font-size:24px;font-weight:900;touch-action:none}
 .columnsControls small{display:block;font-size:9px}
 @media(max-width:350px){.familyGrid{grid-template-columns:1fr}.familyBtn{min-height:105px}}
+
+/* v99 DOM-rendered Columns board */
+#columnsBoard{position:relative;width:min(330px,92vw);aspect-ratio:6/13;display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(13,1fr);background:linear-gradient(#172b4b,#0c1528);border:2px solid #779bc5;box-shadow:inset 0 0 22px rgba(120,190,255,.16);flex:0 0 auto}
+.colCell{position:relative;border:1px solid rgba(255,255,255,.055);display:flex;align-items:center;justify-content:center;overflow:visible}
+.jewel{display:block;width:72%;aspect-ratio:1;transform:rotate(45deg);border-radius:22% 5% 22% 5%;background:var(--jc);box-shadow:inset 5px 5px 0 rgba(255,255,255,.28),inset -4px -4px 0 rgba(0,0,0,.18),0 0 8px color-mix(in srgb,var(--jc) 70%,transparent);border:2px solid rgba(255,255,255,.5)}
+.activeJewel{width:78%;box-shadow:inset 5px 5px 0 rgba(255,255,255,.4),inset -4px -4px 0 rgba(0,0,0,.15),0 0 12px rgba(255,255,255,.35)}
+.colCell.pop .jewel{animation:colPop .22s ease-in forwards}@keyframes colPop{to{transform:rotate(135deg) scale(.05);opacity:0}}
+.columnsOver{position:absolute;inset:0;background:rgba(4,8,18,.75);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;font-size:28px}.columnsOver small{font-size:13px;margin-top:12px}
+#columnsScreen{padding-bottom:6px;box-sizing:border-box}
