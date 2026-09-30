@@ -37,6 +37,7 @@ function draw(){
 }
 function tick(t){if(!last)last=t;let dt=Math.min(40,t-last);last=t;if(running&&!resolving&&piece){acc+=dt;if(acc>520){acc=0;if(can(piece.x,piece.y+1))piece.y++;else lock()}}draw();requestAnimationFrame(tick)}
 window.startColumns=()=>{running=true;last=0;acc=0;reset()};
+if(document.getElementById("columnsScreen")?.style.display==="flex")window.startColumns();
 document.querySelectorAll("[data-col]").forEach(b=>{let a=b.dataset.col;let fn=()=>{if(!running&&a==="rotate"){running=true;reset();return}if(a==="left")move(-1);if(a==="right")move(1);if(a==="rotate")rotate();if(a==="down")drop()};b.addEventListener("pointerdown",e=>{e.preventDefault();fn()})});
 addEventListener("keydown",e=>{if(document.getElementById("columnsScreen").style.display==="none")return;if(e.key==="ArrowLeft")move(-1);if(e.key==="ArrowRight")move(1);if(e.key==="ArrowUp"||e.key==="x")rotate();if(e.key==="ArrowDown"||e.key===" ")drop()});
 requestAnimationFrame(tick);
