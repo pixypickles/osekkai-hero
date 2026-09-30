@@ -15,8 +15,9 @@ const cloudKinds=[
  {name:"黄",fill:"rgba(255,240,170,.72)",shade:"rgba(225,195,100,.42)",speed:.00100},
  {name:"緑",fill:"rgba(185,245,205,.72)",shade:"rgba(120,205,150,.42)",speed:.00100}
 ];
-function makeCloud(x,y,start=false){
- if(start)return {x,y,w:2,vy:0,fill:"rgba(245,250,255,.94)",shade:"rgba(185,220,245,.55)",start:true};
+function makeCloud(x,y,start=false,neutral=false){
+ if(start)return {x,y,w:2,vy:0,fill:"rgba(245,250,255,.94)",shade:"rgba(185,220,245,.55)",start:true,neutral:true};
+ if(neutral)return {x,y,w:2,vy:.00100*(.82+Math.random()*.36),fill:"rgba(245,250,255,.88)",shade:"rgba(190,220,240,.48)",neutral:true};
  let k=cloudKinds[Math.floor(Math.random()*cloudKinds.length)];
  return {x,y,w:2,vy:.00100*(.72+Math.random()*.56),fill:k.fill,shade:k.shade,kind:k.name};
 }
@@ -31,7 +32,7 @@ function startCloudClimb(){
  let ladderX=W*.5-1;
  for(let i=1;i<7;i++){
   ladderX=Math.max(.35,Math.min(W-2.35,ladderX+(Math.random()<.5?-1:1)*(0.25+Math.random()*.95)));
-  let yy=.22+i*2.05;cloudPlatforms.push(makeCloud(ladderX,yy));
+  let yy=.22+i*2.05;cloudPlatforms.push(makeCloud(ladderX,yy,false,true));
   if(i%2===0){let side=ladderX<W/2?Math.min(W-2.35,ladderX+2.2):Math.max(.35,ladderX-2.2);cloudPlatforms.push(makeCloud(side,yy+.45))}
  }
  hero.x=W*.5;hero.y=(H-startCloud.y-1)-.20;hero.vy=0;hero.onGround=true;hero._cloudPrevY=hero.y;
@@ -133,7 +134,7 @@ function updateCloudMode(dt){
   let px=prev?prev.x:W*.5-1;
   // One guaranteed reachable anchor, plus side clouds so there are multiple route choices.
   let anchorX=Math.max(.35,Math.min(W-2.35,px+(Math.random()<.5?-1:1)*(0.25+Math.random()*.95)));
-  cloudPlatforms.push(makeCloud(anchorX,H+1.2));
+  cloudPlatforms.push(makeCloud(anchorX,H+1.2,false,true));
   let extras=1+(Math.random()<.55?1:0);
   for(let n=0;n<extras;n++){
    let lane=.35+Math.random()*(W-2.7);
@@ -161,7 +162,7 @@ function updateCloudMode(dt){
   cloudPlatforms=cloudPlatforms.filter(c=>c.start);
   let rescue=makeCloud(W*.5-1,.22,true);cloudPlatforms=[rescue];
   let rx=W*.5-1;
-  for(let i=1;i<7;i++){rx=Math.max(.35,Math.min(W-2.35,rx+(Math.random()<.5?-1:1)*(0.25+Math.random()*.95)));let yy=.22+i*2.05;cloudPlatforms.push(makeCloud(rx,yy));if(i%2===0){let sx=rx<W/2?Math.min(W-2.35,rx+2.2):Math.max(.35,rx-2.2);cloudPlatforms.push(makeCloud(sx,yy+.45))}}
+  for(let i=1;i<7;i++){rx=Math.max(.35,Math.min(W-2.35,rx+(Math.random()<.5?-1:1)*(0.25+Math.random()*.95)));let yy=.22+i*2.05;cloudPlatforms.push(makeCloud(rx,yy,false,true));if(i%2===0){let sx=rx<W/2?Math.min(W-2.35,rx+2.2):Math.max(.35,rx-2.2);cloudPlatforms.push(makeCloud(sx,yy+.45))}}
   hero.x=W*.5;hero.y=(H-rescue.y-1)-.20;hero.vx=hero.vy=0;hero.onGround=true;hero._cloudPrevY=hero.y;
   msg("落下！ 28m下から再開");
  }

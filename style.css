@@ -44,3 +44,16 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 .fastFall{width:62px;height:62px;border-radius:50%;padding:0;font-size:20px;line-height:17px;background:#405a78;border:3px solid #9fc9ef;box-shadow:0 3px 9px rgba(0,0,0,.3);touch-action:none;user-select:none;-webkit-user-select:none}
 .fastFall small{display:block;font-size:10px;line-height:12px}
 .fastFall.active{transform:scale(.94);background:#78b7e8;box-shadow:0 0 12px rgba(150,220,255,.8)}
+
+/* v93 compact/scrollable job selector */
+#classSelect{align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 0 24px;box-sizing:border-box}
+#classSelect .panel{width:min(390px,94vw);max-height:calc(100dvh - 20px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px;box-sizing:border-box}
+#classSelect .panel h2{font-size:19px;margin:0 0 8px}
+#classSelect .jobRow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+#classSelect .jobRow .classBtn{margin:0;padding:8px 3px;font-size:22px;min-height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+#classSelect .jobRow .classBtn b{font-size:13px;white-space:nowrap}
+#classSelect .jobRow .classBtn small{font-size:9px;margin-top:1px}
+#classSelect .classHelp{min-height:54px;margin:7px 0;padding:7px;font-size:10.5px;line-height:1.35}
+#classSelect .startBtn{padding:9px;margin:5px 0;font-size:16px}
+#classSelect .panel>.classBtn:not(.jobRow .classBtn){margin:6px 0;padding:9px;font-size:15px;border-radius:11px}
+#classSelect .panel>.classBtn small{margin-top:2px;font-size:9px}
