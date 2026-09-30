@@ -29,7 +29,11 @@ function startCloudClimb(){
  let startCloud=makeCloud(W*.5-1,.22,true);
  cloudPlatforms.push(startCloud);
  let ladderX=W*.5-1;
- for(let i=1;i<6;i++){ladderX=Math.max(.35,Math.min(W-2.35,ladderX+(Math.random()<.5?-1:1)*(0.45+Math.random()*1.25)));cloudPlatforms.push(makeCloud(ladderX,.22+i*2.45));}
+ for(let i=1;i<7;i++){
+  ladderX=Math.max(.35,Math.min(W-2.35,ladderX+(Math.random()<.5?-1:1)*(0.25+Math.random()*.95)));
+  let yy=.22+i*2.05;cloudPlatforms.push(makeCloud(ladderX,yy));
+  if(i%2===0){let side=ladderX<W/2?Math.min(W-2.35,ladderX+2.2):Math.max(.35,ladderX-2.2);cloudPlatforms.push(makeCloud(side,yy+.45))}
+ }
  hero.x=W*.5;hero.y=(H-startCloud.y-1)-.20;hero.vy=0;hero.onGround=true;hero._cloudPrevY=hero.y;
  msg("雲を乗り継いで頂上を目指せ！");
 }
@@ -95,7 +99,8 @@ function resolveCloudPairs(){
   for(let j=i+1;j<cloudPlatforms.length;j++){
    let b=cloudPlatforms[j];if(b.start||b.kind!==a.kind||b.pop)continue;
    let ax=a.x+1,bx=b.x+1,syA=H-a.y-1,syB=H-b.y-1;
-   if(Math.abs(ax-bx)<1.35&&Math.abs(syA-syB)<.72){
+   let bothVisible=syA>.25&&syA<H-.35&&syB>.25&&syB<H-.35;
+   if(bothVisible&&Math.abs(ax-bx)<1.35&&Math.abs(syA-syB)<.72){
     a.pop=b.pop=true;
     effects.push({x:(ax+bx)/2,y:(syA+syB)/2,t:420,max:420,type:"wave",color:a.fill||"#fff"});
     msg(a.kind+"雲スライム 2×2消し！");
@@ -121,12 +126,20 @@ function updateCloudMode(dt){
  // The two-wide cloud slimes visibly descend. The player must climb faster than they fall.
  for(const c of cloudPlatforms)c.y-=c.vy*dt;
  resolveCloudPairs();
- if(cloudSpawn>1250){
+ if(cloudSpawn>1050){
   cloudSpawn=0;
-  let prev=cloudPlatforms.filter(c=>!c.start).sort((a,b)=>b.y-a.y)[0];
+  let visible=cloudPlatforms.filter(c=>!c.start);
+  let prev=visible.sort((a,b)=>b.y-a.y)[0];
   let px=prev?prev.x:W*.5-1;
-  let nx=Math.max(.35,Math.min(W-2.35,px+(Math.random()<.5?-1:1)*(0.45+Math.random()*1.35)));
-  cloudPlatforms.push(makeCloud(nx,H+1.2));
+  // One guaranteed reachable anchor, plus side clouds so there are multiple route choices.
+  let anchorX=Math.max(.35,Math.min(W-2.35,px+(Math.random()<.5?-1:1)*(0.25+Math.random()*.95)));
+  cloudPlatforms.push(makeCloud(anchorX,H+1.2));
+  let extras=1+(Math.random()<.55?1:0);
+  for(let n=0;n<extras;n++){
+   let lane=.35+Math.random()*(W-2.7);
+   if(Math.abs(lane-anchorX)<1.25)lane=lane<W/2?Math.min(W-2.35,lane+1.8):Math.max(.35,lane-1.8);
+   cloudPlatforms.push(makeCloud(lane,H+1.2+n*.38));
+  }
   if(cloudY>18&&Math.random()<.10)cloudCannons.push({x:Math.random()<.5?.18:W-.18,y:H-.8,t:2300+Math.random()*1800});
  }
  for(const k of cloudCannons){
@@ -148,7 +161,7 @@ function updateCloudMode(dt){
   cloudPlatforms=cloudPlatforms.filter(c=>c.start);
   let rescue=makeCloud(W*.5-1,.22,true);cloudPlatforms=[rescue];
   let rx=W*.5-1;
-  for(let i=1;i<6;i++){rx=Math.max(.35,Math.min(W-2.35,rx+(Math.random()<.5?-1:1)*(0.4+Math.random()*1.2)));cloudPlatforms.push(makeCloud(rx,.22+i*2.4))}
+  for(let i=1;i<7;i++){rx=Math.max(.35,Math.min(W-2.35,rx+(Math.random()<.5?-1:1)*(0.25+Math.random()*.95)));let yy=.22+i*2.05;cloudPlatforms.push(makeCloud(rx,yy));if(i%2===0){let sx=rx<W/2?Math.min(W-2.35,rx+2.2):Math.max(.35,rx-2.2);cloudPlatforms.push(makeCloud(sx,yy+.45))}}
   hero.x=W*.5;hero.y=(H-rescue.y-1)-.20;hero.vx=hero.vy=0;hero.onGround=true;hero._cloudPrevY=hero.y;
   msg("落下！ 28m下から再開");
  }
