@@ -17,7 +17,7 @@ function startCloudClimb(){
  hero.x=W*.5;hero.y=H-1.4;hero.vx=hero.vy=0;hero.onGround=true;
  cloudPlatforms.push({x:W*.5-1,y:0,w:2,vy:.00010});
  for(let i=1;i<18;i++)spawnCloud(i*2.35);
- hero.x=W*.5;hero.y=H-1.20;hero.onGround=true;
+ hero.x=W*.5;hero.y=H-1.20;hero.onGround=true;hero._cloudPrevY=hero.y;
  msg("雲を乗り継いで頂上を目指せ！");
 }
 function spawnCloud(worldY){
@@ -44,7 +44,7 @@ function updateCloudHero(dt){
  hero.x=Math.max(.3,Math.min(W-.3,hero.x+hero.vx*dt));
  let oldY=hero.y;
  // Dedicated, stable cloud-mode gravity. Clamp vertical speed so double jump cannot become a rocket.
- hero.vy=Math.max(-.0092,Math.min(.0072,hero.vy+.000020*dt));
+ hero.vy=Math.min(.0072,hero.vy+.000020*dt);
  let nextY=hero.y+hero.vy*dt;
  hero.onGround=false;
  if(hero.vy>=0){
@@ -75,8 +75,12 @@ function cloudGrab(){
 }
 
 function updateCloudMode(dt){
- cloudY=Math.max(cloudY,(H-1.4)-hero.y+cloudCam);
- cloudCam=Math.max(cloudCam,cloudY-(H*.56));
+ // Advance world altitude only by the hero's actual upward screen movement.
+ // Camera scrolling must not feed back into altitude, or scrolling accelerates itself.
+ if(hero.y<hero._cloudPrevY)cloudY+=hero._cloudPrevY-hero.y;
+ hero._cloudPrevY=hero.y;
+ let targetCam=Math.max(0,cloudY-(H*.56));
+ cloudCam=Math.min(targetCam,cloudCam+Math.max(0,targetCam-cloudCam)*Math.min(1,dt*.0045));
  cloudSpawn+=dt;
  if(cloudSpawn>900){cloudSpawn=0;let top=cloudCam+H+5;spawnCloud(top)}
  for(const c of cloudPlatforms)c.y-=c.vy*dt;
@@ -427,13 +431,13 @@ function mageGustPush(){
 }
 function jump(){
  if(cloudMode){
-   if(cloudGrip){cloudGrip=null;hero.vy=-.0068;hero.onGround=false;if(playerClass==="monk")hero.jumps=1;return}
+   if(cloudGrip){cloudGrip=null;hero.vy=-.0128;hero.onGround=false;if(playerClass==="monk")hero.jumps=1;return}
    if(playerClass==="monk"){
-     if(hero.onGround){hero.vy=-.0068;hero.jumps=1;hero.onGround=false;return}
-     if(hero.jumps===1){hero.vy=-.0058;hero.jumps=2;return}
+     if(hero.onGround){hero.vy=-.0128;hero.jumps=1;hero.onGround=false;return}
+     if(hero.jumps===1){hero.vy=-.0128;hero.jumps=2;return}
      return;
    }
-   if(hero.onGround){hero.vy=-.0072;hero.onGround=false}
+   if(hero.onGround){hero.vy=-.0128;hero.onGround=false}
    return;
  }
  if(playerClass==="hero"&&hero.grab){releaseHeroGrab();hero.vy=-.0128;hero.onGround=false;return}
