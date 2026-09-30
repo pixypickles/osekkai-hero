@@ -15,9 +15,8 @@ function startCloudClimb(){
  let em=document.querySelector("#message");if(em)em.textContent="";
  board=Array.from({length:H},()=>Array(W).fill(null));pairs=[];enemies=[];
  hero.x=W*.5;hero.y=H-1.4;hero.vx=hero.vy=0;hero.onGround=true;
- cloudPlatforms.push({x:W*.5-1,y:0,w:2,vy:.00010});
- let wy=0;
- for(let i=1;i<24;i++){wy+=2.15+Math.random()*1.35;spawnCloud(wy)}
+ cloudPlatforms.push({x:W*.5-1,y:1.0,w:2,vy:.00034});
+ for(let i=1;i<6;i++)cloudPlatforms.push({x:.35+Math.floor(Math.random()*(W-2)),y:1+i*2.55,w:2,vy:.00034+Math.random()*.00007});
  hero.x=W*.5;hero.y=H-1.20;hero.onGround=true;hero._cloudPrevY=hero.y;
  msg("雲を乗り継いで頂上を目指せ！");
 }
@@ -32,7 +31,7 @@ function updateCloudHero(dt){
  if(cloudGrip){
    let c=cloudGrip;
    if(!cloudPlatforms.includes(c)){cloudGrip=null}else{
-     let sy=H-(c.y-cloudCam)-1;
+     let sy=H-c.y-1;
      hero.x=Math.max(c.x+.18,Math.min(c.x+c.w-.18,hero.x));
      hero.y=sy+.55;hero.vx=0;hero.vy=0;hero.onGround=false;
      // While hanging, left/right lets the player shimmy along the cloud.
@@ -52,7 +51,7 @@ function updateCloudHero(dt){
  if(hero.vy>=0){
   let best=null;
   for(const c of cloudPlatforms){
-   let sy=H-(c.y-cloudCam)-1;
+   let sy=H-c.y-1;
    if(hero.x>c.x-.18&&hero.x<c.x+c.w+.18&&oldY<=sy-.10&&nextY>=sy-.30){
     if(best==null||sy<best)best=sy;
    }
@@ -67,7 +66,7 @@ function cloudGrab(){
  if(cloudGrip){cloudGrip=null;hero.vy=.001;msg("雲から手を離した！");return true}
  let best=null,bd=1.15;
  for(const c of cloudPlatforms){
-   let sy=H-(c.y-cloudCam)-1;
+   let sy=H-c.y-1;
    // Grab the underside/edge of a cloud that is just above or beside the character.
    let cx=Math.max(c.x,Math.min(c.x+c.w,hero.x)),d=Math.hypot(cx-hero.x,(sy+.28)-hero.y);
    if(d<bd){best=c;bd=d}
@@ -77,32 +76,24 @@ function cloudGrab(){
 }
 
 function updateCloudMode(dt){
- // Advance world altitude only by the hero's actual upward screen movement.
- // Camera scrolling must not feed back into altitude, or scrolling accelerates itself.
  if(hero.y<hero._cloudPrevY)cloudY+=hero._cloudPrevY-hero.y;
- hero._cloudPrevY=hero.y;
- let targetCam=Math.max(0,cloudY-(H*.56));
- cloudCam=Math.min(targetCam,cloudCam+Math.max(0,targetCam-cloudCam)*Math.min(1,dt*.0045));
- cloudSpawn+=dt;
- if(cloudSpawn>1500){
-   cloudSpawn=0;
-   let highest=cloudPlatforms.reduce((m,c)=>Math.max(m,c.y),cloudCam);
-   let target=cloudCam+H+4;
-   while(highest<target){highest+=2.15+Math.random()*1.35;spawnCloud(highest)}
- }
+ hero._cloudPrevY=hero.y; cloudCam=0; cloudSpawn+=dt;
+ // The two-wide cloud slimes visibly descend. The player must climb faster than they fall.
  for(const c of cloudPlatforms)c.y-=c.vy*dt;
- // Cloud landing is handled by updateCloudHero().
- for(const k of cloudCannons){
-   k.t-=dt;if(k.t<=0){k.t=3200+Math.random()*2200;let sy=H-(k.y-cloudCam)-1,dx=hero.x-k.x,dy=hero.y-sy,l=Math.hypot(dx,dy)||1;cloudShots.push({x:k.x,y:sy,dx:dx/l,dy:dy/l,t:3600})}
+ if(cloudSpawn>1250){
+  cloudSpawn=0;
+  cloudPlatforms.push({x:.35+Math.floor(Math.random()*(W-2)),y:H+1.2,w:2,vy:.00034+Math.random()*.00007});
+  if(cloudY>18&&Math.random()<.10)cloudCannons.push({x:Math.random()<.5?.18:W-.18,y:H-.8,t:2300+Math.random()*1800});
  }
- for(const s of cloudShots){s.x+=s.dx*.00235*dt;s.y+=s.dy*.00235*dt;s.t-=dt;if(Math.hypot(s.x-hero.x,s.y-hero.y)<.42){s.t=0;knockHero(s.dx>=0?1:-1);msg("魔王砲に撃たれた！")}}
+ for(const k of cloudCannons){
+  k.t-=dt;if(k.t<=0){k.t=3800+Math.random()*2400;let sy=H-k.y-1,dx=hero.x-k.x,dy=hero.y-sy,l=Math.hypot(dx,dy)||1;cloudShots.push({x:k.x,y:sy,dx:dx/l,dy:dy/l,t:3400})}
+ }
+ for(const s of cloudShots){s.x+=s.dx*.00225*dt;s.y+=s.dy*.00225*dt;s.t-=dt;if(Math.hypot(s.x-hero.x,s.y-hero.y)<.42){s.t=0;knockHero(s.dx>=0?1:-1);msg("魔王砲に撃たれた！")}}
  cloudShots=cloudShots.filter(s=>s.t>0&&s.x>-1&&s.x<W+1&&s.y>-1&&s.y<H+1);
- cloudPlatforms=cloudPlatforms.filter(c=>c.y>cloudCam-5);
- cloudCannons=cloudCannons.filter(c=>c.y>cloudCam-5);
- if(cloudY>=cloudGoal){cloudMode=false;cleared=true;msg("雲の頂上に到達！");let r=document.querySelector("#stageResult");if(r)r.textContent="雲登り CLEAR！";document.querySelector("#stageMenu").style.display="flex"}
- if(hero.y>H+1){hero.x=W*.5;hero.y=H-1.4;hero.vx=hero.vy=0;cloudCam=Math.max(0,cloudCam-5);msg("落下！ 少し下から再開")}
+ cloudPlatforms=cloudPlatforms.filter(c=>c.y>-.8);
+ if(cloudY>=cloudGoal){cloudMode=false;cleared=true;msg("雲スライムの滝を登り切った！");let r=document.querySelector("#stageResult");if(r)r.textContent="雲登り CLEAR！";document.querySelector("#stageMenu").style.display="flex"}
+ if(hero.y>H+1){hero.x=W*.5;hero.y=H-1.4;hero.vx=hero.vy=0;hero._cloudPrevY=hero.y;msg("落下！ 下から再挑戦")}
 }
-
 let gameSettings={crushGameOver:false,bats:true,skeletons:true};
 try{gameSettings={...gameSettings,...JSON.parse(localStorage.getItem("osekkaiSettings")||"{}")}}catch(e){}
 window.setGameSetting=(k,v)=>{if(k in gameSettings){gameSettings[k]=!!v;try{localStorage.setItem("osekkaiSettings",JSON.stringify(gameSettings))}catch(e){}}};
@@ -1078,8 +1069,8 @@ function drawHero(){
 function drawCloudClimb(){
  if(!cloudMode)return;
  ctx.save();
- for(const c of cloudPlatforms){let sy=H-(c.y-cloudCam)-1;if(sy<-1||sy>H+1)continue;ctx.fillStyle="rgba(245,250,255,.92)";ctx.beginPath();ctx.roundRect(c.x,sy,c.w,.42,.22);ctx.fill();ctx.fillStyle="rgba(185,220,245,.55)";ctx.beginPath();ctx.ellipse(c.x+.55,sy+.08,.52,.3,0,0,Math.PI*2);ctx.ellipse(c.x+1.35,sy+.08,.58,.32,0,0,Math.PI*2);ctx.fill()}
- for(const k of cloudCannons){let sy=H-(k.y-cloudCam)-1;if(sy<-1||sy>H+1)continue;ctx.fillStyle="#33283f";ctx.fillRect(k.x-.22,sy-.18,.44,.36);ctx.strokeStyle="#9a6bca";ctx.lineWidth=.12;ctx.beginPath();ctx.moveTo(k.x,sy);ctx.lineTo(k.x+(k.x<W/2?.48:-.48),sy);ctx.stroke()}
+ for(const c of cloudPlatforms){let sy=H-c.y-1;if(sy<-1||sy>H+1)continue;ctx.fillStyle="rgba(245,250,255,.92)";ctx.beginPath();ctx.roundRect(c.x,sy,c.w,.42,.22);ctx.fill();ctx.fillStyle="rgba(185,220,245,.55)";ctx.beginPath();ctx.ellipse(c.x+.55,sy+.08,.52,.3,0,0,Math.PI*2);ctx.ellipse(c.x+1.35,sy+.08,.58,.32,0,0,Math.PI*2);ctx.fill();ctx.fillStyle="#315170";ctx.beginPath();ctx.arc(c.x+.48,sy+.13,.045,0,Math.PI*2);ctx.arc(c.x+1.48,sy+.13,.045,0,Math.PI*2);ctx.fill()}
+ for(const k of cloudCannons){let sy=H-k.y-1;if(sy<-1||sy>H+1)continue;ctx.fillStyle="#33283f";ctx.fillRect(k.x-.22,sy-.18,.44,.36);ctx.strokeStyle="#9a6bca";ctx.lineWidth=.12;ctx.beginPath();ctx.moveTo(k.x,sy);ctx.lineTo(k.x+(k.x<W/2?.48:-.48),sy);ctx.stroke()}
  for(const s of cloudShots){ctx.fillStyle="#b04cff";ctx.beginPath();ctx.arc(s.x,s.y,.16,0,Math.PI*2);ctx.fill();ctx.strokeStyle="rgba(235,160,255,.65)";ctx.lineWidth=.06;ctx.beginPath();ctx.arc(s.x,s.y,.25,0,Math.PI*2);ctx.stroke()}
  ctx.fillStyle="rgba(20,30,55,.75)";ctx.font=".34px sans-serif";ctx.fillText("☁ "+Math.floor(cloudY)+" / "+cloudGoal, .25,.55);
  ctx.restore();
