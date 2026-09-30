@@ -8,6 +8,43 @@ let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain
 let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossLeftT=0,bossFireT=1200,bossFireballs=[]; let bossOnlyRun=false;
 let enemies=[],enemySpawnT=0,demonSwordT=0,demonSwordFx=0,demonPhase=0,bossX=W-.62;
 let gameMode="campaign",modeElapsed=0,bossChargeShotT=0;
+let cloudMode=false,cloudY=0,cloudGoal=78,cloudPlatforms=[],cloudCannons=[],cloudShots=[],cloudSpawn=0,cloudCam=0;
+function startCloudClimb(){
+ if(playerClass==="mage"){msg("魔法使いは雲登りに参加できない！");return}
+ cloudMode=true;bossMode=false;cleared=false;gameOver=false;cloudY=0;cloudCam=0;cloudPlatforms=[];cloudCannons=[];cloudShots=[];cloudSpawn=0;
+ board=Array.from({length:H},()=>Array(W).fill(null));pairs=[];enemies=[];
+ hero.x=W*.5;hero.y=H-1.4;hero.vx=hero.vy=0;hero.onGround=true;
+ for(let i=0;i<12;i++)spawnCloud(i*6);
+ msg("雲を乗り継いで頂上を目指せ！");
+}
+function spawnCloud(worldY){
+ let x=.4+Math.floor(Math.random()*(W-2));
+ cloudPlatforms.push({x,y:worldY,w:2,vy:.00016+Math.random()*.00008});
+ if(worldY>16&&Math.random()<.42)cloudCannons.push({x:Math.random()<.5?.18:W-.18,y:worldY+2.2,side:Math.random()<.5?1:-1,t:800+Math.random()*1200});
+}
+function updateCloudMode(dt){
+ cloudY=Math.max(cloudY,(H-1.4)-hero.y+cloudCam);
+ cloudCam=Math.max(cloudCam,cloudY-(H*.56));
+ cloudSpawn+=dt;
+ if(cloudSpawn>900){cloudSpawn=0;let top=cloudCam+H+5;spawnCloud(top)}
+ for(const c of cloudPlatforms)c.y-=c.vy*dt;
+ // Cloud coordinates are world-height; map them to screen from the bottom.
+ let grounded=false;
+ if(hero.vy>=0)for(const c of cloudPlatforms){
+   let sy=H-(c.y-cloudCam)-1,px=c.x;
+   if(hero.x>px-.15&&hero.x<px+c.w+.15&&hero.y<=sy&&hero.y+hero.vy*dt>=sy-.18){hero.y=sy-.18;hero.vy=0;hero.onGround=true;grounded=true}
+ }
+ for(const k of cloudCannons){
+   k.t-=dt;if(k.t<=0){k.t=1450+Math.random()*1100;let sy=H-(k.y-cloudCam)-1,dx=hero.x-k.x,dy=hero.y-sy,l=Math.hypot(dx,dy)||1;cloudShots.push({x:k.x,y:sy,dx:dx/l,dy:dy/l,t:5200})}
+ }
+ for(const s of cloudShots){s.x+=s.dx*.0030*dt;s.y+=s.dy*.0030*dt;s.t-=dt;if(Math.hypot(s.x-hero.x,s.y-hero.y)<.42){s.t=0;knockHero(s.dx>=0?1:-1);msg("魔王砲に撃たれた！")}}
+ cloudShots=cloudShots.filter(s=>s.t>0&&s.x>-1&&s.x<W+1&&s.y>-1&&s.y<H+1);
+ cloudPlatforms=cloudPlatforms.filter(c=>c.y>cloudCam-5);
+ cloudCannons=cloudCannons.filter(c=>c.y>cloudCam-5);
+ if(cloudY>=cloudGoal){cloudMode=false;cleared=true;msg("雲の頂上に到達！");let r=document.querySelector("#stageResult");if(r)r.textContent="雲登り CLEAR！";document.querySelector("#stageMenu").style.display="flex"}
+ if(hero.y>H+1){hero.x=W*.5;hero.y=H-1.4;hero.vx=hero.vy=0;cloudCam=Math.max(0,cloudCam-5);msg("落下！ 少し下から再開")}
+}
+
 let gameSettings={crushGameOver:false,bats:true,skeletons:true};
 try{gameSettings={...gameSettings,...JSON.parse(localStorage.getItem("osekkaiSettings")||"{}")}}catch(e){}
 window.setGameSetting=(k,v)=>{if(k in gameSettings){gameSettings[k]=!!v;try{localStorage.setItem("osekkaiSettings",JSON.stringify(gameSettings))}catch(e){}}};
@@ -829,6 +866,7 @@ function update(dt){
  }
  effects.forEach(e=>e.t-=dt);effects=effects.filter(e=>e.t>0);
  if(gameOver||cleared||!playerClass)return;
+ if(cloudMode){updateCloudMode(dt);updateHero(dt);return}
  updateBoss(dt);
  updateEnemies(dt);
  updatePairs(dt);updateHero(dt);updateLiftRide();
@@ -968,6 +1006,15 @@ function drawHero(){
  if(hero.charge>0){ctx.strokeStyle=playerClass==="monk"?"#59dc76":"#ff5f78";ctx.lineWidth=.045;ctx.beginPath();ctx.arc(0,0,.57,0,Math.PI*2*hero.charge/100);ctx.stroke()}
  ctx.restore();
 }
+function drawCloudClimb(){
+ if(!cloudMode)return;
+ ctx.save();
+ for(const c of cloudPlatforms){let sy=H-(c.y-cloudCam)-1;if(sy<-1||sy>H+1)continue;ctx.fillStyle="rgba(245,250,255,.92)";ctx.beginPath();ctx.roundRect(c.x,sy,c.w,.42,.22);ctx.fill();ctx.fillStyle="rgba(185,220,245,.55)";ctx.beginPath();ctx.ellipse(c.x+.55,sy+.08,.52,.3,0,0,Math.PI*2);ctx.ellipse(c.x+1.35,sy+.08,.58,.32,0,0,Math.PI*2);ctx.fill()}
+ for(const k of cloudCannons){let sy=H-(k.y-cloudCam)-1;if(sy<-1||sy>H+1)continue;ctx.fillStyle="#33283f";ctx.fillRect(k.x-.22,sy-.18,.44,.36);ctx.strokeStyle="#9a6bca";ctx.lineWidth=.12;ctx.beginPath();ctx.moveTo(k.x,sy);ctx.lineTo(k.x+(k.x<W/2?.48:-.48),sy);ctx.stroke()}
+ for(const s of cloudShots){ctx.fillStyle="#b04cff";ctx.beginPath();ctx.arc(s.x,s.y,.16,0,Math.PI*2);ctx.fill();ctx.strokeStyle="rgba(235,160,255,.65)";ctx.lineWidth=.06;ctx.beginPath();ctx.arc(s.x,s.y,.25,0,Math.PI*2);ctx.stroke()}
+ ctx.fillStyle="rgba(20,30,55,.75)";ctx.font=".34px sans-serif";ctx.fillText("☁ "+Math.floor(cloudY)+" / "+cloudGoal, .25,.55);
+ ctx.restore();
+}
 function drawEffects(){
  for(const e of effects){
    let p=1-e.t/e.max,alpha=e.t/e.max;
@@ -1006,6 +1053,8 @@ function drawEffects(){
  }
 }
 function draw(){
+ if(cloudMode){ctx.clearRect(0,0,W,H);drawBackground();drawCloudClimb();drawHero();drawEffects();return}
+
  ctx.clearRect(0,0,cv.width,cv.height);ctx.save();ctx.scale(S,S);
  let bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,"#526d94");bg.addColorStop(.55,"#405a7d");bg.addColorStop(1,"#30445f");ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
  // soft clouds / magical haze
@@ -1118,3 +1167,10 @@ const moveStick=document.querySelector("#moveStick"),stickKnob=document.querySel
 document.querySelectorAll("button[data-key]").forEach(b=>{let k=b.dataset.key;const down=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}
  if(["left","right","up","down"].includes(k)){if(playerClass==="mage"&&(k==="left"||k==="right"))hero.face=k==="left"?-1:1}
  if(heroGrabDirection(k)){keys[k]=false;return}keys[k]=true;b.classList.add("pressed");if(k==="jump")jump();if(k==="grab")grab();if(k==="kick")kick();};const up=e=>{e.preventDefault();if(k==="attack"&&keys[k])attack();keys[k]=false;if(k==="grab"){hero.grabHold=0;hero.grabColorTick=0}b.classList.remove("pressed");try{if(b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId)}catch(_){}};b.addEventListener("pointerdown",down,{passive:false});b.addEventListener("pointerup",up,{passive:false});b.addEventListener("pointercancel",up,{passive:false});});
+
+window.addEventListener("DOMContentLoaded",()=>{
+ let host=document.querySelector("#titleScreen")||document.querySelector("#stageMenu")||document.body;
+ let b=document.createElement("button");b.id="cloudModeBtn";b.textContent="☁ 雲登り";b.style.cssText="margin:6px;padding:10px 16px;border-radius:12px;font-weight:700";
+ b.onclick=()=>{if(!playerClass){msg("先に勇者かモンクを選んでください");return}if(playerClass==="mage"){msg("魔法使いは雲登り不可！");return}host.style.display="none";startCloudClimb()};
+ host.appendChild(b);
+});
