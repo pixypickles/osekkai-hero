@@ -17,13 +17,16 @@ const cloudKinds=[
 ];
 function makeCloud(x,y,start=false,neutral=false){
  if(start)return {x,y,w:2,vy:0,fill:"rgba(245,250,255,.94)",shade:"rgba(185,220,245,.55)",start:true,neutral:true};
- if(neutral)return {x,y,w:2,vy:.00100*(.82+Math.random()*.36),fill:"rgba(245,250,255,.88)",shade:"rgba(190,220,240,.48)",neutral:true};
+ if(neutral)return {x,y,w:2,vy:.00100*(.82+Math.random()*.36),vx:0,fill:"rgba(245,250,255,.88)",shade:"rgba(190,220,240,.48)",neutral:true};
  let k=cloudKinds[Math.floor(Math.random()*cloudKinds.length)];
- return {x,y,w:2,vy:.00100*(.72+Math.random()*.56),fill:k.fill,shade:k.shade,kind:k.name};
+ let roll=Math.random(),vx=0,vy=.00100*(.72+Math.random()*.56),motion="down";
+ if(roll<.20){vx=(Math.random()<.5?-1:1)*(.00045+Math.random()*.00035);motion="side"}
+ else if(roll<.225){vy=-(.00030+Math.random()*.00022);vx=(Math.random()-.5)*.00018;motion="up"}
+ return {x,y,w:2,vy,vx,fill:k.fill,shade:k.shade,kind:k.name,motion};
 }
 function startCloudClimb(){
  if(playerClass==="mage"){msg("魔法使いは雲登りに参加できない！");return}
- cloudMode=true;bossMode=false;cleared=false;gameOver=false;cloudY=0;cloudCam=0;cloudPlatforms=[];cloudCannons=[];cloudShots=[];cloudSpawn=0;cloudGrip=null;
+ cloudMode=true;bossMode=false;cleared=false;gameOver=false;cloudY=0;cloudCam=0;cloudPlatforms=[];cloudCannons=[];cloudShots=[];cloudSpawn=0;cloudGrip=null;cloudGoalReady=false;
  let em=document.querySelector("#message");if(em)em.textContent="";
  board=Array.from({length:H},()=>Array(W).fill(null));pairs=[];enemies=[];
  hero.x=W*.5;hero.y=H-1.4;hero.vx=hero.vy=0;hero.onGround=true;
@@ -125,9 +128,9 @@ function updateCloudMode(dt){
  }
  cloudCam=0; cloudSpawn+=dt;
  // The two-wide cloud slimes visibly descend. The player must climb faster than they fall.
- for(const c of cloudPlatforms)c.y-=c.vy*dt;
+ for(const c of cloudPlatforms){c.y-=c.vy*dt;if(c.vx){c.x+=c.vx*dt;if(c.x>W+.2)c.x=-c.w+.2;else if(c.x+c.w<-.2)c.x=W-.2}}
  resolveCloudPairs();
- if(cloudSpawn>1050){
+ if(cloudSpawn>1050&&!cloudGoalReady){
   cloudSpawn=0;
   let visible=cloudPlatforms.filter(c=>!c.start);
   let prev=visible.sort((a,b)=>b.y-a.y)[0];
@@ -148,14 +151,23 @@ function updateCloudMode(dt){
  }
  for(const s of cloudShots){s.x+=s.dx*.00225*dt;s.y+=s.dy*.00225*dt;s.t-=dt;if(Math.hypot(s.x-hero.x,s.y-hero.y)<.42){s.t=0;knockHero(s.dx>=0?1:-1);msg("魔王砲に撃たれた！")}}
  cloudShots=cloudShots.filter(s=>s.t>0&&s.x>-1&&s.x<W+1&&s.y>-1&&s.y<H+1);
- cloudPlatforms=cloudPlatforms.filter(c=>c.y>-.8);
- if(cloudY>=cloudGoal){
-  cloudMode=false;cleared=true;msg("雲スライムの滝を登り切った！");
-  let menu=document.querySelector("#stageMenu");if(menu)menu.style.display="none";
-  let old=document.getElementById("cloudClearPanel");if(old)old.remove();
-  let panel=document.createElement("div");panel.id="cloudClearPanel";panel.style.cssText="position:fixed;inset:0;z-index:80;background:rgba(5,18,35,.72);display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;font-weight:900;font-size:28px;gap:20px";
-  panel.innerHTML='<div>☁ 雲登り CLEAR！</div><button type="button" style="font-size:20px;padding:14px 28px;border-radius:14px;font-weight:900">タイトルへ戻る</button>';
-  panel.querySelector("button").onclick=()=>location.reload();document.body.appendChild(panel);
+ cloudPlatforms=cloudPlatforms.filter(c=>c.goal||c.y>-.8);
+ if(cloudY>=cloudGoal&&!cloudGoalReady){
+  cloudGoalReady=true;
+  cloudPlatforms.push({x:W*.5-2.5,y:H-4,w:5,vy:0,vx:0,fill:"rgba(250,253,255,.98)",shade:"rgba(175,215,240,.72)",neutral:true,goal:true});
+  msg("ゴールが見えた！ GOAL雲へ着地！");
+ }
+ let goal=cloudPlatforms.find(c=>c.goal);
+ if(goal){
+  let gsy=H-goal.y-1;
+  if(hero.onGround&&hero.x>goal.x-.15&&hero.x<goal.x+goal.w+.15&&Math.abs((hero.y+.20)-gsy)<.38){
+   cloudMode=false;cleared=true;msg("雲登り CLEAR！");
+   let menu=document.querySelector("#stageMenu");if(menu)menu.style.display="none";
+   let old=document.getElementById("cloudClearPanel");if(old)old.remove();
+   let panel=document.createElement("div");panel.id="cloudClearPanel";panel.style.cssText="position:fixed;inset:0;z-index:80;background:rgba(5,18,35,.72);display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;font-weight:900;font-size:28px;gap:20px";
+   panel.innerHTML='<div>☁ 雲登り CLEAR！</div><button type="button" style="font-size:20px;padding:14px 28px;border-radius:14px;font-weight:900">タイトルへ戻る</button>';
+   panel.querySelector("button").onclick=()=>location.reload();document.body.appendChild(panel);
+  }
  }
  if(hero.y>H+.35){
   cloudY=Math.max(0,cloudY-28);
@@ -1145,7 +1157,10 @@ function drawCloudClimb(){
  for(const c of cloudPlatforms){let sy=H-c.y-1;if(sy<-1||sy>H+1)continue;ctx.fillStyle=c.fill||"rgba(245,250,255,.92)";ctx.beginPath();ctx.roundRect(c.x,sy,c.w,.42,.22);ctx.fill();ctx.fillStyle=c.shade||"rgba(185,220,245,.55)";ctx.beginPath();ctx.ellipse(c.x+.5,sy+.08,.49,.3,0,0,Math.PI*2);ctx.ellipse(c.x+1.5,sy+.08,.49,.3,0,0,Math.PI*2);ctx.fill();
  // Two cloud slimes joined side-by-side: each slime has two eyes.
  ctx.fillStyle="#315170";for(const ex of [c.x+.34,c.x+.62,c.x+1.34,c.x+1.62]){ctx.beginPath();ctx.arc(ex,sy+.12,.042,0,Math.PI*2);ctx.fill()}
- ctx.strokeStyle="rgba(70,100,125,.65)";ctx.lineWidth=.022;for(const mx of [c.x+.5,c.x+1.5]){ctx.beginPath();ctx.arc(mx,sy+.19,.105,.15,2.8);ctx.stroke()}}
+ ctx.strokeStyle="rgba(70,100,125,.65)";ctx.lineWidth=.022;for(const mx of [c.x+.5,c.x+1.5]){ctx.beginPath();ctx.arc(mx,sy+.19,.105,.15,2.8);ctx.stroke()}
+if(c.goal){ctx.fillStyle="#8b5a2b";ctx.fillRect(c.x+c.w/2-.06,sy-.92,.12,.78);ctx.fillStyle="#fff4c8";ctx.strokeStyle="#8b5a2b";ctx.lineWidth=.05;ctx.fillRect(c.x+c.w/2-.72,sy-1.28,1.44,.48);ctx.strokeRect(c.x+c.w/2-.72,sy-1.28,1.44,.48);ctx.fillStyle="#7a351d";ctx.font="bold .25px sans-serif";ctx.textAlign="center";ctx.fillText("GOAL",c.x+c.w/2,sy-.96)}
+else if(c.motion==="side"){ctx.fillStyle="rgba(50,80,110,.5)";ctx.font="bold .18px sans-serif";ctx.textAlign="center";ctx.fillText(c.vx>0?"→":"←",c.x+1,sy+.36)}
+else if(c.motion==="up"){ctx.fillStyle="rgba(50,80,110,.5)";ctx.font="bold .18px sans-serif";ctx.textAlign="center";ctx.fillText("↑",c.x+1,sy+.36)}}
  for(const k of cloudCannons){let sy=H-k.y-1;if(sy<-1||sy>H+1)continue;ctx.fillStyle="#33283f";ctx.fillRect(k.x-.22,sy-.18,.44,.36);ctx.strokeStyle="#9a6bca";ctx.lineWidth=.12;ctx.beginPath();ctx.moveTo(k.x,sy);ctx.lineTo(k.x+(k.x<W/2?.48:-.48),sy);ctx.stroke()}
  for(const s of cloudShots){ctx.fillStyle="#b04cff";ctx.beginPath();ctx.arc(s.x,s.y,.16,0,Math.PI*2);ctx.fill();ctx.strokeStyle="rgba(235,160,255,.65)";ctx.lineWidth=.06;ctx.beginPath();ctx.arc(s.x,s.y,.25,0,Math.PI*2);ctx.stroke()}
  ctx.fillStyle="rgba(20,30,55,.75)";ctx.font=".34px sans-serif";ctx.fillText("☁ "+Math.floor(cloudY)+" / "+cloudGoal, .25,.55);
