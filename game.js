@@ -8,15 +8,15 @@ let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain
 let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossLeftT=0,bossFireT=1200,bossFireballs=[]; let bossOnlyRun=false;
 let enemies=[],enemySpawnT=0,demonSwordT=0,demonSwordFx=0,demonPhase=0,bossX=W-.62;
 let gameMode="campaign",modeElapsed=0,bossChargeShotT=0;
-let cloudMode=false,cloudY=0,cloudGoal=78,cloudPlatforms=[],cloudCannons=[],cloudShots=[],cloudSpawn=0,cloudCam=0;
+let cloudMode=false,cloudY=0,cloudGoal=78,cloudPlatforms=[],cloudCannons=[],cloudShots=[],cloudSpawn=0,cloudCam=0,cloudGrip=null;
 function startCloudClimb(){
  if(playerClass==="mage"){msg("魔法使いは雲登りに参加できない！");return}
- cloudMode=true;bossMode=false;cleared=false;gameOver=false;cloudY=0;cloudCam=0;cloudPlatforms=[];cloudCannons=[];cloudShots=[];cloudSpawn=0;
+ cloudMode=true;bossMode=false;cleared=false;gameOver=false;cloudY=0;cloudCam=0;cloudPlatforms=[];cloudCannons=[];cloudShots=[];cloudSpawn=0;cloudGrip=null;
  let em=document.querySelector("#message");if(em)em.textContent="";
  board=Array.from({length:H},()=>Array(W).fill(null));pairs=[];enemies=[];
  hero.x=W*.5;hero.y=H-1.4;hero.vx=hero.vy=0;hero.onGround=true;
  cloudPlatforms.push({x:W*.5-1,y:0,w:2,vy:.00010});
- for(let i=1;i<14;i++)spawnCloud(i*3.2);
+ for(let i=1;i<18;i++)spawnCloud(i*2.35);
  hero.x=W*.5;hero.y=H-1.20;hero.onGround=true;
  msg("雲を乗り継いで頂上を目指せ！");
 }
@@ -27,28 +27,53 @@ function spawnCloud(worldY){
 }
 function updateCloudHero(dt){
  if(hero.stun>0){hero.stun=Math.max(0,hero.stun-dt)}
+ if(cloudGrip){
+   let c=cloudGrip;
+   if(!cloudPlatforms.includes(c)){cloudGrip=null}else{
+     let sy=H-(c.y-cloudCam)-1;
+     hero.x=Math.max(c.x+.18,Math.min(c.x+c.w-.18,hero.x));
+     hero.y=sy+.55;hero.vx=0;hero.vy=0;hero.onGround=false;
+     // While hanging, left/right lets the player shimmy along the cloud.
+     let sx=(keys.right?1:0)-(keys.left?1:0);hero.x=Math.max(c.x+.18,Math.min(c.x+c.w-.18,hero.x+sx*.0022*dt));
+     return;
+   }
+ }
  let ax=(keys.right?1:0)-(keys.left?1:0);
  if(ax)hero.face=ax<0?-1:1;
- hero.vx=ax*.0042;
+ hero.vx=ax*.0036;
  hero.x=Math.max(.3,Math.min(W-.3,hero.x+hero.vx*dt));
  let oldY=hero.y;
- hero.vy+=.000027*dt;
+ // Dedicated, stable cloud-mode gravity. Clamp vertical speed so double jump cannot become a rocket.
+ hero.vy=Math.max(-.0092,Math.min(.0072,hero.vy+.000020*dt));
  let nextY=hero.y+hero.vy*dt;
  hero.onGround=false;
- // One-way landing on the slowly descending two-wide clouds.
  if(hero.vy>=0){
   let best=null;
   for(const c of cloudPlatforms){
    let sy=H-(c.y-cloudCam)-1;
-   if(hero.x>c.x-.18&&hero.x<c.x+c.w+.18&&oldY<=sy-.12&&nextY>=sy-.28){
+   if(hero.x>c.x-.18&&hero.x<c.x+c.w+.18&&oldY<=sy-.10&&nextY>=sy-.30){
     if(best==null||sy<best)best=sy;
    }
   }
-  if(best!=null){nextY=best-.20;hero.vy=0;hero.onGround=true;if(playerClass==="monk")hero.jumps=0}
+  if(best!=null){nextY=best-.20;hero.vy=0;hero.onGround=true;hero.jumps=0}
  }
  hero.y=nextY;
  if(keys.attack)hero.charge=Math.min(100,hero.charge+dt*.09);
 }
+function cloudGrab(){
+ if(!cloudMode)return false;
+ if(cloudGrip){cloudGrip=null;hero.vy=.001;msg("雲から手を離した！");return true}
+ let best=null,bd=1.15;
+ for(const c of cloudPlatforms){
+   let sy=H-(c.y-cloudCam)-1;
+   // Grab the underside/edge of a cloud that is just above or beside the character.
+   let cx=Math.max(c.x,Math.min(c.x+c.w,hero.x)),d=Math.hypot(cx-hero.x,(sy+.28)-hero.y);
+   if(d<bd){best=c;bd=d}
+ }
+ if(best){cloudGrip=best;hero.vx=hero.vy=0;msg("雲につかまった！");return true}
+ msg("つかめる雲がない");return true;
+}
+
 function updateCloudMode(dt){
  cloudY=Math.max(cloudY,(H-1.4)-hero.y+cloudCam);
  cloudCam=Math.max(cloudCam,cloudY-(H*.56));
@@ -401,6 +426,16 @@ function mageGustPush(){
  }
 }
 function jump(){
+ if(cloudMode){
+   if(cloudGrip){cloudGrip=null;hero.vy=-.0068;hero.onGround=false;if(playerClass==="monk")hero.jumps=1;return}
+   if(playerClass==="monk"){
+     if(hero.onGround){hero.vy=-.0068;hero.jumps=1;hero.onGround=false;return}
+     if(hero.jumps===1){hero.vy=-.0058;hero.jumps=2;return}
+     return;
+   }
+   if(hero.onGround){hero.vy=-.0072;hero.onGround=false}
+   return;
+ }
  if(playerClass==="hero"&&hero.grab){releaseHeroGrab();hero.vy=-.0128;hero.onGround=false;return}
  if(playerClass==="mage"){mageGustPush();return}
  if(playerClass==="monk"){
@@ -619,6 +654,7 @@ function attack(){
  for(let r=.55;r<=reach;r+=.45){let tx=Math.floor(hx+dx*r),ty=Math.floor(hy+dy*r);if(tx>=0&&tx<W&&ty>=0&&ty<H&&board[ty][tx]){let hc=board[ty][tx].color;board[ty][tx].hp-=power;hitEffect(tx+.5,ty+.5);slimeHurtEffect(tx+.5,ty+.5,hc);if(board[ty][tx].hp<=0){board[ty][tx]=null;score+=5;gravity();resolve()}return}}
 }
 function grab(){
+ if(cloudMode){cloudGrab();return}
  hero.guard=false;hero.grabT=220;hero.grabHold=0;hero.grabColorTick=0;
  if(playerClass==="mage"){
   hero.grabT=180;let dir=hero.face;effects.push({x:hero.x,y:hero.y,t:420,max:420,type:"wind",color:"#c8f2ff",dx:dir,dy:0});
