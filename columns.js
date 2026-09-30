@@ -14,7 +14,12 @@ function render(){
  for(let y=0;y<R;y++)for(let x=0;x<C;x++){let d=cells[y*C+x],c=board?.[y]?.[x];d.innerHTML=c?gemHTML(c):""}
  if(piece)for(let i=0;i<3;i++){let y=piece.y+i;if(y>=0&&y<R){cells[y*C+piece.x].innerHTML=gemHTML(piece.g[i],true)}}
 }
-function spawn(){piece={x:2,y:0,g:[rnd(),rnd(),rnd()]};if(board[0][2]||board[1][2]||board[2][2]){piece=null;gameOver()}render()}
+function spawn(){
+ let preferred=[2,3,1,4,0,5],sx=-1;
+ for(const x of preferred){let open=true;for(let y=0;y<3;y++)if(board[y][x]){open=false;break}if(open){sx=x;break}}
+ if(sx<0){piece=null;render();gameOver();return}
+ piece={x:sx,y:0,g:[rnd(),rnd(),rnd()]};render()
+}
 function can(x,y){if(x<0||x>=C||y<0||y+2>=R)return false;for(let i=0;i<3;i++)if(board[y+i][x])return false;return true}
 function move(dx){if(running&&!resolving&&piece&&can(piece.x+dx,piece.y)){piece.x+=dx;render()}}
 function rotate(){if(!running){reset();return}if(resolving||!piece)return;piece.g.unshift(piece.g.pop());render()}
@@ -32,7 +37,10 @@ function resolve(n){resolving=true;let m=matches();if(!m.length){chain=n-1;resol
  chain=n;score+=m.length*10*n;sync();m.forEach(([x,y])=>cells[y*C+x].classList.add("pop"));
  setTimeout(()=>{m.forEach(([x,y])=>{board[y][x]=null;cells[y*C+x].classList.remove("pop")});gravity();render();setTimeout(()=>resolve(n+1),140)},220)
 }
-function gameOver(){running=false;clearInterval(timer);el.classList.add("gameOver");let o=document.createElement("div");o.className="columnsOver";o.innerHTML="<b>GAME OVER</b><small>↻ 並替で再挑戦</small>";el.appendChild(o)}
+function gameOver(){
+ if(!running)return;running=false;clearInterval(timer);el.classList.add("gameOver");el.querySelector(".columnsOver")?.remove();
+ let o=document.createElement("div");o.className="columnsOver";o.innerHTML="<b>GAME OVER</b><small>上3段に3個組を置ける列がありません<br>↻ 並替で再挑戦</small>";el.appendChild(o)
+}
 function reset(){clearInterval(timer);el.classList.remove("gameOver");el.querySelector(".columnsOver")?.remove();board=Array.from({length:R},()=>Array(C).fill(null));score=chain=0;running=true;resolving=false;sync();spawn();timer=setInterval(step,650)}
 window.startColumns=reset;
 document.querySelectorAll("[data-col]").forEach(b=>b.addEventListener("pointerdown",e=>{e.preventDefault();let a=b.dataset.col;if(a==="left")move(-1);else if(a==="right")move(1);else if(a==="rotate")rotate();else hardDrop()}));
