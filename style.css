@@ -57,3 +57,19 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 #classSelect .startBtn{padding:9px;margin:5px 0;font-size:16px}
 #classSelect .panel>.classBtn:not(.jobRow .classBtn){margin:6px 0;padding:9px;font-size:15px;border-radius:11px}
 #classSelect .panel>.classBtn small{margin-top:2px;font-size:9px}
+
+/* v95 top-level Slime / Jewel split */
+.familySelect .panel{width:min(430px,92vw);padding:18px}
+.familyLead{text-align:center;opacity:.85;margin:4px 0 14px}
+.familyGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.familyBtn{min-height:150px;border-radius:18px;border:2px solid #8fb9df;background:#233c5b;color:white;padding:16px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.familyBtn b{font-size:18px}.familyBtn small{font-size:11px;line-height:1.45}
+.jewelFamily{background:linear-gradient(160deg,#25375f,#50336b)}
+#columnsScreen{position:fixed;inset:0;z-index:120;background:#11192d;color:white;flex-direction:column;align-items:center;overflow:auto;touch-action:none}
+.columnsTop{width:min(360px,100vw);height:52px;display:flex;align-items:center;gap:10px;padding:6px 8px;box-sizing:border-box;font-size:11px}
+.columnsTop>b{font-size:15px;margin-right:auto}.columnsTop button{padding:5px 7px}
+#columnsCanvas{width:min(360px,100vw);height:auto;max-height:calc(100dvh - 130px);object-fit:contain;background:#17243b}
+.columnsControls{width:min(360px,100vw);display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:8px;box-sizing:border-box}
+.columnsControls button{height:58px;border-radius:15px;font-size:24px;font-weight:900;touch-action:none}
+.columnsControls small{display:block;font-size:9px}
+@media(max-width:350px){.familyGrid{grid-template-columns:1fr}.familyBtn{min-height:105px}}
