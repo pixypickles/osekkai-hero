@@ -82,3 +82,18 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 .colCell.pop .jewel{animation:colPop .22s ease-in forwards}@keyframes colPop{to{transform:rotate(135deg) scale(.05);opacity:0}}
 .columnsOver{position:absolute;inset:0;background:rgba(4,8,18,.75);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;font-size:28px}.columnsOver small{font-size:13px;margin-top:12px}
 #columnsScreen{padding-bottom:6px;box-sizing:border-box}
+
+#columnsScreen{overflow:hidden;height:100dvh;min-height:100dvh;padding:0;justify-content:flex-start}
+.columnsTop{height:44px;min-height:44px;flex:0 0 44px}
+#columnsBoard{width:auto;height:min(calc(100dvh - 124px),calc(92vw * 13 / 6));max-width:92vw;aspect-ratio:6/13;flex:0 1 auto}
+.columnsControls{position:sticky;bottom:0;z-index:20;flex:0 0 72px;height:72px;background:#11192d;padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+.columnsControls button{height:56px;min-height:50px}
+.jewel{transform:none;border-radius:0;width:72%;height:72%;aspect-ratio:auto;box-sizing:border-box}
+.jewel.ruby{clip-path:polygon(50% 0,88% 25%,78% 82%,50% 100%,22% 82%,12% 25%);border-radius:8%}
+.jewel.diamond{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);border-radius:3%}
+.jewel.round{clip-path:none;border-radius:50%;width:70%;height:70%}
+.jewel.emerald{clip-path:polygon(22% 0,78% 0,100% 22%,100% 78%,78% 100%,22% 100%,0 78%,0 22%);border-radius:5%}
+.jewel.hex{clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%);border-radius:4%}
+.jewel.drop{clip-path:none;border-radius:55% 55% 55% 12%;transform:rotate(45deg);width:62%;height:62%}
+.activeJewel{width:80%;height:80%}.activeJewel.round{width:77%;height:77%}.activeJewel.drop{width:69%;height:69%}
+@media(max-height:650px){.columnsTop{height:38px;min-height:38px;flex-basis:38px}#columnsBoard{height:calc(100dvh - 104px)}.columnsControls{height:66px;flex-basis:66px;padding-top:4px}.columnsControls button{height:50px}}

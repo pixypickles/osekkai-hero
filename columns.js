@@ -1,6 +1,8 @@
 (()=>{
 const el=document.getElementById("columnsBoard"); if(!el)return;
 const C=6,R=13,colors=["#ef5c66","#55b9ff","#ffd85b","#69d783","#b46df0","#ff9b4b"];
+const gemShapes={"#ef5c66":"ruby","#55b9ff":"diamond","#ffd85b":"round","#69d783":"emerald","#b46df0":"hex","#ff9b4b":"drop"};
+function gemHTML(c,active=false){return '<i class="jewel '+gemShapes[c]+(active?' activeJewel':'')+'" style="--jc:'+c+'"></i>'}
 let board,piece,score=0,chain=0,running=false,resolving=false,timer=null;
 const scoreEl=document.getElementById("columnsScore"),chainEl=document.getElementById("columnsChain");
 const cells=[];
@@ -9,8 +11,8 @@ for(let y=0;y<R;y++)for(let x=0;x<C;x++){let d=document.createElement("div");d.c
 function rnd(){return colors[Math.floor(Math.random()*colors.length)]}
 function sync(){scoreEl.textContent=score;chainEl.textContent=chain}
 function render(){
- for(let y=0;y<R;y++)for(let x=0;x<C;x++){let d=cells[y*C+x],c=board?.[y]?.[x];d.innerHTML=c?'<i class="jewel" style="--jc:'+c+'"></i>':""}
- if(piece)for(let i=0;i<3;i++){let y=piece.y+i;if(y>=0&&y<R){cells[y*C+piece.x].innerHTML='<i class="jewel activeJewel" style="--jc:'+piece.g[i]+'"></i>'}}
+ for(let y=0;y<R;y++)for(let x=0;x<C;x++){let d=cells[y*C+x],c=board?.[y]?.[x];d.innerHTML=c?gemHTML(c):""}
+ if(piece)for(let i=0;i<3;i++){let y=piece.y+i;if(y>=0&&y<R){cells[y*C+piece.x].innerHTML=gemHTML(piece.g[i],true)}}
 }
 function spawn(){piece={x:2,y:0,g:[rnd(),rnd(),rnd()]};if(board[0][2]||board[1][2]||board[2][2]){piece=null;gameOver()}render()}
 function can(x,y){if(x<0||x>=C||y<0||y+2>=R)return false;for(let i=0;i<3;i++)if(board[y+i][x])return false;return true}
