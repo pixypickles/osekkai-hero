@@ -305,3 +305,34 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
  box-sizing:border-box!important;
  box-shadow:inset 5px 5px 0 rgba(255,255,255,.30),inset -4px -4px 0 rgba(0,0,0,.16)!important;
 }
+
+/* v139 healer palette: distinct from the blue Jewel Mage */
+.whHat{color:#f0c84d!important;text-shadow:0 5px 0 #4c6125!important}
+.whBody{background:#4f7b35!important;border-color:#263d1b!important}
+.whBody:after{color:#fff4b0!important}
+.whCape{background:#171a18!important}
+.whFace{border:1px solid #6f5725!important}
+.whStaff{background:#4b3522!important}
+.whStaffGem{color:#ffe46a!important}
+
+/* v139: TWO cells form ONE Dr.-Mario-style capsule.
+   The connected side is square/flush; only the two outer ends are rounded. */
+.vPiece.capsule{
+ width:100%!important;height:72%!important;margin:0!important;
+ border-radius:999px!important;border:2px solid rgba(255,255,255,.58)!important;
+ position:relative!important;z-index:2!important
+}
+.vPiece.capsule.joinR{border-radius:999px 0 0 999px!important;border-right:0!important}
+.vPiece.capsule.joinL{border-radius:0 999px 999px 0!important;border-left:0!important}
+.vPiece.capsule.joinD{
+ width:72%!important;height:100%!important;border-radius:999px 999px 0 0!important;border-bottom:0!important
+}
+.vPiece.capsule.joinU{
+ width:72%!important;height:100%!important;border-radius:0 0 999px 999px!important;border-top:0!important
+}
+/* subtle seam at the color boundary */
+.vPiece.capsule.joinR:after,.vPiece.capsule.joinD:after{
+ content:"";position:absolute;background:rgba(255,255,255,.42);z-index:4
+}
+.vPiece.capsule.joinR:after{right:-1px;top:10%;width:2px;height:80%}
+.vPiece.capsule.joinD:after{left:10%;bottom:-1px;width:80%;height:2px}
