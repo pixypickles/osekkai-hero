@@ -169,6 +169,5 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 .normalControls:after{content:"";position:absolute;left:0;right:0;bottom:-28px;height:28px;background:#11192d;pointer-events:auto}
 .normalControls button{height:54px;touch-action:none}
 
-/* v114: Slime meddling mode class select = Hero + Monk only */
+/* v115: Hero + Monk only */
 #classSelect .classGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-#classSelect .jobs,#classSelect .jobGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
