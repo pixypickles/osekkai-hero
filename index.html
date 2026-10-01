@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>転生したら落ちゲーの中でした。Prototype v102</title><link rel="stylesheet" href="style.css?v=102">
+<title>転生したら落ちゲーの中でした。Prototype v104</title><link rel="stylesheet" href="style.css?v=104">
 <script>
 window.pendingClass=null;
 window.CLASS_HELP_SAFE={
@@ -54,6 +54,8 @@ window.startSelectedJob=function(){
 <button type="button" class="familyBtn slimeFamily" onclick="chooseGameFamily('slime')"><b>🟢 スライムモード</b><small>おせっかい勇者／連鎖・雲登り・ボス戦</small></button>
 <button type="button" class="familyBtn jewelFamily" onclick="chooseGameFamily('jewel')"><b>💎 宝石モード</b><small>3個1組の宝石を揃えるコラムス</small></button>
 </div></div></div>
+<div id="slimeModeSelect" class="overlay slimeModeSelect" style="display:none"><div class="panel"><h2>🟢 スライムモード</h2><p class="familyLead">遊び方を選んでください</p><div class="slimeModeGrid"><button type="button" class="familyBtn" onclick="chooseSlimeMode('hero')"><b>⚔️ おせっかい勇者</b><small>勇者・モンク・魔法使いで連鎖を手助け</small></button><button type="button" class="familyBtn normalFamily" onclick="chooseSlimeMode('normal')"><b>🔵 ノーマルモード</b><small>キャラなし・普通の2個組スライム</small></button></div><button type="button" class="backFamilyBtn" onclick="backToFamily()">← 戻る</button></div></div>
+<div id="normalPuyoScreen" style="display:none"><div class="normalTop"><b>🔵 ノーマルぷよ</b><span>SCORE <strong id="normalScore">0</strong></span><span>CHAIN <strong id="normalChain">0</strong></span><button onclick="normalToTitle()">タイトル</button></div><div id="normalPuyoBoard"></div><div class="normalControls"><button data-np="left">◀</button><button data-np="rotate">↻<small>回転</small></button><button data-np="right">▶</button><button data-np="down">▼<small>落下</small></button></div></div>
 <div id="columnsScreen" style="display:none">
  <div class="columnsTop"><b>💎 宝石コラムス</b><span>SCORE <strong id="columnsScore">0</strong></span><span>CHAIN <strong id="columnsChain">0</strong></span><button type="button" onclick="columnsToTitle()">タイトル</button></div>
  <div id="columnsBoard" aria-label="宝石コラムス盤面"></div>
@@ -62,13 +64,16 @@ window.startSelectedJob=function(){
 <script>
 window.chooseGameFamily=function(mode){
  document.getElementById("gameFamilySelect").style.display="none";
- if(mode==="slime"){document.getElementById("classSelect").style.display="flex"}
- else {
- document.querySelector("main").style.display="none";
- document.getElementById("columnsScreen").style.display="flex";
- requestAnimationFrame(function(){window.startColumns()});
-}
+ if(mode==="slime")document.getElementById("slimeModeSelect").style.display="flex";
+ else{document.querySelector("main").style.display="none";document.getElementById("columnsScreen").style.display="flex";requestAnimationFrame(function(){window.startColumns()})}
 };
+window.chooseSlimeMode=function(mode){
+ document.getElementById("slimeModeSelect").style.display="none";
+ if(mode==="hero")document.getElementById("classSelect").style.display="flex";
+ else{document.querySelector("main").style.display="none";document.getElementById("normalPuyoScreen").style.display="flex";requestAnimationFrame(function(){window.startNormalPuyo()})}
+};
+window.backToFamily=function(){document.getElementById("slimeModeSelect").style.display="none";document.getElementById("gameFamilySelect").style.display="flex"};
+window.normalToTitle=function(){location.reload()};
 window.columnsToTitle=function(){location.reload()};
 </script>
 <button type="button" onclick="openGameSettings()" style="position:fixed;right:10px;top:72px;z-index:70">⚙ 設定</button>
@@ -96,7 +101,7 @@ window.columnsToTitle=function(){location.reload()};
 <button id="continueBtn" class="startBtn" style="display:none">コンティニュー</button>
 <button id="titleBtn" class="classBtn">タイトルへ戻る</button>
 </div></div><main>
-<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v102</small></div>
+<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v104</small></div>
 <div class="hud"><span>STAGE <b id="stageText">1</b></span><span>連鎖P <b id="chainPoints">0</b>/<b id="goalPoints">12</b></span><span>SCORE <b id="score">0</b></span><span>必殺 <b id="specialText">0%</b></span><span id="bossHud" style="display:none">BOSS <b id="bossHpText">30</b></span><span id="bossHpGauge" style="display:inline-block;width:110px;height:9px;background:#2a2638;border-radius:8px;overflow:hidden;vertical-align:middle;margin-left:4px"><span id="bossHpBar" style="display:block;width:100%;height:100%;background:#e76565"></span></span><span id="modeText"></span><span id="modeTime"></span><button id="modeExitBtn" style="display:none">離脱</button></div>
 <div class="gauge"><div id="specialBar"></div></div>
 <canvas id="game" width="360" height="630"></canvas><div id="message"></div>
@@ -105,7 +110,10 @@ window.columnsToTitle=function(){location.reload()};
  <div class="actions"><button data-key="grab">掴</button><button data-key="jump">跳</button><button data-key="attack">剣</button><button data-key="kick" class="kick">蹴</button></div>
 </div>
 <p id="className">職業: -</p><p class="help">方向キー＋攻撃 / 跳 / 攻撃長押し=チャージ必殺 / 魔法使い: 剣=炎・蹴=氷・掴=風・跳=浮遊</p>
-<script src="game.js?v=102"></script></main><script>
+<script src="game.js?v=104"></script></main><script>
+(()=>{const el=document.getElementById("normalPuyoBoard");if(!el)return;const C=6,R=12,cs=["#ef5c66","#55b9ff","#ffd85b","#69d783","#b46df0"];let b,p,score,chain,run,busy,timer;const cells=[],se=document.getElementById("normalScore"),ce=document.getElementById("normalChain");for(let i=0;i<C*R;i++){let d=document.createElement("div");d.className="npCell";el.appendChild(d);cells.push(d)}const rnd=()=>cs[Math.floor(Math.random()*cs.length)];function parts(q){let dx=[0,1,0,-1][q.r],dy=[-1,0,1,0][q.r];return[{x:q.x,y:q.y,c:q.a},{x:q.x+dx,y:q.y+dy,c:q.z}]}function valid(q){return parts(q).every(v=>v.x>=0&&v.x<C&&v.y<R&&(v.y<0||!b[v.y][v.x]))}function render(){for(let y=0;y<R;y++)for(let x=0;x<C;x++)cells[y*C+x].innerHTML=b[y][x]?'<i class="npPuyo" style="--pc:'+b[y][x]+'"></i>':"";if(p)parts(p).forEach(v=>{if(v.y>=0)cells[v.y*C+v.x].innerHTML='<i class="npPuyo" style="--pc:'+v.c+'"></i>'})}function spawn(){p={x:2,y:1,r:0,a:rnd(),z:rnd()};if(!valid(p)){run=false;clearInterval(timer);return}render()}function gravity(){for(let x=0;x<C;x++){let a=[];for(let y=R-1;y>=0;y--)if(b[y][x])a.push(b[y][x]);for(let y=R-1,i=0;y>=0;y--)b[y][x]=i<a.length?a[i++]:null}}function groups(){let seen=new Set(),out=[];for(let y=0;y<R;y++)for(let x=0;x<C;x++){let c=b[y][x],k=x+","+y;if(!c||seen.has(k))continue;let q=[[x,y]],g=[];seen.add(k);while(q.length){let [xx,yy]=q.pop();g.push([xx,yy]);for(const[d,e]of[[1,0],[-1,0],[0,1],[0,-1]]){let nx=xx+d,ny=yy+e,nk=nx+","+ny;if(nx>=0&&nx<C&&ny>=0&&ny<R&&!seen.has(nk)&&b[ny][nx]===c){seen.add(nk);q.push([nx,ny])}}}if(g.length>=4)out.push(g)}return out}function resolve(n){busy=true;let gs=groups();if(!gs.length){chain=n-1;ce.textContent=chain;busy=false;spawn();return}chain=n;score+=gs.flat().length*10*n;se.textContent=score;ce.textContent=chain;setTimeout(()=>{gs.flat().forEach(([x,y])=>b[y][x]=null);gravity();render();setTimeout(()=>resolve(n+1),150)},220)}function lock(){parts(p).forEach(v=>b[v.y][v.x]=v.c);p=null;gravity();render();resolve(1)}function step(){if(!run||busy||!p)return;let q={...p,y:p.y+1};if(valid(q)){p=q;render()}else lock()}function act(a){if(!run||busy||!p)return;if(a==="left"||a==="right"){let q={...p,x:p.x+(a==="left"?-1:1)};if(valid(q))p=q}else if(a==="rotate"){for(const k of[0,-1,1]){let q={...p,x:p.x+k,r:(p.r+1)%4};if(valid(q)){p=q;break}}}else{let q={...p,y:p.y+1};while(valid(q)){p=q;q={...p,y:p.y+1}}lock();return}render()}window.startNormalPuyo=()=>{clearInterval(timer);b=Array.from({length:R},()=>Array(C).fill(null));score=chain=0;run=true;busy=false;se.textContent=ce.textContent=0;spawn();timer=setInterval(step,650)};document.querySelectorAll("[data-np]").forEach(x=>x.addEventListener("pointerdown",e=>{e.preventDefault();act(x.dataset.np)}))})();
+</script>
+<script>
 (()=>{
 const el=document.getElementById("columnsBoard"); if(!el)return;
 const C=6,R=13,colors=["#ef5c66","#55b9ff","#ffd85b","#69d783","#b46df0","#ff9b4b"];
