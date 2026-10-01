@@ -230,3 +230,6 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 
 /* v126 healer branding */
 .healerVirusFamily b{color:#fff8cf}
+
+/* v127: vertical position must be controlled by JS; old top:auto!important blocked all falling */
+#virusOverlay>#healerSprite{top:0!important;left:0!important}
