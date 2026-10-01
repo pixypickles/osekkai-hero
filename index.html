@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>転生したら落ちゲーの中でした。Prototype v121</title><link rel="stylesheet" href="style.css?v=121">
+<title>転生したら落ちゲーの中でした。Prototype v122</title><link rel="stylesheet" href="style.css?v=122">
 <script>
 window.pendingClass=null;
 window.CLASS_HELP_SAFE={
@@ -149,7 +149,7 @@ window.columnsToTitle=function(){location.reload()};
 <button id="continueBtn" class="startBtn" style="display:none">コンティニュー</button>
 <button id="titleBtn" class="classBtn">タイトルへ戻る</button>
 </div></div><main>
-<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v121</small></div>
+<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v122</small></div>
 <div class="hud"><span>STAGE <b id="stageText">1</b></span><span>連鎖P <b id="chainPoints">0</b>/<b id="goalPoints">12</b></span><span>SCORE <b id="score">0</b></span><span>必殺 <b id="specialText">0%</b></span><span id="bossHud" style="display:none">BOSS <b id="bossHpText">30</b></span><span id="bossHpGauge" style="display:inline-block;width:110px;height:9px;background:#2a2638;border-radius:8px;overflow:hidden;vertical-align:middle;margin-left:4px"><span id="bossHpBar" style="display:block;width:100%;height:100%;background:#e76565"></span></span><span id="modeText"></span><span id="modeTime"></span><button id="modeExitBtn" style="display:none">離脱</button></div>
 <div class="gauge"><div id="specialBar"></div></div>
 <canvas id="game" width="360" height="630"></canvas><div id="message"></div>
@@ -158,7 +158,7 @@ window.columnsToTitle=function(){location.reload()};
  <div class="actions"><button data-key="grab">掴</button><button data-key="jump">跳</button><button data-key="attack">剣</button><button data-key="kick" class="kick">蹴</button></div>
 </div>
 <p id="className">職業: -</p><p class="help">方向キー＋攻撃 / 跳 / 攻撃長押し=チャージ必殺 / 魔法使い: 剣=炎・蹴=氷・掴=風・跳=浮遊</p>
-<script src="game.js?v=121"></script></main><script>
+<script src="game.js?v=122"></script></main><script>
 function showChainFx(host,n){
  let old=host.querySelector(".chainBurst");if(old)old.remove();
  let d=document.createElement("div");d.className="chainBurst";d.textContent=n>1?n+" CHAIN!":"CLEAR!";
@@ -168,29 +168,40 @@ function showChainFx(host,n){
 <script>
 (()=>{
 const el=document.getElementById("virusBoard");if(!el)return;const C=8,R=16,CS=["red","blue","yellow"];
-let b,p,mode,run,busy,timer,cpu,hx,hy,hvy,held,chain,lastDrop;const cells=[],vc=document.getElementById("virusCount"),cc=document.getElementById("virusChain"),healer=document.getElementById("healerSprite");
+let b,p,mode,run,busy,timer,cpu,hx,hy,hvy,held,chain,lastDrop,pairSeq=1;const cells=[],vc=document.getElementById("virusCount"),cc=document.getElementById("virusChain"),healer=document.getElementById("healerSprite");
 const overlay=document.getElementById("virusOverlay");
 for(let i=0;i<C*R;i++){let d=document.createElement("div");d.className="vCell";el.insertBefore(d,overlay);cells.push(d)}
 const rnd=()=>CS[Math.floor(Math.random()*3)];
 function parts(q){let dx=[1,0,-1,0][q.r],dy=[0,1,0,-1][q.r];return[{x:q.x,y:q.y,c:q.a},{x:q.x+dx,y:q.y+dy,c:q.z}]}
 function valid(q){return parts(q).every(v=>v.x>=0&&v.x<C&&v.y<R&&(v.y<0||!b[v.y][v.x]))}
 function ph(o){return '<i class="vPiece '+o.c+(o.virus?' virus':' capsule')+'">'+(o.virus?'<b class="virusFace">ಠ‿ಠ</b>':'')+'</i>'}
-function render(){for(let y=0;y<R;y++)for(let x=0;x<C;x++){let d=cells[y*C+x];d.innerHTML=b[y][x]?ph(b[y][x]):"";d.classList.toggle("healTarget",mode==="healer"&&hy>=1&&x===Math.round(hx)&&y===Math.round(hy))}if(p)parts(p).forEach(q=>{if(q.y>=0)cells[q.y*C+q.x].innerHTML=ph({c:q.c})});let n=b.flat().filter(o=>o&&o.virus).length+(held?1:0);vc.textContent=n;if(mode==="healer"){healer.style.left=((hx+.5)/C*100)+"%";healer.style.top=((hy+.5)/R*100)+"%";healer.classList.toggle("holdingVirus",!!held)}}
+function render(){for(let y=0;y<R;y++)for(let x=0;x<C;x++){let d=cells[y*C+x];d.innerHTML=b[y][x]?ph(b[y][x]):"";d.classList.toggle("healTarget",mode==="healer"&&hy>=1&&x===Math.round(hx)&&y===Math.round(hy))}if(p)parts(p).forEach(q=>{if(q.y>=0)cells[q.y*C+q.x].innerHTML=ph({c:q.c})});let n=b.flat().filter(o=>o&&o.virus).length+(held?1:0);vc.textContent=n;if(mode==="healer"){let rr=el.getBoundingClientRect(),sr=document.getElementById("virusScreen").getBoundingClientRect();healer.style.left=(rr.left-sr.left+(hx+.5)*rr.width/C)+"px";healer.style.top=(rr.top-sr.top+(hy+.5)*rr.height/R)+"px";healer.classList.toggle("holdingVirus",!!held)}}
 function spawn(){p={x:3,y:0,r:0,a:rnd(),z:rnd()};if(!valid(p)){run=false;return}render()}
-function gravity(){/* viruses stay fixed; capsule pieces fall within each segment separated by viruses */for(let x=0;x<C;x++){let bottom=R-1;while(bottom>=0){let top=bottom;while(top>=0&&!(b[top][x]&&b[top][x].virus))top--;let a=[];for(let y=bottom;y>top;y--)if(b[y][x]&&!b[y][x].virus)a.push(b[y][x]);for(let y=bottom,i=0;y>top;y--)b[y][x]=i<a.length?a[i++]:null;bottom=top-1}}}
+function gravity(){
+ let moved=true,guard=0;
+ while(moved&&guard++<R){moved=false;let seen=new Set();
+  for(let y=R-2;y>=0;y--)for(let x=0;x<C;x++){let o=b[y][x];if(!o||o.virus||seen.has(o.pair))continue;
+   let mate=null;if(o.pair)for(let yy=0;yy<R&&!mate;yy++)for(let xx=0;xx<C;xx++)if((xx!==x||yy!==y)&&b[yy][xx]&&b[yy][xx].pair===o.pair){mate={x:xx,y:yy,o:b[yy][xx]};break}
+   seen.add(o.pair);
+   if(mate){if(mate.y===y){if(y+1<R&&!b[y+1][x]&&!b[mate.y+1][mate.x]){b[y+1][x]=o;b[y][x]=null;b[mate.y+1][mate.x]=mate.o;b[mate.y][mate.x]=null;moved=true}}
+    else{let low=mate.y>y?mate:{x,y,o},high=mate.y>y?{x,y,o}:mate;if(low.y+1<R&&!b[low.y+1][low.x]){b[low.y+1][low.x]=low.o;b[low.y][low.x]=high.o;b[high.y][high.x]=null;moved=true}}}
+   else if(y+1<R&&!b[y+1][x]){b[y+1][x]=o;b[y][x]=null;moved=true}
+  }
+ }
+}
 function matches(){let hit=new Set();for(let y=0;y<R;y++)for(let x=0;x<C;x++){let o=b[y][x];if(!o)continue;for(const[dx,dy]of[[1,0],[0,1]]){let a=[];for(let nx=x,ny=y;nx<C&&ny<R&&b[ny][nx]&&b[ny][nx].c===o.c;nx+=dx,ny+=dy)a.push([nx,ny]);if(a.length>=4)a.forEach(q=>hit.add(q.join(",")))}}return[...hit].map(k=>k.split(",").map(Number))}
-function resolve(n=1){let m=matches();if(!m.length){busy=false;chain=n-1;cc.textContent=chain;spawn();return}busy=true;chain=n;cc.textContent=n;m.forEach(([x,y])=>cells[y*C+x].classList.add("clearFx"));showChainFx(el,n);setTimeout(()=>{m.forEach(([x,y])=>b[y][x]=null);gravity();render();setTimeout(()=>resolve(n+1),300)},520)}
-function lock(){parts(p).forEach(q=>b[q.y][q.x]={c:q.c,virus:false});p=null;render();resolve(1)}
+function resolve(n=1){let m=matches();if(!m.length){busy=false;chain=n-1;cc.textContent=chain;spawn();return}busy=true;chain=n;cc.textContent=n;m.forEach(([x,y])=>cells[y*C+x].classList.add("clearFx"));showChainFx(el,n);setTimeout(()=>{let cp=new Set();m.forEach(([x,y])=>{if(b[y][x]&&!b[y][x].virus&&b[y][x].pair)cp.add(b[y][x].pair)});m.forEach(([x,y])=>b[y][x]=null);for(let y=0;y<R;y++)for(let x=0;x<C;x++)if(b[y][x]&&!b[y][x].virus&&cp.has(b[y][x].pair))b[y][x].pair=0;gravity();render();setTimeout(()=>resolve(n+1),300)},520)}
+function lock(){let id=pairSeq++;parts(p).forEach(q=>b[q.y][q.x]={c:q.c,virus:false,pair:id});p=null;render();resolve(1)}
 function step(){if(!run)return;
- if(mode==="healer"){hvy=Math.min(.055,hvy+.003);hy=Math.min(R-1,hy+hvy)}
+ if(mode==="healer"){hvy=Math.min(.045,hvy+.0018);hy=Math.min(R-1,hy+hvy)}
  let now=performance.now(),fallMs=mode==="healer"?650:650;
  if(!busy&&p&&now-lastDrop>=fallMs){lastDrop=now;let q={...p,y:p.y+1};if(valid(q))p=q;else lock()}
  render()}
 function act(a){if(!run||busy||!p)return;if(a==="left"||a==="right"){let q={...p,x:p.x+(a==="left"?-1:1)};if(valid(q))p=q}else if(a==="rotL"||a==="rotR"){let nr=(p.r+(a==="rotR"?1:3))%4;for(const k of[0,-1,1]){let q={...p,x:p.x+k,r:nr};if(valid(q)){p=q;break}}}else{let q={...p,y:p.y+1};while(valid(q)){p=q;q={...p,y:p.y+1}}lock();return}render()}
 function hm(dx,dy){if(mode!=="healer")return;hx=Math.max(0,Math.min(C-1,hx+dx*.55));if(dy<0)hvy=-.24;else if(dy>0)hy=Math.min(R-1,hy+.5);render()}
 function grab(){if(mode!=="healer"||busy)return;let x=Math.round(hx),y=Math.max(0,Math.min(R-1,Math.round(hy))),o=b[y][x];if(held){if(!o){b[y][x]=held;held=null;render()}return}if(!o)return;if(o.virus){held=o;b[y][x]=null;render();return}o.c=CS[(CS.indexOf(o.c)+1)%3];render();if(matches().length)resolve(1)}
-function reset(m){mode=m;clearInterval(timer);clearInterval(cpu);b=Array.from({length:R},()=>Array(C).fill(null));p=null;busy=false;run=true;held=null;chain=0;hx=3;hy=m==="healer"?.25:8;hvy=.045;for(let i=0;i<12;i++){let x,y;do{x=Math.floor(Math.random()*C);y=7+Math.floor(Math.random()*9)}while(b[y][x]);b[y][x]={c:rnd(),virus:true}}document.getElementById("virusTitle").textContent=m==="healer"?"💗 おせっかいヒーラー":"🦠 ウィルス";document.getElementById("virusNormalControls").style.display=m==="normal"?"grid":"none";document.getElementById("healerControls").style.display=m==="healer"?"flex":"none";
- if(m==="healer"&&healer.parentElement!==overlay)overlay.appendChild(healer);
+function reset(m){mode=m;clearInterval(timer);clearInterval(cpu);b=Array.from({length:R},()=>Array(C).fill(null));p=null;busy=false;run=true;held=null;chain=0;hx=3;hy=m==="healer"?-.65:8;hvy=.028;for(let i=0;i<12;i++){let x,y;do{x=Math.floor(Math.random()*C);y=7+Math.floor(Math.random()*9)}while(b[y][x]);b[y][x]={c:rnd(),virus:true}}document.getElementById("virusTitle").textContent=m==="healer"?"💗 おせっかいヒーラー":"🦠 ウィルス";document.getElementById("virusNormalControls").style.display=m==="normal"?"grid":"none";document.getElementById("healerControls").style.display=m==="healer"?"flex":"none";
+ if(m==="healer"&&healer.parentElement!==document.getElementById("virusScreen"))document.getElementById("virusScreen").appendChild(healer);
  healer.style.display=m==="healer"?"block":"none";lastDrop=performance.now();render();spawn();timer=setInterval(step,m==="normal"?80:50);if(m==="healer")cpu=setInterval(()=>{if(!p||busy)return;let r=Math.random();if(r<.25)act("left");else if(r<.5)act("right");else if(r<.65)act("rotR");else if(r>.82)act("down")},430)}
 window.startVirusGame=reset;
 document.querySelectorAll("[data-v]").forEach(x=>x.addEventListener("pointerdown",e=>{e.preventDefault();x.dataset.v==="grab"?grab():act(x.dataset.v)}));
