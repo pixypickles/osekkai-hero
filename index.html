@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>転生したら落ちゲーの中でした。Prototype v133</title><link rel="stylesheet" href="style.css?v=133">
+<title>転生したら落ちゲーの中でした。Prototype v134</title><link rel="stylesheet" href="style.css?v=134">
 <script>
 window.pendingClass=null;
 window.CLASS_HELP_SAFE={
@@ -149,7 +149,7 @@ window.columnsToTitle=function(){location.reload()};
 <button id="continueBtn" class="startBtn" style="display:none">コンティニュー</button>
 <button id="titleBtn" class="classBtn">タイトルへ戻る</button>
 </div></div><main>
-<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v133</small></div>
+<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v134</small></div>
 <div class="hud"><span>STAGE <b id="stageText">1</b></span><span>連鎖P <b id="chainPoints">0</b>/<b id="goalPoints">12</b></span><span>SCORE <b id="score">0</b></span><span>必殺 <b id="specialText">0%</b></span><span id="bossHud" style="display:none">BOSS <b id="bossHpText">30</b></span><span id="bossHpGauge" style="display:inline-block;width:110px;height:9px;background:#2a2638;border-radius:8px;overflow:hidden;vertical-align:middle;margin-left:4px"><span id="bossHpBar" style="display:block;width:100%;height:100%;background:#e76565"></span></span><span id="modeText"></span><span id="modeTime"></span><button id="modeExitBtn" style="display:none">離脱</button></div>
 <div class="gauge"><div id="specialBar"></div></div>
 <canvas id="game" width="360" height="630"></canvas><div id="message"></div>
@@ -158,7 +158,7 @@ window.columnsToTitle=function(){location.reload()};
  <div class="actions"><button data-key="grab">掴</button><button data-key="jump">跳</button><button data-key="attack">剣</button><button data-key="kick" class="kick">蹴</button></div>
 </div>
 <p id="className">職業: -</p><p class="help">方向キー＋攻撃 / 跳 / 攻撃長押し=チャージ必殺 / 魔法使い: 剣=炎・蹴=氷・掴=風・跳=浮遊</p>
-<script src="game.js?v=133"></script></main><script>
+<script src="game.js?v=134"></script></main><script>
 function showChainFx(host,n){
  let old=host.querySelector(".chainBurst");if(old)old.remove();
  let d=document.createElement("div");d.className="chainBurst";d.textContent=n>1?n+" CHAIN!":"CLEAR!";
@@ -168,7 +168,7 @@ function showChainFx(host,n){
 <script>
 (()=>{
 const el=document.getElementById("virusBoard");if(!el)return;const C=8,R=16,CS=["red","blue","yellow"];
-let b,p,mode,run,busy,timer,cpu,hx,hy,hvy,held,chain,lastDrop,pairSeq=1;const cells=[],vc=document.getElementById("virusCount"),cc=document.getElementById("virusChain"),healer=document.getElementById("healerSprite");
+let b,p,mode,run,busy,timer,cpu,hx,hy,hvy,held,chain,lastDrop,pairSeq=1,hface=1;const cells=[],vc=document.getElementById("virusCount"),cc=document.getElementById("virusChain"),healer=document.getElementById("healerSprite");
 const overlay=document.getElementById("virusOverlay");
 for(let i=0;i<C*R;i++){let d=document.createElement("div");d.className="vCell";el.insertBefore(d,overlay);cells.push(d)}
 const rnd=()=>CS[Math.floor(Math.random()*3)];
@@ -212,7 +212,7 @@ function healerBlockedBelow(nextY){
  return foot>=0&&!!b[foot][x];
 }
 function healerPhysics(){
- hvy=Math.min(.22,hvy+.00135);
+ hvy=Math.min(.24,hvy+.0042);
  let ny=hy+hvy;
  if(hvy>=0&&healerBlockedBelow(ny)){
   let x=Math.max(0,Math.min(C-1,Math.round(hx))),foot=Math.floor(ny+0.48);
@@ -222,7 +222,7 @@ function healerPhysics(){
 function healerJump(){if(mode!=="healer")return;hvy=-.045;render()}
 function healerShot(){
  if(mode!=="healer"||busy)return;
- let y=Math.max(0,Math.min(R-1,Math.round(hy))),sx=Math.max(0,Math.min(C-1,Math.round(hx))),dir=1;
+ let y=Math.max(0,Math.min(R-1,Math.round(hy))),sx=Math.max(0,Math.min(C-1,Math.round(hx))),dir=hface;
  let orb=document.createElement("i");orb.className="healerLightShot";overlay.appendChild(orb);
  orb.style.left=((sx+.5)/C*100)+"%";orb.style.top=((y+.5)/R*100)+"%";
  let x=sx,steps=0;
@@ -247,14 +247,51 @@ function step(){if(!run)return;
 function act(a){if(!run||busy||!p)return;if(a==="left"||a==="right"){let q={...p,x:p.x+(a==="left"?-1:1)};if(valid(q))p=q}else if(a==="rotL"||a==="rotR"){let nr=(p.r+(a==="rotR"?1:3))%4;for(const k of[0,-1,1]){let q={...p,x:p.x+k,r:nr};if(valid(q)){p=q;break}}}else{let q={...p,y:p.y+1};while(valid(q)){p=q;q={...p,y:p.y+1}}lock();return}render()}
 function hm(dx,dy){
  if(mode!=="healer")return;
+ if(dx){hface=dx<0?-1:1;healer.classList.toggle("faceLeft",hface<0)}
  hx=Math.max(0,Math.min(C-1,hx+dx*.55));
- if(dy>0){hvy=Math.max(hvy,.006)}
+ if(dy>0){hvy=Math.max(hvy,.012)}
  render()
 }
 function grab(){if(mode!=="healer"||busy)return;let x=Math.round(hx),y=Math.max(0,Math.min(R-1,Math.round(hy))),o=b[y][x];if(held){if(!o){b[y][x]=held;held=null;render()}return}if(!o)return;if(o.virus){held=o;b[y][x]=null;render();return}o.c=CS[(CS.indexOf(o.c)+1)%3];render();if(matches().length)resolve(1)}
-function reset(m){mode=m;clearInterval(timer);clearInterval(cpu);b=Array.from({length:R},()=>Array(C).fill(null));p=null;busy=false;run=true;held=null;chain=0;hx=3;hy=m==="healer"?.55:8;hvy=0;for(let i=0;i<12;i++){let x,y;do{x=Math.floor(Math.random()*C);y=7+Math.floor(Math.random()*9)}while(b[y][x]);b[y][x]={c:rnd(),virus:true}}document.getElementById("virusTitle").textContent=m==="healer"?"✨ おせっかいヒーラー":"🦠 ウィルス";document.getElementById("virusNormalControls").style.display=m==="normal"?"grid":"none";document.getElementById("healerControls").style.display=m==="healer"?"flex":"none";if(m==="healer"&&healer.parentElement!==overlay)overlay.appendChild(healer);
 
- healer.style.display=m==="healer"?"block":"none";lastDrop=performance.now();render();spawn();timer=setInterval(step,m==="normal"?80:50);if(m==="healer")cpu=setInterval(()=>{if(!p||busy)return;let r=Math.random();if(r<.25)act("left");else if(r<.5)act("right");else if(r<.65)act("rotR");else if(r>.82)act("down")},430)}
+function cpuPlan(){
+ if(!p||busy)return;
+ let best=null,bestScore=-1e9;
+ for(let r=0;r<4;r++)for(let x=0;x<C;x++){
+  let q={...p,x,y:-2,r};
+  if(!valid(q))continue;
+  while(valid({...q,y:q.y+1}))q.y++;
+  let ps=parts(q);if(ps.some(v=>v.y<0))continue;
+  let score=0,top=R;
+  for(const v of ps){
+   top=Math.min(top,v.y);
+   score+=(v.y/R)*5;
+   for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){
+    let nx=v.x+dx,ny=v.y+dy;
+    if(nx>=0&&nx<C&&ny>=0&&ny<R&&b[ny][nx]&&b[ny][nx].c===v.c)score+=4;
+   }
+  }
+  if(top<5)score-=25;
+  // Simulate placement and strongly reward an immediate four-match.
+  let old=ps.map(v=>b[v.y][v.x]);
+  ps.forEach(v=>b[v.y][v.x]={c:v.c,virus:false,pair:-99});
+  let clearN=matches().length;
+  ps.forEach((v,i)=>b[v.y][v.x]=old[i]);
+  score+=clearN*18;
+  score-=Math.abs(x-3.5)*.25;
+  score+=Math.random()*2.5; // keep CPU human/imperfect
+  if(score>bestScore){bestScore=score;best={x,r}}
+ }
+ if(!best)return;
+ // Move/rotate one step per CPU tick so the falling piece still looks played.
+ if(p.r!==best.r){act("rotR");return}
+ if(p.x<best.x){act("right");return}
+ if(p.x>best.x){act("left");return}
+ act("down");
+}
+function reset(m){mode=m;clearInterval(timer);clearInterval(cpu);b=Array.from({length:R},()=>Array(C).fill(null));p=null;busy=false;run=true;held=null;chain=0;hx=3;hy=m==="healer"?.55:8;hvy=0;hface=1;healer.classList.remove("faceLeft");for(let i=0;i<12;i++){let x,y;do{x=Math.floor(Math.random()*C);y=7+Math.floor(Math.random()*9)}while(b[y][x]);b[y][x]={c:rnd(),virus:true}}document.getElementById("virusTitle").textContent=m==="healer"?"✨ おせっかいヒーラー":"🦠 ウィルス";document.getElementById("virusNormalControls").style.display=m==="normal"?"grid":"none";document.getElementById("healerControls").style.display=m==="healer"?"flex":"none";if(m==="healer"&&healer.parentElement!==overlay)overlay.appendChild(healer);
+
+ healer.style.display=m==="healer"?"block":"none";lastDrop=performance.now();render();spawn();timer=setInterval(step,m==="normal"?80:50);if(m==="healer")cpu=setInterval(cpuPlan,300)}
 window.startVirusGame=reset;
 document.querySelectorAll("[data-v]").forEach(x=>x.addEventListener("pointerdown",e=>{e.preventDefault();if(x.dataset.v==="grab")grab();else if(x.dataset.v==="jump")healerJump();else if(x.dataset.v==="shot")healerShot();else act(x.dataset.v)}));
 const st=document.getElementById("healerStick"),kn=document.getElementById("healerStickKnob");let sid=null,last="",rep=0;
