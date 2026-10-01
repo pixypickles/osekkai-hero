@@ -156,3 +156,9 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 #jmMage{margin-left:-34px;margin-top:24px}
 .jmStaff{position:absolute;height:5px;background:#d7a55b;border-radius:4px;transform-origin:right center;z-index:-1}
 .jmStaffGem{position:absolute;transform:translate(-50%,-50%);font-size:18px;color:#8ee8ff;text-shadow:0 0 8px white;z-index:9}
+
+/* v111 small hand-held wand */
+#jmMage{margin-left:-30px;margin-top:18px;width:44px;height:48px}
+.jmHand{position:absolute;left:31px;top:27px;width:8px;height:8px;border-radius:50%;background:#ffe2c1;z-index:11}
+.jmStaff{position:absolute!important;left:35px!important;top:28px!important;width:23px!important;height:3px!important;background:#70482d!important;border-radius:3px!important;transform:rotate(-35deg)!important;transform-origin:left center!important;z-index:10!important;box-shadow:none!important}
+.jmStaffGem{position:absolute!important;left:53px!important;top:14px!important;transform:none!important;font-size:9px!important;color:#9cecff!important;text-shadow:0 0 4px white!important;z-index:12!important}
