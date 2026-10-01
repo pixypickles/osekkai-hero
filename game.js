@@ -186,6 +186,8 @@ try{gameSettings={...gameSettings,...JSON.parse(localStorage.getItem("osekkaiSet
 window.setGameSetting=(k,v)=>{if(k in gameSettings){gameSettings[k]=!!v;try{localStorage.setItem("osekkaiSettings",JSON.stringify(gameSettings))}catch(e){}}};
 window.getGameSettings=()=>({...gameSettings});
 
+const heroDive={swordT:0,swordN:0,active:false,bossHit:false};
+const monkCombo={punchT:0,punchN:0,kickT:0,kickN:0,moveT:0,kind:"",vx:0,bossCd:0};
 const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0,carry:null,jumps:0,grabHold:0,grabColorTick:0,floating:false,liftRide:-1,liftPrevY:0,guard:false};
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
 let fastFall=false; const FAST_FALL_MULT=4.2;
@@ -674,7 +676,67 @@ function chargedWave(){
  }
  return true;
 }
+
+function monkComboStart(kind){
+ monkCombo.moveT=kind==="upper"?430:390;monkCombo.kind=kind;monkCombo.bossCd=0;
+ if(kind==="upper"){hero.vy=-.012;msg("昇龍アッパー！")}
+ else{monkCombo.vx=hero.face*.0095;hero.vy=Math.min(hero.vy,-.002);msg("飛び蹴り！")}
+}
+function monkComboUpdate(dt){
+ if(playerClass!=="monk"||monkCombo.moveT<=0)return;
+ monkCombo.moveT-=dt;monkCombo.bossCd=Math.max(0,monkCombo.bossCd-dt);
+ if(monkCombo.kind==="upper")hero.vy=Math.min(hero.vy,-.0055);
+ else hero.x=Math.max(.3,Math.min(W-.3,hero.x+monkCombo.vx*dt));
+ let changed=false,rad=.7;
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]&&Math.hypot(x+.5-hero.x,y+.5-hero.y)<rad){hitEffect(x+.5,y+.5,"#b78cff");board[y][x]=null;changed=true}
+ for(const p of pairs)for(const part of [0,1]){
+  if((part===0&&p.a==null)||(part===1&&p.b==null))continue;
+  let z=pairPos(p,part);if(Math.hypot(z.x+.5-hero.x,z.y+.5-hero.y)<rad){hitEffect(z.x+.5,z.y+.5,"#b78cff");if(part===0)p.a=null;else p.b=null;changed=true}
+ }
+ if(bossMode&&bossRectHit(hero.x,hero.y,1.0)&&monkCombo.bossCd<=0){bossDamage(2,monkCombo.kind==="upper"?"昇龍アッパー！":"飛び蹴り！");monkCombo.bossCd=150}
+ if(changed){gravity();resolve()}
+ if(monkCombo.moveT<=0)monkCombo.kind="";
+}
+
+function heroDiveStart(){
+ if(playerClass!=="hero"||hero.onGround)return false;
+ heroDive.active=true;heroDive.bossHit=false;hero.vx=0;hero.vy=.020;
+ msg("雷剣急降下！");
+ effects.push({type:"hit",x:hero.x,y:hero.y+.55,t:300,max:300,color:"#ffe45c"});
+ return true
+}
+function heroDiveUpdate(dt){
+ if(playerClass!=="hero"||!heroDive.active)return;
+ hero.vx=0;hero.vy=Math.max(hero.vy,.020);
+ let changed=false;
+ // Sword points straight down: narrow vertical hitbox under the hero.
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]){
+  if(Math.abs(x+.5-hero.x)<.48 && y+.5>=hero.y-.05 && y+.5<=hero.y+1.05){
+   hitEffect(x+.5,y+.5,"#ffe45c");board[y][x]=null;changed=true
+  }
+ }
+ for(const p of pairs)for(const part of [0,1]){
+  if((part===0&&p.a==null)||(part===1&&p.b==null))continue;
+  let z=pairPos(p,part);
+  if(Math.abs(z.x+.5-hero.x)<.48 && z.y+.5>=hero.y-.05 && z.y+.5<=hero.y+1.05){
+   hitEffect(z.x+.5,z.y+.5,"#ffe45c");if(part===0)p.a=null;else p.b=null;changed=true
+  }
+ }
+ if(bossMode&&!heroDive.bossHit&&bossRectHit(hero.x,hero.y+.45,1.15)){
+  bossDamage(8,"雷剣急降下！");heroDive.bossHit=true
+ }
+ if(changed){gravity();resolve()}
+ if(hero.onGround||hero.y>=H-.55){
+  heroDive.active=false;hero.vy=0;
+  effects.push({type:"hit",x:hero.x,y:hero.y,t:360,max:360,color:"#fff19a"});
+ }
+}
 function attack(){
+ if(playerClass==="hero"&&!hero.onGround){
+  let now=performance.now();heroDive.swordN=now-heroDive.swordT<360?heroDive.swordN+1:1;heroDive.swordT=now;
+  if(heroDive.swordN>=3){heroDive.swordN=0;if(heroDiveStart())return}
+ }
+ if(playerClass==="monk"){let now=performance.now();monkCombo.punchN=now-monkCombo.punchT<360?monkCombo.punchN+1:1;monkCombo.punchT=now;if(monkCombo.punchN>=3){monkCombo.punchN=0;monkComboStart("upper");return}}
  let charged=hero.charge>=75;hero.charge=0;
  if(charged&&(playerClass==="hero"||playerClass==="monk"||playerClass==="mage")){hero.attackT=180;chargedWave();return}
  if(playerClass==="hero"&&hero.grab){hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;destroyHeroGrabbed();return}
@@ -775,6 +837,7 @@ function kickHeroGrabbed(){
  return false;
 }
 function kick(){
+ if(playerClass==="monk"){let now=performance.now();monkCombo.kickN=now-monkCombo.kickT<360?monkCombo.kickN+1:1;monkCombo.kickT=now;if(monkCombo.kickN>=3){monkCombo.kickN=0;monkComboStart("flyingKick");return}}
  if(playerClass==="hero"&&hero.grab&&kickHeroGrabbed())return;
  if(playerClass==="hero"&&bossMode&&bossRectHit(hero.x+hero.face*1.0,hero.y,.9)){hero.kickT=180;bossDamage(2,"蹴り！");return}
  hero.kickT=180;let dir=hero.face,hy=Math.floor(hero.y);
@@ -987,6 +1050,8 @@ function seedOpeningBoard(){
 }
 function msg(t){let m=document.querySelector("#message");m.textContent=t;if(!gameOver)setTimeout(()=>m.textContent="",850)}
 function update(dt){
+ heroDiveUpdate(dt);
+ monkComboUpdate(dt);
  for(const e of effects)if((e.type==="crescentProjectile"||e.type==="kiProjectile")&&!bossMode){
    e.travel=(e.travel||0)+(e.speed||.012)*dt;
    let px=e.x+e.dx*e.travel,py=e.y+e.dy*e.travel,changed=false,shotRow=Math.max(0,Math.min(H-1,Math.floor(e.y)));
@@ -1157,7 +1222,13 @@ function drawHero(){
  }
  if(hero.grab){ctx.strokeStyle="#ffe071";ctx.lineWidth=.055;ctx.setLineDash([.08,.06]);ctx.beginPath();ctx.moveTo(0,-.15);if(hero.grab.kind==="pair"&&getPair(hero.grab.id)){let gp=getPair(hero.grab.id),py=gp.y+hero.grab.part+.5;ctx.lineTo(gp.x+.5-hero.x,py-hero.y)}else ctx.lineTo(0,-.78);ctx.stroke();ctx.setLineDash([])}
  if(hero.charge>0){ctx.strokeStyle=playerClass==="monk"?"#8f72d8":"#5c91ee";ctx.lineWidth=.045;ctx.beginPath();ctx.arc(0,0,.57,0,Math.PI*2*hero.charge/100);ctx.stroke()}
- ctx.restore();
+ 
+ if(heroDive.active){
+  ctx.save();ctx.strokeStyle="#ffe45c";ctx.lineWidth=.07;ctx.shadowColor="#fff3a0";ctx.shadowBlur=10;
+  for(let i=0;i<3;i++){let ox=(i-1)*.13;ctx.beginPath();ctx.moveTo(ox,-.05);ctx.lineTo(ox+.09,.18);ctx.lineTo(ox-.05,.40);ctx.lineTo(ox+.06,.68);ctx.stroke()}
+  ctx.restore()
+ }
+ctx.restore();
 }
 function drawCloudClimb(){
  if(!cloudMode)return;
