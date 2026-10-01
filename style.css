@@ -240,3 +240,13 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 .jumpBtn,.healBtn{width:92px;height:76px;border-radius:20px;font-size:25px}
 .jumpBtn small,.healBtn small{display:block;font-size:9px}
 .healerControls{justify-content:space-evenly!important}
+
+/* v132 healer light shot */
+.shotBtn{width:82px;height:76px;border-radius:20px;font-size:25px}
+.shotBtn small{display:block;font-size:9px}
+.healerActions{gap:5px}
+.healerLightShot{
+ position:absolute;z-index:65;width:18px;height:18px;border-radius:50%;
+ background:#fff;box-shadow:0 0 7px 4px #fff6a5,0 0 15px 8px rgba(255,232,85,.8);
+ transform:translate(-50%,-50%);pointer-events:none;
+}
