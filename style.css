@@ -380,3 +380,11 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
  background:#ef5a5a;color:#fff;font-size:8px;font-weight:900;
  border:2px solid #263148;box-shadow:0 0 6px rgba(255,240,130,.8);
 }
+
+/* v143: carried virus is a neutral "held" marker, never confused with red virus color */
+#healerSprite.holdingVirus .whStaffGem:after{
+ background:#b9f3c5!important;
+ color:#24452c!important;
+ border-color:#263148!important;
+ box-shadow:0 0 6px rgba(215,255,220,.9)!important;
+}

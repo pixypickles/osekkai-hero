@@ -854,7 +854,7 @@ window.beginBossOnly=function(job){
  setActionLabels();
  startBossStage();
  let cn=document.querySelector("#className");
- if(cn)cn.textContent="職業: "+(playerClass==="hero"?"勇者（赤・紅蓮斬）":playerClass==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
+ if(cn)cn.textContent="職業: "+(playerClass==="hero"?"勇者（青・紅蓮斬）":playerClass==="monk"?"モンク（黄橙・翠気功波）":"魔法使い（青・蒼氷解放）");
 };
 function finishStage(){
  if(cleared)return;cleared=true;
@@ -1076,22 +1076,22 @@ function drawHero(){
 
  if(playerClass==="monk"){
    // Original monk: green sleeveless gi, dark green pants, belt/wrist wraps, bare hands, headband.
-   ctx.strokeStyle="#246944";ctx.lineWidth=.18;ctx.beginPath();
+   ctx.strokeStyle="#7a451d";ctx.lineWidth=.18;ctx.beginPath();
    if(hero.kickT>0){ctx.moveTo(-f*.07,.24);ctx.lineTo(-f*.12,.49);ctx.moveTo(f*.08,.24);ctx.lineTo(f*(.28+.4*kp),.28-.04*kp)}
    else{ctx.moveTo(-.11,.24);ctx.lineTo(-.15+step,.5);ctx.moveTo(.11,.24);ctx.lineTo(.15-step,.5)}ctx.stroke();
    ctx.strokeStyle="#4c3b30";ctx.lineWidth=.13;ctx.beginPath();
    if(hero.kickT>0){ctx.moveTo(-f*.12,.49);ctx.lineTo(-f*.23,.5);let fx=f*(.28+.4*kp),fy=.28-.04*kp;ctx.moveTo(fx,fy);ctx.lineTo(fx+f*.16,fy)}
    else{ctx.moveTo(-.15+step,.5);ctx.lineTo(-.25+step,.51);ctx.moveTo(.15-step,.5);ctx.lineTo(.25-step,.51)}ctx.stroke();
    // Monk: layered emerald gi with cream lapels, sash, shoulder guard and prayer beads.
-   ctx.fillStyle="#237b4b";ctx.beginPath();ctx.moveTo(-.29,-.2);ctx.lineTo(.29,-.2);ctx.lineTo(.23,.31);ctx.lineTo(-.23,.31);ctx.closePath();ctx.fill();
-   ctx.fillStyle="#3eae68";ctx.beginPath();ctx.moveTo(-.25,-.18);ctx.lineTo(.03,.02);ctx.lineTo(-.06,.25);ctx.lineTo(-.25,.16);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#d97824";ctx.beginPath();ctx.moveTo(-.29,-.2);ctx.lineTo(.29,-.2);ctx.lineTo(.23,.31);ctx.lineTo(-.23,.31);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#f0a23a";ctx.beginPath();ctx.moveTo(-.25,-.18);ctx.lineTo(.03,.02);ctx.lineTo(-.06,.25);ctx.lineTo(-.25,.16);ctx.closePath();ctx.fill();
    ctx.fillStyle="#efe2b8";ctx.beginPath();ctx.moveTo(-.13,-.2);ctx.lineTo(.04,.01);ctx.lineTo(.15,-.2);ctx.lineTo(.23,-.17);ctx.lineTo(.05,.11);ctx.lineTo(-.22,-.14);ctx.closePath();ctx.fill();
-   ctx.fillStyle="#174e35";ctx.fillRect(-.26,.08,.52,.09);
+   ctx.fillStyle="#6b3b1b";ctx.fillRect(-.26,.08,.52,.09);
    ctx.fillStyle="#d9aa42";ctx.fillRect(-.26,.115,.52,.035);
    ctx.fillStyle="#e6c09d";ctx.beginPath();ctx.arc(0,-.39,.25,0,Math.PI*2);ctx.fill();
    ctx.fillStyle="#3a2923";ctx.beginPath();ctx.arc(-.02,-.49,.22,Math.PI,Math.PI*2);ctx.fill();
    ctx.fillStyle="#d9aa42";ctx.fillRect(-.255,-.49,.51,.06);ctx.beginPath();ctx.moveTo(-f*.2,-.46);ctx.lineTo(-f*.46,-.36);ctx.lineTo(-f*.22,-.34);ctx.fill();
-   ctx.fillStyle="#174e35";ctx.beginPath();ctx.arc(-f*.23,-.08,.105,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#6b3b1b";ctx.beginPath();ctx.arc(-f*.23,-.08,.105,0,Math.PI*2);ctx.fill();
    ctx.fillStyle="#a96a37";for(let bi=0;bi<4;bi++){ctx.beginPath();ctx.arc(-.13+bi*.085,-.02,.035,0,Math.PI*2);ctx.fill()}
    ctx.fillStyle="#222";ctx.fillRect(f*.08-.025,-.4,.05,.055);
    // Arms / directional punch
@@ -1125,14 +1125,14 @@ function drawHero(){
    ctx.strokeStyle="#6faeea";ctx.lineWidth=.025;ctx.globalAlpha=.55;ctx.beginPath();ctx.arc(-.15,.59+hover,.10,Math.PI*.1,Math.PI*.9);ctx.stroke();ctx.beginPath();ctx.arc(.16,.56-hover*.55,.08,Math.PI*.1,Math.PI*.9);ctx.stroke();ctx.globalAlpha=1
  }else{
    // Hero: red-based outfit.
-   ctx.fillStyle="#8f2638";ctx.beginPath();ctx.moveTo(-f*.12,-.18);ctx.lineTo(-f*.42,.38);ctx.lineTo(-f*.08,.3);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#233f86";ctx.beginPath();ctx.moveTo(-f*.12,-.18);ctx.lineTo(-f*.42,.38);ctx.lineTo(-f*.08,.3);ctx.closePath();ctx.fill();
    ctx.strokeStyle="#d8dce8";ctx.lineWidth=.12;ctx.beginPath();ctx.moveTo(-.11,.25);ctx.lineTo(-.14+step,.48);ctx.moveTo(.11,.25);ctx.lineTo(.14-step,.48);ctx.stroke();
    ctx.strokeStyle="#49382f";ctx.lineWidth=.13;ctx.beginPath();ctx.moveTo(-.14+step,.48);ctx.lineTo(-.24+step,.49);ctx.moveTo(.14-step,.48);ctx.lineTo(.24-step,.49);ctx.stroke();
-   ctx.fillStyle="#a8293f";ctx.beginPath();ctx.moveTo(-.24,-.18);ctx.lineTo(.24,-.18);ctx.lineTo(.21,.3);ctx.lineTo(-.21,.3);ctx.closePath();ctx.fill();
-   ctx.fillStyle="#d94a58";ctx.beginPath();ctx.moveTo(-.2,-.17);ctx.lineTo(.03,.02);ctx.lineTo(.2,-.17);ctx.lineTo(.2,.04);ctx.lineTo(.03,.15);ctx.lineTo(-.2,.02);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#315fbd";ctx.beginPath();ctx.moveTo(-.24,-.18);ctx.lineTo(.24,-.18);ctx.lineTo(.21,.3);ctx.lineTo(-.21,.3);ctx.closePath();ctx.fill();
+   ctx.fillStyle="#4d83df";ctx.beginPath();ctx.moveTo(-.2,-.17);ctx.lineTo(.03,.02);ctx.lineTo(.2,-.17);ctx.lineTo(.2,.04);ctx.lineTo(.03,.15);ctx.lineTo(-.2,.02);ctx.closePath();ctx.fill();
    ctx.fillStyle="#f0dfb2";ctx.beginPath();ctx.moveTo(-.13,-.18);ctx.lineTo(.02,-.01);ctx.lineTo(.13,-.18);ctx.lineTo(.19,-.14);ctx.lineTo(.03,.09);ctx.lineTo(-.19,-.13);ctx.closePath();ctx.fill();
    ctx.fillStyle="#e5bd4c";ctx.fillRect(-.23,.105,.46,.075);
-   ctx.fillStyle="#6f2136";ctx.beginPath();ctx.arc(-f*.22,-.07,.105,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#e5bd4c";ctx.lineWidth=.025;ctx.stroke();
+   ctx.fillStyle="#1f3975";ctx.beginPath();ctx.arc(-f*.22,-.07,.105,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#e5bd4c";ctx.lineWidth=.025;ctx.stroke();
    ctx.fillStyle="#f0c6a2";ctx.beginPath();ctx.arc(0,-.38,.25,0,Math.PI*2);ctx.fill();
    ctx.fillStyle="#5b3a2a";ctx.beginPath();ctx.arc(-.03,-.47,.23,Math.PI,Math.PI*2);ctx.lineTo(.2,-.4);ctx.lineTo(.08,-.5);ctx.lineTo(-.02,-.39);ctx.lineTo(-.12,-.51);ctx.lineTo(-.24,-.4);ctx.fill();
    // Forehead circlet: sits across the hairline instead of floating above the head.
@@ -1152,7 +1152,7 @@ function drawHero(){
    }
  }
  if(hero.grab){ctx.strokeStyle="#ffe071";ctx.lineWidth=.055;ctx.setLineDash([.08,.06]);ctx.beginPath();ctx.moveTo(0,-.15);if(hero.grab.kind==="pair"&&getPair(hero.grab.id)){let gp=getPair(hero.grab.id),py=gp.y+hero.grab.part+.5;ctx.lineTo(gp.x+.5-hero.x,py-hero.y)}else ctx.lineTo(0,-.78);ctx.stroke();ctx.setLineDash([])}
- if(hero.charge>0){ctx.strokeStyle=playerClass==="monk"?"#59dc76":"#ff5f78";ctx.lineWidth=.045;ctx.beginPath();ctx.arc(0,0,.57,0,Math.PI*2*hero.charge/100);ctx.stroke()}
+ if(hero.charge>0){ctx.strokeStyle=playerClass==="monk"?"#f0a23a":"#5c91ee";ctx.lineWidth=.045;ctx.beginPath();ctx.arc(0,0,.57,0,Math.PI*2*hero.charge/100);ctx.stroke()}
  ctx.restore();
 }
 function drawCloudClimb(){
@@ -1254,7 +1254,7 @@ window.beginSpecialMode=function(job,mode){
  hero.grab=null;hero.carry=null;hero.guard=false;hero.stun=0;hero.vx=0;hero.vy=0;hero.liftRide=-1;
  hero.floating=(job==="mage");hero.x=W/2;hero.y=job==="mage"?H-4.0:H-1.2;hero.onGround=(job!=="mage");
  setActionLabels();setModeHud();updateStageHud();draw();
- let cn=document.querySelector("#className");if(cn)cn.textContent="職業: "+(job==="hero"?"勇者（赤・紅蓮斬）":job==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
+ let cn=document.querySelector("#className");if(cn)cn.textContent="職業: "+(job==="hero"?"勇者（青・紅蓮斬）":job==="monk"?"モンク（黄橙・翠気功波）":"魔法使い（青・蒼氷解放）");
 };
 window.beginSelectedJob=function(job){
  if(job!=="hero"&&job!=="monk"&&job!=="mage")return;
@@ -1268,7 +1268,7 @@ window.beginSelectedJob=function(job){
  setActionLabels();updateStageHud();
  draw();
  let cn=document.querySelector("#className");
- if(cn)cn.textContent="職業: "+(job==="hero"?"勇者（赤・紅蓮斬）":job==="monk"?"モンク（緑・翠気功波）":"魔法使い（青・蒼氷解放）");
+ if(cn)cn.textContent="職業: "+(job==="hero"?"勇者（青・紅蓮斬）":job==="monk"?"モンク（黄橙・翠気功波）":"魔法使い（青・蒼氷解放）");
 };
 
 document.querySelector("#modeExitBtn")?.addEventListener("click",()=>{
