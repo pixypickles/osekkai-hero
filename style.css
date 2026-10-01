@@ -263,3 +263,6 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 
 /* v134: healer faces the last horizontal direction; light shot follows it */
 #healerSprite.faceLeft{transform:translate(-50%,-50%) scaleX(-1)!important}
+
+/* v136: healer uses Columns-mage movement, so jump is no longer part of the controls */
+.healerActions .jumpBtn{display:none!important}
