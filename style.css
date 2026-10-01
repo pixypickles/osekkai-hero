@@ -344,3 +344,30 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 .whBody:after{color:#d8a928!important}.whFace{border:2px solid #263148!important}
 .whCape{background:#d7b33f!important}.whStaff{background:#5b422c!important}
 .whStaffGem{color:#fff0a0!important;text-shadow:0 0 2px #263148,0 0 7px #ffe46a!important}
+
+/* v141: class colors are now chosen purely for character readability/identity.
+   Special attacks no longer wipe the matching slime color, so there is no gameplay color constraint. */
+
+/* Hero: classic fantasy hero — royal blue tunic, warm brown gear, red accent */
+.player.hero,.heroPlayer,.heroSprite{
+ --hero-main:#2f67c7!important;
+ --hero-dark:#183a78!important;
+ --hero-accent:#d94a3f!important;
+ --hero-leather:#7a4b2b!important;
+}
+.player.hero .body,.heroPlayer .body,.heroSprite .body,
+.player.hero .torso,.heroPlayer .torso,.heroSprite .torso{
+ background:#2f67c7!important;border-color:#183a78!important;
+}
+.player.hero .cape,.heroPlayer .cape,.heroSprite .cape{background:#d94a3f!important}
+
+/* Monk: martial-arts monk — saffron/orange robe with deep brown outline */
+.player.monk,.monkPlayer,.monkSprite{
+ --monk-main:#e28a2b!important;
+ --monk-dark:#6c3c19!important;
+ --monk-accent:#f2c94c!important;
+}
+.player.monk .body,.monkPlayer .body,.monkSprite .body,
+.player.monk .torso,.monkPlayer .torso,.monkSprite .torso{
+ background:#e28a2b!important;border-color:#6c3c19!important;
+}
