@@ -336,3 +336,11 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 }
 .vPiece.capsule.joinR:after{right:-1px;top:10%;width:2px;height:80%}
 .vPiece.capsule.joinD:after{left:10%;bottom:-1px;width:80%;height:2px}
+
+#virusBoard{background:#28364f!important;border-color:#152033!important}
+#virusBoard .vCell{background:rgba(245,249,255,.12)!important;border-color:rgba(255,255,255,.12)!important}
+.whHat{color:#fffdf3!important;text-shadow:-2px -2px 0 #263148,2px -2px 0 #263148,-2px 2px 0 #263148,2px 2px 0 #263148,0 5px 0 #c7ad62!important}
+.whBody{background:#fffdf3!important;border:3px solid #263148!important;box-shadow:inset 0 -5px 0 #e6dfca!important}
+.whBody:after{color:#d8a928!important}.whFace{border:2px solid #263148!important}
+.whCape{background:#d7b33f!important}.whStaff{background:#5b422c!important}
+.whStaffGem{color:#fff0a0!important;text-shadow:0 0 2px #263148,0 0 7px #ffe46a!important}
