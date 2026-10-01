@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>転生したら落ちゲーの中でした。Prototype v107</title><link rel="stylesheet" href="style.css?v=107">
+<title>転生したら落ちゲーの中でした。Prototype v108</title><link rel="stylesheet" href="style.css?v=108">
 <script>
 window.pendingClass=null;
 window.CLASS_HELP_SAFE={
@@ -56,6 +56,19 @@ window.startSelectedJob=function(){
 </div></div></div>
 <div id="slimeModeSelect" class="overlay slimeModeSelect" style="display:none"><div class="panel"><h2>🟢 スライムモード</h2><p class="familyLead">遊び方を選んでください</p><div class="slimeModeGrid"><button type="button" class="familyBtn" onclick="chooseSlimeMode('hero')"><b>⚔️ おせっかい勇者</b><small>勇者・モンク・魔法使いで連鎖を手助け</small></button><button type="button" class="familyBtn normalFamily" onclick="chooseSlimeMode('normal')"><b>🔵 ノーマルモード</b><small>キャラなし・普通の2個組スライム</small></button></div><button type="button" class="backFamilyBtn" onclick="backToFamily()">← 戻る</button></div></div>
 <div id="normalPuyoScreen" style="display:none"><div class="normalTop"><b>🔵 ノーマルぷよ</b><span>SCORE <strong id="normalScore">0</strong></span><span>CHAIN <strong id="normalChain">0</strong></span><button onclick="normalToTitle()">タイトル</button></div><div id="normalPuyoBoard"></div><div class="normalControls"><button data-np="left">◀</button><button data-np="rotateL">↺<small>左回転</small></button><button data-np="rotateR">↻<small>右回転</small></button><button data-np="right">▶</button><button data-np="down">▼<small>落下</small></button></div></div>
+<div id="jewelModeSelect" class="overlay jewelModeSelect" style="display:none"><div class="panel">
+<h2>💎 宝石モード</h2><p class="familyLead">遊び方を選んでください</p>
+<div class="slimeModeGrid">
+<button type="button" class="familyBtn jewelFamily" onclick="chooseJewelMode('normal')"><b>💎 ノーマルコラムス</b><small>3個1組の宝石を揃える</small></button>
+<button type="button" class="familyBtn mageJewelFamily" onclick="chooseJewelMode('mage')"><b>🧙 おせっかい勇者</b><small>魔法使いで宝石の並びをこっそり入れ替える</small></button>
+</div><button type="button" class="backFamilyBtn" onclick="backToFamilyFromJewel()">← 戻る</button>
+</div></div>
+<div id="jewelMageScreen" style="display:none">
+ <div class="jmTop"><b>🧙 宝石おせっかい</b><span>SCORE <strong id="jmScore">0</strong></span><span>CHAIN <strong id="jmChain">0</strong></span><button onclick="jewelMageToTitle()">タイトル</button></div>
+ <div id="jmBoardWrap"><div id="jmBoard"></div><div id="jmMage"><span class="jmHat">▲</span><span class="jmFace">•ᴗ•</span><span class="jmBody"></span><span class="jmStaff">╱</span><span class="jmStaffGem">◆</span></div></div>
+ <div class="jmControls"><button data-jm="left">◀</button><button data-jm="up">▲</button><button data-jm="grab">✦<small>ロック</small></button><button data-jm="down">▼</button><button data-jm="right">▶</button></div>
+ <div class="jmHint">✦で杖先の宝石をロック → 方向キーで隣と入れ替え → ✦でもう一度離す</div>
+</div>
 <div id="columnsScreen" style="display:none">
  <div class="columnsTop"><b>💎 宝石コラムス</b><span>SCORE <strong id="columnsScore">0</strong></span><span>CHAIN <strong id="columnsChain">0</strong></span><button type="button" onclick="columnsToTitle()">タイトル</button></div>
  <div id="columnsBoard" aria-label="宝石コラムス盤面"></div>
@@ -65,7 +78,7 @@ window.startSelectedJob=function(){
 window.chooseGameFamily=function(mode){
  document.getElementById("gameFamilySelect").style.display="none";
  if(mode==="slime")document.getElementById("slimeModeSelect").style.display="flex";
- else{document.querySelector("main").style.display="none";document.getElementById("columnsScreen").style.display="flex";requestAnimationFrame(function(){window.startColumns()})}
+ else{document.getElementById("jewelModeSelect").style.display="flex"}
 };
 window.chooseSlimeMode=function(mode){
  document.getElementById("slimeModeSelect").style.display="none";
@@ -74,6 +87,13 @@ window.chooseSlimeMode=function(mode){
 };
 window.backToFamily=function(){document.getElementById("slimeModeSelect").style.display="none";document.getElementById("gameFamilySelect").style.display="flex"};
 window.normalToTitle=function(){location.reload()};
+window.chooseJewelMode=function(mode){
+ document.getElementById("jewelModeSelect").style.display="none";document.querySelector("main").style.display="none";
+ if(mode==="normal"){document.getElementById("columnsScreen").style.display="flex";requestAnimationFrame(function(){window.startColumns()})}
+ else{document.getElementById("jewelMageScreen").style.display="flex";requestAnimationFrame(function(){window.startJewelMage()})}
+};
+window.backToFamilyFromJewel=function(){document.getElementById("jewelModeSelect").style.display="none";document.getElementById("gameFamilySelect").style.display="flex"};
+window.jewelMageToTitle=function(){location.reload()};
 window.columnsToTitle=function(){location.reload()};
 </script>
 <button type="button" onclick="openGameSettings()" style="position:fixed;right:10px;top:72px;z-index:70">⚙ 設定</button>
@@ -101,7 +121,7 @@ window.columnsToTitle=function(){location.reload()};
 <button id="continueBtn" class="startBtn" style="display:none">コンティニュー</button>
 <button id="titleBtn" class="classBtn">タイトルへ戻る</button>
 </div></div><main>
-<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v107</small></div>
+<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v108</small></div>
 <div class="hud"><span>STAGE <b id="stageText">1</b></span><span>連鎖P <b id="chainPoints">0</b>/<b id="goalPoints">12</b></span><span>SCORE <b id="score">0</b></span><span>必殺 <b id="specialText">0%</b></span><span id="bossHud" style="display:none">BOSS <b id="bossHpText">30</b></span><span id="bossHpGauge" style="display:inline-block;width:110px;height:9px;background:#2a2638;border-radius:8px;overflow:hidden;vertical-align:middle;margin-left:4px"><span id="bossHpBar" style="display:block;width:100%;height:100%;background:#e76565"></span></span><span id="modeText"></span><span id="modeTime"></span><button id="modeExitBtn" style="display:none">離脱</button></div>
 <div class="gauge"><div id="specialBar"></div></div>
 <canvas id="game" width="360" height="630"></canvas><div id="message"></div>
@@ -110,7 +130,42 @@ window.columnsToTitle=function(){location.reload()};
  <div class="actions"><button data-key="grab">掴</button><button data-key="jump">跳</button><button data-key="attack">剣</button><button data-key="kick" class="kick">蹴</button></div>
 </div>
 <p id="className">職業: -</p><p class="help">方向キー＋攻撃 / 跳 / 攻撃長押し=チャージ必殺 / 魔法使い: 剣=炎・蹴=氷・掴=風・跳=浮遊</p>
-<script src="game.js?v=107"></script></main><script>
+<script src="game.js?v=108"></script></main><script>
+(()=>{
+const el=document.getElementById("jmBoard"),mage=document.getElementById("jmMage");if(!el||!mage)return;
+const C=6,R=13,colors=["#ef5c66","#55b9ff","#ffd85b","#69d783","#b46df0","#ff9b4b"];
+const shapes={"#ef5c66":"ruby","#55b9ff":"diamond","#ffd85b":"round","#69d783":"emerald","#b46df0":"hex","#ff9b4b":"drop"};
+let b,cx=2,cy=6,locked=null,score=0,chain=0,busy=false;const cells=[],se=document.getElementById("jmScore"),ce=document.getElementById("jmChain");
+for(let i=0;i<C*R;i++){let d=document.createElement("div");d.className="jmCell";el.appendChild(d);cells.push(d)}
+const rnd=()=>colors[Math.floor(Math.random()*colors.length)];
+function gem(c){return '<i class="jmGem '+shapes[c]+'" style="--jc:'+c+'"></i>'}
+function render(){
+ for(let y=0;y<R;y++)for(let x=0;x<C;x++){let d=cells[y*C+x];d.innerHTML=b[y][x]?gem(b[y][x]):"";d.classList.toggle("jmLocked",!!locked&&locked.x===x&&locked.y===y)}
+ mage.style.left=((cx+.5)/C*100)+"%";mage.style.top=((cy+.5)/R*100)+"%";
+}
+function groups(){let seen=new Set(),out=[];for(let y=0;y<R;y++)for(let x=0;x<C;x++){let c=b[y][x],k=x+","+y;if(!c||seen.has(k))continue;let q=[[x,y]],g=[];seen.add(k);while(q.length){let [xx,yy]=q.pop();g.push([xx,yy]);for(const[d,e]of[[1,0],[-1,0],[0,1],[0,-1]]){let nx=xx+d,ny=yy+e,nk=nx+","+ny;if(nx>=0&&nx<C&&ny>=0&&ny<R&&!seen.has(nk)&&b[ny][nx]===c){seen.add(nk);q.push([nx,ny])}}}if(g.length>=3)out.push(g)}return out}
+function resolve(n=1){let gs=groups();if(!gs.length){chain=n-1;ce.textContent=chain;busy=false;render();return}busy=true;chain=n;score+=gs.flat().length*10*n;se.textContent=score;ce.textContent=chain;setTimeout(()=>{gs.flat().forEach(([x,y])=>b[y][x]=null);gravity();render();setTimeout(()=>resolve(n+1),150)},220)}
+function gravity(){for(let x=0;x<C;x++){let a=[];for(let y=R-1;y>=0;y--)if(b[y][x])a.push(b[y][x]);for(let y=R-1,i=0;y>=0;y--)b[y][x]=i<a.length?a[i++]:null}}
+function move(dx,dy){
+ if(busy)return;
+ if(locked){
+  let nx=locked.x+dx,ny=locked.y+dy;if(nx<0||nx>=C||ny<0||ny>=R||!b[ny][nx])return;
+  let t=b[locked.y][locked.x];b[locked.y][locked.x]=b[ny][nx];b[ny][nx]=t;locked={x:nx,y:ny};cx=nx;cy=ny;render();resolve(1);return
+ }
+ cx=Math.max(0,Math.min(C-1,cx+dx));cy=Math.max(0,Math.min(R-1,cy+dy));render()
+}
+function grab(){if(busy)return;if(locked){locked=null;render();return}if(b[cy][cx]){locked={x:cx,y:cy};render()}}
+function reset(){
+ b=Array.from({length:R},()=>Array(C).fill(null));score=chain=0;locked=null;busy=false;cx=2;cy=6;
+ // settled jewel field, deliberately avoiding immediate triples
+ for(let y=7;y<R;y++)for(let x=0;x<C;x++){let c;do{c=rnd()}while((x>=2&&b[y][x-1]===c&&b[y][x-2]===c)||(y>=2&&b[y-1][x]===c&&b[y-2][x]===c));b[y][x]=c}
+ se.textContent=ce.textContent=0;render()
+}
+window.startJewelMage=reset;
+document.querySelectorAll("[data-jm]").forEach(x=>x.addEventListener("pointerdown",e=>{e.preventDefault();let a=x.dataset.jm;if(a==="grab")grab();else if(a==="left")move(-1,0);else if(a==="right")move(1,0);else if(a==="up")move(0,-1);else move(0,1)}));
+})();
+</script>
+<script>
 (()=>{const el=document.getElementById("normalPuyoBoard");if(!el)return;
 const C=6,R=12,cs=["#ef5c66","#55b9ff","#ffd85b","#69d783","#b46df0"];
 const faces={"#ef5c66":"sexy","#55b9ff":"ikemen","#ffd85b":"hige","#69d783":"nerd","#b46df0":"madam"};

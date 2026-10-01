@@ -129,3 +129,16 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 .npPuyo.madam .eye{height:12%;box-shadow:0 -3px 0 #262034;transform:rotate(5deg)}.npPuyo.madam .e2{transform:rotate(-5deg)}
 .npPuyo.madam .feature{left:34%;width:32%;height:10%;border-bottom:3px solid #8e173e;border-radius:50%}
 .npPuyo.madam:after{content:"•";position:absolute;right:22%;top:55%;font-size:11px;color:#34213b}
+
+/* v108 Jewel -> normal Columns / meddling Mage */
+.jewelModeSelect .panel{width:min(460px,92vw);max-height:90dvh;overflow:auto}.mageJewelFamily{background:linear-gradient(160deg,#263e76,#583b88)}
+#jewelMageScreen{position:fixed;inset:0;z-index:120;background:#10172b;color:white;flex-direction:column;align-items:center;height:100dvh;overflow:hidden}
+.jmTop{width:min(360px,96vw);height:44px;display:flex;align-items:center;gap:8px;font-size:11px}.jmTop>b{margin-right:auto;font-size:15px}
+#jmBoardWrap{position:relative;height:min(calc(100dvh - 138px),calc(92vw * 13 / 6));aspect-ratio:6/13}
+#jmBoard{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(13,1fr);background:linear-gradient(#172b4b,#0c1528);border:2px solid #779bc5}
+.jmCell{display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.05);position:relative}.jmCell.jmLocked{box-shadow:inset 0 0 0 3px #fff,0 0 10px #fff}
+.jmGem{display:block;width:70%;height:70%;background:var(--jc);box-shadow:inset 4px 4px 0 rgba(255,255,255,.3),inset -3px -3px 0 rgba(0,0,0,.18)}
+.jmGem.ruby{clip-path:polygon(50% 0,88% 25%,78% 82%,50% 100%,22% 82%,12% 25%)}.jmGem.diamond{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}.jmGem.round{border-radius:50%}.jmGem.emerald{clip-path:polygon(22% 0,78% 0,100% 22%,100% 78%,78% 100%,22% 100%,0 78%,0 22%)}.jmGem.hex{clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%)}.jmGem.drop{border-radius:55% 55% 55% 12%;transform:rotate(45deg);width:60%;height:60%}
+#jmMage{position:absolute;width:38px;height:48px;z-index:8;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 2px 2px #000);transition:left .08s,top .08s}
+.jmHat{position:absolute;left:8px;top:-8px;font-size:30px;color:#3786ff;text-shadow:0 5px 0 #2053aa}.jmFace{position:absolute;left:8px;top:17px;width:24px;height:18px;background:#ffe2c1;border-radius:50%;font-size:9px;text-align:center;color:#28304a}.jmBody{position:absolute;left:8px;top:32px;width:25px;height:16px;background:#2864cf;border-radius:10px 10px 4px 4px}.jmStaff{position:absolute;left:30px;top:13px;font-size:30px;color:#d7a55b;transform:rotate(-15deg)}.jmStaffGem{position:absolute;left:42px;top:4px;color:#8ee8ff;text-shadow:0 0 7px white}
+.jmControls{width:min(380px,100vw);height:64px;display:grid;grid-template-columns:repeat(5,1fr);gap:5px;padding:5px 7px;box-sizing:border-box}.jmControls button{height:52px;border-radius:13px;font-size:20px}.jmControls small{display:block;font-size:8px}.jmHint{font-size:10px;opacity:.8;text-align:center;padding:2px 8px}
