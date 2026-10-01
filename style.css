@@ -284,3 +284,24 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 #healerSprite.faceLeft .whStaffGem{left:-3px}
 .healerStaffFx{position:absolute;z-index:70;width:30px;height:30px;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;border:2px solid rgba(255,255,255,.9);box-shadow:0 0 8px #fff,0 0 16px #ffe878}
 .healerStaffFx:after{content:"✦";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff6a5;font-size:20px}
+
+/* v138 healer: always faces right; stronger contrast against the pale board */
+#virusOverlay>#healerSprite{
+ filter:drop-shadow(0 2px 2px rgba(0,0,0,.65)) drop-shadow(0 0 2px rgba(25,35,65,.8))!important
+}
+.whHat{color:#58a7e8!important;text-shadow:0 5px 0 #235b9a!important}
+.whBody{background:#397fca!important;border-color:#173e72!important}
+.whBody:after{color:#ffe36a!important}
+.whCape{background:#e34c63!important}
+.whStaff{background:#8b5a32!important}
+.whStaffGem{color:#fff19a!important}
+#healerSprite.faceLeft{transform:translate(-50%,-50%)!important}
+
+/* v138: capsule pieces read as pill halves rather than round beads */
+.vPiece.capsule{
+ width:94%!important;height:64%!important;
+ border-radius:999px!important;
+ border:2px solid rgba(255,255,255,.72)!important;
+ box-sizing:border-box!important;
+ box-shadow:inset 5px 5px 0 rgba(255,255,255,.30),inset -4px -4px 0 rgba(0,0,0,.16)!important;
+}
