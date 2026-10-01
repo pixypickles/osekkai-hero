@@ -17,12 +17,14 @@ const cloudKinds=[
 ];
 function makeCloud(x,y,start=false,neutral=false){
  if(start)return {x,y,w:2,vy:0,fill:"rgba(245,250,255,.94)",shade:"rgba(185,220,245,.55)",start:true,neutral:true};
- if(neutral)return {x,y,w:2,vy:.00100*(.82+Math.random()*.36),vx:0,fill:"rgba(245,250,255,.88)",shade:"rgba(190,220,240,.48)",neutral:true};
- let k=cloudKinds[Math.floor(Math.random()*cloudKinds.length)];
- let roll=Math.random(),vx=0,vy=.00100*(.72+Math.random()*.56),motion="down";
- if(roll<.20){vx=(Math.random()<.5?-1:1)*(.00045+Math.random()*.00035);motion="side"}
- else if(roll<.225){vy=-(.00030+Math.random()*.00022);vx=(Math.random()-.5)*.00018;motion="up"}
- return {x,y,w:2,vy,vx,fill:k.fill,shade:k.shade,kind:k.name,motion};
+ let k=neutral?{fill:"rgba(245,250,255,.88)",shade:"rgba(190,220,240,.48)",name:null}:cloudKinds[Math.floor(Math.random()*cloudKinds.length)];
+ let roll=Math.random(),vx=0,vy=0,motion="diag";
+ if(neutral){vx=(Math.random()<.5?-1:1)*(.00038+Math.random()*.00022);vy=.00115+Math.random()*.00035}
+ else if(roll<.78){vx=(Math.random()<.5?-1:1)*(.00072+Math.random()*.00048);vy=.00135+Math.random()*.00055;motion="diag"}
+ else if(roll<.93){vx=(Math.random()<.5?-1:1)*(.00100+Math.random()*.00045);vy=.00010+Math.random()*.00018;motion="side"}
+ else if(roll<.975){vx=(Math.random()-.5)*.00016;vy=.00155+Math.random()*.00050;motion="down"}
+ else{vx=(Math.random()<.5?-1:1)*(.00018+Math.random()*.00022);vy=-(.00034+Math.random()*.00030);motion="up"}
+ return {x,y,w:2,vy,vx,fill:k.fill,shade:k.shade,kind:k.name,motion,neutral};
 }
 function startCloudClimb(){
  if(playerClass==="mage"){msg("魔法使いは雲登りに参加できない！");return}
