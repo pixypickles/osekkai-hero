@@ -218,3 +218,12 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 
 #virusScreen>#healerSprite{display:block!important;visibility:visible!important;opacity:1!important;position:absolute!important;z-index:999!important;width:52px!important;height:66px!important;right:auto!important;bottom:auto!important;margin:0!important;transform:translate(-50%,-50%)!important;pointer-events:none!important;overflow:visible!important}
 #virusScreen>#healerSprite .wmHood,#virusScreen>#healerSprite .wmFace,#virusScreen>#healerSprite .wmHair,#virusScreen>#healerSprite .wmRobe,#virusScreen>#healerSprite .wmCape,#virusScreen>#healerSprite .wmStaff,#virusScreen>#healerSprite .wmOrb{display:block!important}
+
+/* v124: white mage belongs to the absolute board overlay, never the page/header */
+#virusOverlay{position:absolute!important;inset:0!important;z-index:40!important;pointer-events:none!important;overflow:visible!important}
+#virusOverlay>#healerSprite{
+ display:block!important;visibility:visible!important;opacity:1!important;
+ position:absolute!important;z-index:50!important;width:52px!important;height:66px!important;
+ right:auto!important;bottom:auto!important;margin:0!important;
+ transform:translate(-50%,-50%)!important;pointer-events:none!important
+}
