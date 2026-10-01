@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>転生したら落ちゲーの中でした。Prototype v108</title><link rel="stylesheet" href="style.css?v=108">
+<title>転生したら落ちゲーの中でした。Prototype v109</title><link rel="stylesheet" href="style.css?v=109">
 <script>
 window.pendingClass=null;
 window.CLASS_HELP_SAFE={
@@ -55,12 +55,12 @@ window.startSelectedJob=function(){
 <button type="button" class="familyBtn jewelFamily" onclick="chooseGameFamily('jewel')"><b>💎 宝石モード</b><small>3個1組の宝石を揃えるコラムス</small></button>
 </div></div></div>
 <div id="slimeModeSelect" class="overlay slimeModeSelect" style="display:none"><div class="panel"><h2>🟢 スライムモード</h2><p class="familyLead">遊び方を選んでください</p><div class="slimeModeGrid"><button type="button" class="familyBtn" onclick="chooseSlimeMode('hero')"><b>⚔️ おせっかい勇者</b><small>勇者・モンク・魔法使いで連鎖を手助け</small></button><button type="button" class="familyBtn normalFamily" onclick="chooseSlimeMode('normal')"><b>🔵 ノーマルモード</b><small>キャラなし・普通の2個組スライム</small></button></div><button type="button" class="backFamilyBtn" onclick="backToFamily()">← 戻る</button></div></div>
-<div id="normalPuyoScreen" style="display:none"><div class="normalTop"><b>🔵 ノーマルぷよ</b><span>SCORE <strong id="normalScore">0</strong></span><span>CHAIN <strong id="normalChain">0</strong></span><button onclick="normalToTitle()">タイトル</button></div><div id="normalPuyoBoard"></div><div class="normalControls"><button data-np="left">◀</button><button data-np="rotateL">↺<small>左回転</small></button><button data-np="rotateR">↻<small>右回転</small></button><button data-np="right">▶</button><button data-np="down">▼<small>落下</small></button></div></div>
+<div id="normalPuyoScreen" style="display:none"><div class="normalTop"><b>🔵 ノーマルぷよ</b><span>SCORE <strong id="normalScore">0</strong></span><span>CHAIN <strong id="normalChain">0</strong></span><button onclick="normalToTitle()">タイトル</button></div><div id="normalPuyoBoard"><div id="normalGameOver" class="normalGameOver" style="display:none"><b>GAME OVER</b><small>上まで積み上がりました</small><button onclick="normalToTitle()">タイトルに戻る</button><button onclick="window.startNormalPuyo()">もう一度</button></div></div><div class="normalControls"><button data-np="left">◀</button><button data-np="rotateL">↺<small>左回転</small></button><button data-np="rotateR">↻<small>右回転</small></button><button data-np="right">▶</button><button data-np="down">▼<small>落下</small></button></div></div>
 <div id="jewelModeSelect" class="overlay jewelModeSelect" style="display:none"><div class="panel">
 <h2>💎 宝石モード</h2><p class="familyLead">遊び方を選んでください</p>
 <div class="slimeModeGrid">
+<button type="button" class="familyBtn mageJewelFamily" onclick="chooseJewelMode('mage')"><b>🧙 おせっかい勇者</b><small>下手なプレイヤーのコラムスを魔法使いでおせっかい</small></button>
 <button type="button" class="familyBtn jewelFamily" onclick="chooseJewelMode('normal')"><b>💎 ノーマルコラムス</b><small>3個1組の宝石を揃える</small></button>
-<button type="button" class="familyBtn mageJewelFamily" onclick="chooseJewelMode('mage')"><b>🧙 おせっかい勇者</b><small>魔法使いで宝石の並びをこっそり入れ替える</small></button>
 </div><button type="button" class="backFamilyBtn" onclick="backToFamilyFromJewel()">← 戻る</button>
 </div></div>
 <div id="jewelMageScreen" style="display:none">
@@ -121,7 +121,7 @@ window.columnsToTitle=function(){location.reload()};
 <button id="continueBtn" class="startBtn" style="display:none">コンティニュー</button>
 <button id="titleBtn" class="classBtn">タイトルへ戻る</button>
 </div></div><main>
-<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v108</small></div>
+<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v109</small></div>
 <div class="hud"><span>STAGE <b id="stageText">1</b></span><span>連鎖P <b id="chainPoints">0</b>/<b id="goalPoints">12</b></span><span>SCORE <b id="score">0</b></span><span>必殺 <b id="specialText">0%</b></span><span id="bossHud" style="display:none">BOSS <b id="bossHpText">30</b></span><span id="bossHpGauge" style="display:inline-block;width:110px;height:9px;background:#2a2638;border-radius:8px;overflow:hidden;vertical-align:middle;margin-left:4px"><span id="bossHpBar" style="display:block;width:100%;height:100%;background:#e76565"></span></span><span id="modeText"></span><span id="modeTime"></span><button id="modeExitBtn" style="display:none">離脱</button></div>
 <div class="gauge"><div id="specialBar"></div></div>
 <canvas id="game" width="360" height="630"></canvas><div id="message"></div>
@@ -130,22 +130,42 @@ window.columnsToTitle=function(){location.reload()};
  <div class="actions"><button data-key="grab">掴</button><button data-key="jump">跳</button><button data-key="attack">剣</button><button data-key="kick" class="kick">蹴</button></div>
 </div>
 <p id="className">職業: -</p><p class="help">方向キー＋攻撃 / 跳 / 攻撃長押し=チャージ必殺 / 魔法使い: 剣=炎・蹴=氷・掴=風・跳=浮遊</p>
-<script src="game.js?v=108"></script></main><script>
+<script src="game.js?v=109"></script></main><script>
 (()=>{
 const el=document.getElementById("jmBoard"),mage=document.getElementById("jmMage");if(!el||!mage)return;
 const C=6,R=13,colors=["#ef5c66","#55b9ff","#ffd85b","#69d783","#b46df0","#ff9b4b"];
 const shapes={"#ef5c66":"ruby","#55b9ff":"diamond","#ffd85b":"round","#69d783":"emerald","#b46df0":"hex","#ff9b4b":"drop"};
-let b,cx=2,cy=6,locked=null,score=0,chain=0,busy=false;const cells=[],se=document.getElementById("jmScore"),ce=document.getElementById("jmChain");
+let b,cx=2,cy=6,locked=null,score=0,chain=0,busy=false,piece=null,cpuTimer=null,fallTimer=null;const cells=[],se=document.getElementById("jmScore"),ce=document.getElementById("jmChain");
 for(let i=0;i<C*R;i++){let d=document.createElement("div");d.className="jmCell";el.appendChild(d);cells.push(d)}
 const rnd=()=>colors[Math.floor(Math.random()*colors.length)];
 function gem(c){return '<i class="jmGem '+shapes[c]+'" style="--jc:'+c+'"></i>'}
 function render(){
  for(let y=0;y<R;y++)for(let x=0;x<C;x++){let d=cells[y*C+x];d.innerHTML=b[y][x]?gem(b[y][x]):"";d.classList.toggle("jmLocked",!!locked&&locked.x===x&&locked.y===y)}
+ if(piece)for(let i=0;i<3;i++){let yy=piece.y+i;if(yy>=0&&yy<R)cells[yy*C+piece.x].innerHTML=gem(piece.g[i])}
  mage.style.left=((cx+.5)/C*100)+"%";mage.style.top=((cy+.5)/R*100)+"%";
 }
 function groups(){let seen=new Set(),out=[];for(let y=0;y<R;y++)for(let x=0;x<C;x++){let c=b[y][x],k=x+","+y;if(!c||seen.has(k))continue;let q=[[x,y]],g=[];seen.add(k);while(q.length){let [xx,yy]=q.pop();g.push([xx,yy]);for(const[d,e]of[[1,0],[-1,0],[0,1],[0,-1]]){let nx=xx+d,ny=yy+e,nk=nx+","+ny;if(nx>=0&&nx<C&&ny>=0&&ny<R&&!seen.has(nk)&&b[ny][nx]===c){seen.add(nk);q.push([nx,ny])}}}if(g.length>=3)out.push(g)}return out}
-function resolve(n=1){let gs=groups();if(!gs.length){chain=n-1;ce.textContent=chain;busy=false;render();return}busy=true;chain=n;score+=gs.flat().length*10*n;se.textContent=score;ce.textContent=chain;setTimeout(()=>{gs.flat().forEach(([x,y])=>b[y][x]=null);gravity();render();setTimeout(()=>resolve(n+1),150)},220)}
+function resolve(n=1){let gs=groups();if(!gs.length){chain=n-1;ce.textContent=chain;busy=false;render();setTimeout(cpuSpawn,260);return}busy=true;chain=n;score+=gs.flat().length*10*n;se.textContent=score;ce.textContent=chain;setTimeout(()=>{gs.flat().forEach(([x,y])=>b[y][x]=null);gravity();render();setTimeout(()=>resolve(n+1),150)},220)}
 function gravity(){for(let x=0;x<C;x++){let a=[];for(let y=R-1;y>=0;y--)if(b[y][x])a.push(b[y][x]);for(let y=R-1,i=0;y>=0;y--)b[y][x]=i<a.length?a[i++]:null}}
+function columnRoom(x){let n=0;for(let y=0;y<R;y++)if(!b[y][x])n++;return n>=3}
+function cpuSpawn(){
+ if(piece||busy)return;
+ let choices=[];for(let x=0;x<C;x++)if(columnRoom(x))choices.push(x);
+ if(!choices.length)return;
+ // Deliberately mediocre: mostly random, with only a weak preference for a nearby same color.
+ let x=choices[Math.floor(Math.random()*choices.length)],g=[rnd(),rnd(),rnd()];
+ if(Math.random()<.38){let best=choices.filter(xx=>b[R-1][xx]===g[2]);if(best.length)x=best[Math.floor(Math.random()*best.length)]}
+ piece={x,y:-2,g};render()
+}
+function cpuFall(){
+ if(!piece||busy)return;
+ let ny=piece.y+1,can=true;
+ for(let i=0;i<3;i++){let yy=ny+i;if(yy>=R||(yy>=0&&b[yy][piece.x])){can=false;break}}
+ if(can){piece.y=ny;render();return}
+ let empty=[];for(let y=R-1;y>=0;y--)if(!b[y][piece.x])empty.push(y);
+ if(empty.length<3){piece=null;return}
+ b[empty[2]][piece.x]=piece.g[0];b[empty[1]][piece.x]=piece.g[1];b[empty[0]][piece.x]=piece.g[2];piece=null;render();resolve(1)
+}
 function move(dx,dy){
  if(busy)return;
  if(locked){
@@ -156,10 +176,10 @@ function move(dx,dy){
 }
 function grab(){if(busy)return;if(locked){locked=null;render();return}if(b[cy][cx]){locked={x:cx,y:cy};render()}}
 function reset(){
- b=Array.from({length:R},()=>Array(C).fill(null));score=chain=0;locked=null;busy=false;cx=2;cy=6;
- // settled jewel field, deliberately avoiding immediate triples
- for(let y=7;y<R;y++)for(let x=0;x<C;x++){let c;do{c=rnd()}while((x>=2&&b[y][x-1]===c&&b[y][x-2]===c)||(y>=2&&b[y-1][x]===c&&b[y-2][x]===c));b[y][x]=c}
- se.textContent=ce.textContent=0;render()
+ clearInterval(fallTimer);clearTimeout(cpuTimer);b=Array.from({length:R},()=>Array(C).fill(null));score=chain=0;locked=null;busy=false;piece=null;cx=2;cy=7;
+ // Start with roughly a 3x3 pile. Avoid an accidental opening clear.
+ for(let y=R-3;y<R;y++)for(let x=1;x<=3;x++){let c;do{c=rnd()}while((x>=3&&b[y][x-1]===c&&b[y][x-2]===c)||(y>=2&&b[y-1][x]===c&&b[y-2][x]===c));b[y][x]=c}
+ se.textContent=ce.textContent=0;render();cpuTimer=setTimeout(cpuSpawn,500);fallTimer=setInterval(cpuFall,520)
 }
 window.startJewelMage=reset;
 document.querySelectorAll("[data-jm]").forEach(x=>x.addEventListener("pointerdown",e=>{e.preventDefault();let a=x.dataset.jm;if(a==="grab")grab();else if(a==="left")move(-1,0);else if(a==="right")move(1,0);else if(a==="up")move(0,-1);else move(0,1)}));
@@ -178,7 +198,8 @@ function parts(q){let dx=[0,1,0,-1][q.r],dy=[-1,0,1,0][q.r];return[{x:q.x,y:q.y,
 function valid(q){return parts(q).every(v=>v.x>=0&&v.x<C&&v.y<R&&(v.y<0||!b[v.y][v.x]))}
 function face(c){let f=faces[c];return '<i class="npPuyo '+f+'" style="--pc:'+c+'"><span class="eye e1"></span><span class="eye e2"></span><span class="feature"></span></i>'}
 function render(){for(let y=0;y<R;y++)for(let x=0;x<C;x++)cells[y*C+x].innerHTML=b[y][x]?face(b[y][x]):"";if(p)parts(p).forEach(v=>{if(v.y>=0)cells[v.y*C+v.x].innerHTML=face(v.c)})}
-function spawn(){p={x:2,y:1,r:0,a:rnd(),z:rnd()};if(!valid(p)){run=false;clearInterval(timer);return}render()}
+function spawn(){p={x:2,y:1,r:0,a:rnd(),z:rnd()};if(!valid(p)){p=null;showNormalGameOver();return}render()}
+function showNormalGameOver(){run=false;busy=false;clearInterval(timer);let o=document.getElementById("normalGameOver");if(o)o.style.display="flex"}
 function gravity(){for(let x=0;x<C;x++){let a=[];for(let y=R-1;y>=0;y--)if(b[y][x])a.push(b[y][x]);for(let y=R-1,i=0;y>=0;y--)b[y][x]=i<a.length?a[i++]:null}}
 function groups(){let seen=new Set(),out=[];for(let y=0;y<R;y++)for(let x=0;x<C;x++){let c=b[y][x],k=x+","+y;if(!c||seen.has(k))continue;let q=[[x,y]],g=[];seen.add(k);while(q.length){let [xx,yy]=q.pop();g.push([xx,yy]);for(const[d,e]of[[1,0],[-1,0],[0,1],[0,-1]]){let nx=xx+d,ny=yy+e,nk=nx+","+ny;if(nx>=0&&nx<C&&ny>=0&&ny<R&&!seen.has(nk)&&b[ny][nx]===c){seen.add(nk);q.push([nx,ny])}}}if(g.length>=4)out.push(g)}return out}
 function resolve(n){busy=true;let gs=groups();if(!gs.length){chain=n-1;ce.textContent=chain;busy=false;spawn();return}chain=n;score+=gs.flat().length*10*n;se.textContent=score;ce.textContent=chain;setTimeout(()=>{gs.flat().forEach(([x,y])=>b[y][x]=null);gravity();render();setTimeout(()=>resolve(n+1),150)},220)}
@@ -186,7 +207,7 @@ function lock(){parts(p).forEach(v=>b[v.y][v.x]=v.c);p=null;gravity();render();r
 function step(){if(!run||busy||!p)return;let q={...p,y:p.y+1};if(valid(q)){p=q;render()}else{if(rotateHeld||performance.now()<landGraceUntil)return;lock()}}
 function rotate(dir){if(!run||busy||!p)return;landGraceUntil=performance.now()+260;let nr=(p.r+(dir>0?1:3))%4;for(const kick of [0,-1,1]){let q={...p,x:p.x+kick,r:nr};if(valid(q)){p=q;render();return}}}
 function act(a){if(!run||busy||!p)return;if(a==="left"||a==="right"){let q={...p,x:p.x+(a==="left"?-1:1)};if(valid(q))p=q}else if(a==="rotateL"){rotate(-1);return}else if(a==="rotateR"){rotate(1);return}else{let q={...p,y:p.y+1};while(valid(q)){p=q;q={...p,y:p.y+1}}lock();return}render()}
-window.startNormalPuyo=()=>{clearInterval(timer);rotateHeld=false;landGraceUntil=0;b=Array.from({length:R},()=>Array(C).fill(null));score=chain=0;run=true;busy=false;se.textContent=ce.textContent=0;spawn();timer=setInterval(step,650)};
+window.startNormalPuyo=()=>{clearInterval(timer);rotateHeld=false;landGraceUntil=0;let o=document.getElementById("normalGameOver");if(o)o.style.display="none";b=Array.from({length:R},()=>Array(C).fill(null));score=chain=0;run=true;busy=false;se.textContent=ce.textContent=0;spawn();timer=setInterval(step,650)};
 document.querySelectorAll("[data-np]").forEach(x=>{
  x.addEventListener("pointerdown",e=>{
   e.preventDefault();
