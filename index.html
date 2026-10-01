@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>転生したら落ちゲーの中でした。Prototype v136</title><link rel="stylesheet" href="style.css?v=136">
+<title>転生したら落ちゲーの中でした。Prototype v137</title><link rel="stylesheet" href="style.css?v=137">
 <script>
 window.pendingClass=null;
 window.CLASS_HELP_SAFE={
@@ -84,11 +84,11 @@ window.startSelectedJob=function(){
  <div class="virusTop"><b id="virusTitle">🦠 ウィルス</b><span>VIRUS <strong id="virusCount">0</strong></span><span>CHAIN <strong id="virusChain">0</strong></span><button onclick="virusToTitle()">タイトル</button></div>
  <div id="virusBoard"><div id="virusOverlay"></div></div>
  <div id="healerSprite" style="display:none">
- <span class="wmHood"></span><span class="wmFace">•ᴗ•</span><span class="wmHair"></span>
- <span class="wmRobe"></span><span class="wmCape"></span>
+ <span class="whHat">▲</span><span class="whFace">•ᴗ•</span><span class="whBody"></span>
+ <span class="whCape"></span><span class="whStaff"></span><span class="whStaffGem">✦</span>
 </div>
  <div id="virusNormalControls" class="virusControls"><button data-v="left">◀</button><button data-v="rotL">↺</button><button data-v="rotR">↻</button><button data-v="right">▶</button><button data-v="down">▼</button></div>
- <div id="healerControls" class="healerControls" style="display:none"><div class="healerStick" id="healerStick"><div class="healerStickKnob" id="healerStickKnob"></div></div><div class="healerActions"><button data-v="shot" class="shotBtn">✦<small>光弾</small></button></div></div>
+ <div id="healerControls" class="healerControls" style="display:none"><div class="healerStick" id="healerStick"><div class="healerStickKnob" id="healerStickKnob"></div></div><div class="healerActions"><button data-v="shot" class="shotBtn">✦<small>治癒魔法</small></button></div></div>
 </div>
 <div id="columnsScreen" style="display:none">
  <div class="columnsTop"><b>💎 宝石コラムス</b><span>SCORE <strong id="columnsScore">0</strong></span><span>CHAIN <strong id="columnsChain">0</strong></span><button type="button" onclick="columnsToTitle()">タイトル</button></div>
@@ -149,7 +149,7 @@ window.columnsToTitle=function(){location.reload()};
 <button id="continueBtn" class="startBtn" style="display:none">コンティニュー</button>
 <button id="titleBtn" class="classBtn">タイトルへ戻る</button>
 </div></div><main>
-<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v136</small></div>
+<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v137</small></div>
 <div class="hud"><span>STAGE <b id="stageText">1</b></span><span>連鎖P <b id="chainPoints">0</b>/<b id="goalPoints">12</b></span><span>SCORE <b id="score">0</b></span><span>必殺 <b id="specialText">0%</b></span><span id="bossHud" style="display:none">BOSS <b id="bossHpText">30</b></span><span id="bossHpGauge" style="display:inline-block;width:110px;height:9px;background:#2a2638;border-radius:8px;overflow:hidden;vertical-align:middle;margin-left:4px"><span id="bossHpBar" style="display:block;width:100%;height:100%;background:#e76565"></span></span><span id="modeText"></span><span id="modeTime"></span><button id="modeExitBtn" style="display:none">離脱</button></div>
 <div class="gauge"><div id="specialBar"></div></div>
 <canvas id="game" width="360" height="630"></canvas><div id="message"></div>
@@ -158,7 +158,7 @@ window.columnsToTitle=function(){location.reload()};
  <div class="actions"><button data-key="grab">掴</button><button data-key="jump">跳</button><button data-key="attack">剣</button><button data-key="kick" class="kick">蹴</button></div>
 </div>
 <p id="className">職業: -</p><p class="help">方向キー＋攻撃 / 跳 / 攻撃長押し=チャージ必殺 / 魔法使い: 剣=炎・蹴=氷・掴=風・跳=浮遊</p>
-<script src="game.js?v=136"></script></main><script>
+<script src="game.js?v=137"></script></main><script>
 function showChainFx(host,n){
  let old=host.querySelector(".chainBurst");if(old)old.remove();
  let d=document.createElement("div");d.className="chainBurst";d.textContent=n>1?n+" CHAIN!":"CLEAR!";
@@ -222,22 +222,27 @@ function healerPhysics(){
 function healerJump(){if(mode!=="healer")return;hvy=-.145;render()}
 function healerShot(){
  if(mode!=="healer"||busy)return;
- let y=Math.max(0,Math.min(R-1,Math.round(hy))),sx=Math.max(0,Math.min(C-1,Math.round(hx))),dir=hface;
- let orb=document.createElement("i");orb.className="healerLightShot";overlay.appendChild(orb);
- orb.style.left=((sx+.5)/C*100)+"%";orb.style.top=((y+.5)/R*100)+"%";
- let x=sx,steps=0;
- let iv=setInterval(()=>{
-  x+=dir;steps++;
-  orb.style.left=((x+.5)/C*100)+"%";
-  if(x<0||x>=C||steps>C+1){clearInterval(iv);orb.remove();return}
-  let o=b[y][x];
-  if(o){
-   clearInterval(iv);orb.remove();
-   if(o.virus){
-    if(y+1<R&&!b[y+1][x]){b[y+1][x]=o;b[y][x]=null;render();if(matches().length)resolve(1)}
-   }else{o.c=CS[(CS.indexOf(o.c)+1)%3];render();if(matches().length)resolve(1)}
-  }
- },45);
+ let sx=Math.max(0,Math.min(C-1,Math.round(hx))),sy=Math.max(0,Math.min(R-1,Math.round(hy)));
+ let tx=sx+hface,ty=sy;
+ if(tx<0||tx>=C)return;
+ let o=b[ty][tx];
+ let fx=document.createElement("i");fx.className="healerStaffFx";overlay.appendChild(fx);
+ fx.style.left=((tx+.5)/C*100)+"%";fx.style.top=((ty+.5)/R*100)+"%";
+ setTimeout(()=>fx.remove(),280);
+ if(!o)return;
+ if(!o.virus){
+  o.c=CS[(CS.indexOf(o.c)+1)%3];render();if(matches().length)resolve(1);return
+ }
+ // Virus: randomly move one cell among currently open cardinal directions.
+ let dirs=[[1,0],[-1,0],[0,1],[0,-1]].filter(([dx,dy])=>{
+  let nx=tx+dx,ny=ty+dy;
+  return nx>=0&&nx<C&&ny>=0&&ny<R&&!b[ny][nx]
+ });
+ if(dirs.length){
+  let [dx,dy]=dirs[Math.floor(Math.random()*dirs.length)];
+  b[ty+dy][tx+dx]=o;b[ty][tx]=null;render();
+  if(matches().length)resolve(1)
+ }
 }
 function step(){if(!run)return;
  let now=performance.now(),fallMs=mode==="healer"?650:650;

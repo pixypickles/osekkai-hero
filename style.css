@@ -266,3 +266,21 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 
 /* v136: healer uses Columns-mage movement, so jump is no longer part of the controls */
 .healerActions .jumpBtn{display:none!important}
+
+/* v137: white healer shares Jewel Mage's cute compact silhouette */
+#virusOverlay>#healerSprite{
+ width:38px!important;height:48px!important;
+ filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))!important;
+ transition:left .08s,top .08s!important
+}
+.whHat{position:absolute;left:8px;top:-8px;font-size:30px;color:#fff8df;text-shadow:0 5px 0 #d7c9a6}
+.whFace{position:absolute;left:8px;top:17px;width:24px;height:18px;background:#ffe2c1;border-radius:50%;font-size:9px;text-align:center;color:#28304a;z-index:3}
+.whBody{position:absolute;left:8px;top:32px;width:25px;height:16px;background:#f7f3e8;border:2px solid #d8cba9;box-sizing:border-box;border-radius:10px 10px 4px 4px}
+.whBody:after{content:"✦";position:absolute;left:7px;top:0px;font-size:9px;color:#d7a72f}
+.whCape{position:absolute;left:5px;top:31px;width:31px;height:17px;background:#d94b55;clip-path:polygon(12% 0,88% 0,100% 100%,0 100%);z-index:-1}
+.whStaff{position:absolute;left:30px;top:13px;width:4px;height:31px;background:#d7a55b;border-radius:4px;transform:rotate(-15deg);transform-origin:center}
+.whStaffGem{position:absolute;left:39px;top:2px;color:#fff3a0;font-size:15px;text-shadow:0 0 7px white,0 0 10px #ffe45c}
+#healerSprite.faceLeft .whStaff{left:4px;transform:rotate(15deg)}
+#healerSprite.faceLeft .whStaffGem{left:-3px}
+.healerStaffFx{position:absolute;z-index:70;width:30px;height:30px;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;border:2px solid rgba(255,255,255,.9);box-shadow:0 0 8px #fff,0 0 16px #ffe878}
+.healerStaffFx:after{content:"✦";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff6a5;font-size:20px}
