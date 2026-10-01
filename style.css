@@ -227,3 +227,6 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
  right:auto!important;bottom:auto!important;margin:0!important;
  transform:translate(-50%,-50%)!important;pointer-events:none!important
 }
+
+/* v126 healer branding */
+.healerVirusFamily b{color:#fff8cf}
