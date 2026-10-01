@@ -266,8 +266,10 @@ function resolve(){
  document.querySelector("#chainPoints").textContent=chainPoints;let gp=document.querySelector("#goalPoints");if(gp)gp.textContent=gameMode==="endless"?"∞":GOAL;
  if(gain>0)msg(`連鎖P +${gain}${simulGain?`（同時消し+${simulGain}）`:""}`);
  if(!bossMode&&gameMode!=="endless"&&chainPoints>=GOAL){finishStage();}
- groups.flat().forEach(([x,y])=>{board[y][x]=null;score+=10*chain;special=Math.min(100,special+3*chain)});
- setTimeout(()=>{gravity();resolve()},160);
+ let clearing=groups.flat();
+ clearing.forEach(([x,y])=>{if(board[y][x])board[y][x].clearing=true;score+=10*chain;special=Math.min(100,special+3*chain)});
+ msg(chain>1?`${chain} CHAIN!`:"消える！");
+ setTimeout(()=>{clearing.forEach(([x,y])=>{board[y][x]=null});gravity();setTimeout(()=>resolve(),300)},520);
 }
 function gravity(){
  for(let x=0;x<W;x++){

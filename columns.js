@@ -43,7 +43,8 @@ function matches(){
 function gravity(){for(let x=0;x<C;x++){let a=[];for(let y=R-1;y>=0;y--)if(board[y][x])a.push(board[y][x]);for(let y=R-1,i=0;y>=0;y--)board[y][x]=i<a.length?a[i++]:null}}
 function resolve(n){resolving=true;let m=matches();if(!m.length){chain=n-1;resolving=false;sync();spawn();return}
  chain=n;score+=m.length*10*n;sync();m.forEach(([x,y])=>cells[y*C+x].classList.add("pop"));
- setTimeout(()=>{m.forEach(([x,y])=>{board[y][x]=null;cells[y*C+x].classList.remove("pop")});gravity();render();setTimeout(()=>resolve(n+1),140)},220)
+ let fx=document.createElement("div");fx.className="chainBurst";fx.textContent=n>1?n+" CHAIN!":"CLEAR!";el.appendChild(fx);setTimeout(()=>fx.remove(),650);
+ setTimeout(()=>{m.forEach(([x,y])=>{board[y][x]=null;cells[y*C+x].classList.remove("pop")});gravity();render();setTimeout(()=>resolve(n+1),300)},520)
 }
 function gameOver(){
  if(!running)return;running=false;clearInterval(timer);el.classList.add("gameOver");el.querySelector(".columnsOver")?.remove();

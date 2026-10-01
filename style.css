@@ -171,3 +171,11 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 
 /* v115: Hero + Monk only */
 #classSelect .classGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+
+/* v116: readable clear/chain effects */
+.chainBurst{position:absolute;left:50%;top:43%;transform:translate(-50%,-50%);z-index:40;pointer-events:none;font-size:25px;font-weight:1000;color:white;text-shadow:0 2px 0 #25344e,0 0 12px #fff;animation:chainBurst .65s ease-out forwards}
+@keyframes chainBurst{0%{opacity:0;transform:translate(-50%,-42%) scale(.65)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.18)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-65%) scale(1)}}
+.npCell.clearFx .npPuyo,.jmCell.clearFx .jmGem{animation:clearPulse .52s ease-in-out forwards}
+@keyframes clearPulse{0%{transform:scale(1);filter:brightness(1)}22%{transform:scale(1.18);filter:brightness(1.8)}45%{transform:scale(.92);filter:brightness(2.2)}70%{transform:scale(1.12);opacity:1}100%{transform:scale(.15);opacity:0;filter:brightness(2.6)}}
+.colCell.pop .jewel{animation:colPopV116 .52s ease-in-out forwards!important}
+@keyframes colPopV116{0%{transform:scale(1);opacity:1;filter:brightness(1)}25%{transform:scale(1.2) rotate(15deg);filter:brightness(1.8)}55%{transform:scale(.9) rotate(45deg);filter:brightness(2.3)}100%{transform:scale(.05) rotate(150deg);opacity:0}}
