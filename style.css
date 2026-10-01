@@ -100,3 +100,32 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 
 .familySelect .panel,.slimeModeSelect .panel{width:min(460px,92vw);max-height:90dvh;overflow:auto;box-sizing:border-box}.familyGrid,.slimeModeGrid{display:grid;grid-template-columns:1fr;gap:10px}.familyBtn{width:100%;min-height:82px;height:auto;white-space:normal;padding:12px;box-sizing:border-box}.normalFamily{background:linear-gradient(160deg,#194c78,#275e8a)}.backFamilyBtn{margin-top:12px;padding:9px 18px}
 #normalPuyoScreen{position:fixed;inset:0;z-index:120;background:#11192d;color:white;flex-direction:column;align-items:center;height:100dvh}.normalTop{width:min(340px,94vw);height:44px;display:flex;align-items:center;gap:8px;font-size:11px}.normalTop>b{margin-right:auto;font-size:15px}#normalPuyoBoard{position:relative;height:min(calc(100dvh - 116px),calc(90vw * 2));aspect-ratio:6/12;display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(12,1fr);background:#13223c;border:2px solid #779bc5}.npCell{display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.05)}.npPuyo{display:block;width:82%;height:82%;border-radius:50%;background:var(--pc);box-shadow:inset 5px 6px 0 rgba(255,255,255,.28),inset -4px -5px 0 rgba(0,0,0,.18)}.normalControls{width:min(360px,100vw);height:72px;display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:6px 8px;box-sizing:border-box}.normalControls button{height:56px;border-radius:15px;font-size:24px}.normalControls small{display:block;font-size:9px}
+
+/* v105 normal Puyo: 5 controls + comedy faces */
+.normalControls{grid-template-columns:repeat(5,1fr);gap:5px}
+.normalControls button{font-size:21px;padding:2px}
+.normalControls small{font-size:8px}
+.npPuyo{position:relative;overflow:hidden}
+.npPuyo .eye{position:absolute;top:29%;width:14%;height:18%;background:#fff;border-radius:50%;box-shadow:inset 0 -2px 0 rgba(0,0,0,.12)}
+.npPuyo .eye:after{content:"";position:absolute;width:42%;height:48%;background:#172033;border-radius:50%;left:31%;top:30%}
+.npPuyo .e1{left:24%}.npPuyo .e2{right:24%}
+.npPuyo .feature{position:absolute;left:27%;top:60%;width:46%;height:16%;box-sizing:border-box}
+/* red: glamorous big-sister parody — eyeshadow + lipstick */
+.npPuyo.sexy .eye{box-shadow:0 -4px 0 #8f4a9e,inset 0 -2px 0 rgba(0,0,0,.12);transform:scaleX(1.15)}
+.npPuyo.sexy .feature{background:#b7194e;border-radius:55% 55% 48% 48%;height:13%;box-shadow:inset 0 3px 0 rgba(255,255,255,.35)}
+/* blue: absurdly handsome — sharp brows + sparkling grin */
+.npPuyo.ikemen .eye{height:13%;border-radius:60% 20% 55% 20%;transform:rotate(-5deg)}
+.npPuyo.ikemen .e2{transform:rotate(5deg)}
+.npPuyo.ikemen .feature{height:12%;border-bottom:4px solid #fff;border-radius:0 0 50% 50%}
+.npPuyo.ikemen:after{content:"✦";position:absolute;right:8%;top:8%;font-size:10px;color:white}
+/* yellow: moustached uncle */
+.npPuyo.hige .feature{top:55%;left:20%;width:60%;height:28%;background:#5a3926;clip-path:polygon(0 35%,35% 20%,50% 42%,65% 20%,100% 35%,70% 70%,50% 48%,30% 70%)}
+.npPuyo.hige .eye{height:12%}
+/* green: over-serious glasses nerd */
+.npPuyo.nerd .eye{border:2px solid #25324a;background:#fff;width:20%;height:20%}.npPuyo.nerd .e1{left:17%}.npPuyo.nerd .e2{right:17%}
+.npPuyo.nerd .feature{height:8%;border-top:3px solid #33415c;border-radius:50%}
+.npPuyo.nerd:after{content:"";position:absolute;left:37%;top:37%;width:26%;border-top:2px solid #25324a}
+/* purple: dramatic madam with lashes and beauty mark */
+.npPuyo.madam .eye{height:12%;box-shadow:0 -3px 0 #262034;transform:rotate(5deg)}.npPuyo.madam .e2{transform:rotate(-5deg)}
+.npPuyo.madam .feature{left:34%;width:32%;height:10%;border-bottom:3px solid #8e173e;border-radius:50%}
+.npPuyo.madam:after{content:"•";position:absolute;right:22%;top:55%;font-size:11px;color:#34213b}
