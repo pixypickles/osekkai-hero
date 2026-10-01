@@ -215,3 +215,6 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 .vCell{min-width:0!important;min-height:0!important;width:auto!important;height:auto!important}
 
 #virusScreen>#healerSprite{position:absolute!important;display:block;z-index:150!important;width:42px!important;height:58px!important;right:auto!important;bottom:auto!important;margin:0!important;transform:translate(-50%,-50%)!important;pointer-events:none!important}
+
+#virusScreen>#healerSprite{display:block!important;visibility:visible!important;opacity:1!important;position:absolute!important;z-index:999!important;width:52px!important;height:66px!important;right:auto!important;bottom:auto!important;margin:0!important;transform:translate(-50%,-50%)!important;pointer-events:none!important;overflow:visible!important}
+#virusScreen>#healerSprite .wmHood,#virusScreen>#healerSprite .wmFace,#virusScreen>#healerSprite .wmHair,#virusScreen>#healerSprite .wmRobe,#virusScreen>#healerSprite .wmCape,#virusScreen>#healerSprite .wmStaff,#virusScreen>#healerSprite .wmOrb{display:block!important}
