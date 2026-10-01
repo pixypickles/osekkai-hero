@@ -371,3 +371,12 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 .player.monk .torso,.monkPlayer .torso,.monkSprite .torso{
  background:#e28a2b!important;border-color:#6c3c19!important;
 }
+
+/* v142: carried virus visibly sticks to the wand tip */
+#healerSprite.holdingVirus .whStaffGem:after{
+ content:"ಠ‿ಠ";position:absolute;left:8px;top:-2px;
+ width:25px;height:25px;border-radius:50%;
+ display:flex;align-items:center;justify-content:center;
+ background:#ef5a5a;color:#fff;font-size:8px;font-weight:900;
+ border:2px solid #263148;box-shadow:0 0 6px rgba(255,240,130,.8);
+}

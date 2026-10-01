@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>転生したら落ちゲーの中でした。Prototype v141</title><link rel="stylesheet" href="style.css?v=141">
+<title>転生したら落ちゲーの中でした。Prototype v142</title><link rel="stylesheet" href="style.css?v=142">
 <script>
 window.pendingClass=null;
 window.CLASS_HELP_SAFE={
@@ -149,7 +149,7 @@ window.columnsToTitle=function(){location.reload()};
 <button id="continueBtn" class="startBtn" style="display:none">コンティニュー</button>
 <button id="titleBtn" class="classBtn">タイトルへ戻る</button>
 </div></div><main>
-<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v141</small></div>
+<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v142</small></div>
 <div class="hud"><span>STAGE <b id="stageText">1</b></span><span>連鎖P <b id="chainPoints">0</b>/<b id="goalPoints">12</b></span><span>SCORE <b id="score">0</b></span><span>必殺 <b id="specialText">0%</b></span><span id="bossHud" style="display:none">BOSS <b id="bossHpText">30</b></span><span id="bossHpGauge" style="display:inline-block;width:110px;height:9px;background:#2a2638;border-radius:8px;overflow:hidden;vertical-align:middle;margin-left:4px"><span id="bossHpBar" style="display:block;width:100%;height:100%;background:#e76565"></span></span><span id="modeText"></span><span id="modeTime"></span><button id="modeExitBtn" style="display:none">離脱</button></div>
 <div class="gauge"><div id="specialBar"></div></div>
 <canvas id="game" width="360" height="630"></canvas><div id="message"></div>
@@ -158,7 +158,7 @@ window.columnsToTitle=function(){location.reload()};
  <div class="actions"><button data-key="grab">掴</button><button data-key="jump">跳</button><button data-key="attack">剣</button><button data-key="kick" class="kick">蹴</button></div>
 </div>
 <p id="className">職業: -</p><p class="help">方向キー＋攻撃 / 跳 / 攻撃長押し=チャージ必殺 / 魔法使い: 剣=炎・蹴=氷・掴=風・跳=浮遊</p>
-<script src="game.js?v=141"></script></main><script>
+<script src="game.js?v=142"></script></main><script>
 function showChainFx(host,n){
  let old=host.querySelector(".chainBurst");if(old)old.remove();
  let d=document.createElement("div");d.className="chainBurst";d.textContent=n>1?n+" CHAIN!":"CLEAR!";
@@ -229,27 +229,26 @@ function healerPhysics(){
 function healerJump(){if(mode!=="healer")return;hvy=-.145;render()}
 function healerShot(){
  if(mode!=="healer"||busy)return;
- let sx=Math.round(hx),sy=Math.max(0,Math.min(R-1,Math.round(hy)));
- let tx=sx+1,ty=sy;
+ let sx=Math.round(hx),sy=Math.max(0,Math.min(R-1,Math.round(hy))),tx=sx+1,ty=sy;
  if(tx<0||tx>=C)return;
- let o=b[ty][tx];
  let fx=document.createElement("i");fx.className="healerStaffFx";overlay.appendChild(fx);
  fx.style.left=((tx+.5)/C*100)+"%";fx.style.top=((ty+.5)/R*100)+"%";
  setTimeout(()=>fx.remove(),280);
- if(!o)return;
- if(!o.virus){
-  o.c=CS[(CS.indexOf(o.c)+1)%3];render();if(matches().length)resolve(1);return
+
+ // Press again while carrying: release the virus at the staff-tip cell if empty.
+ if(held&&held.virus){
+  if(!b[ty][tx]){
+   b[ty][tx]=held;held=null;healer.classList.remove("holdingVirus");render();
+   if(matches().length)resolve(1)
+  }
+  return
  }
- // Virus: randomly move one cell among currently open cardinal directions.
- let dirs=[[1,0],[-1,0],[0,1],[0,-1]].filter(([dx,dy])=>{
-  let nx=tx+dx,ny=ty+dy;
-  return nx>=0&&nx<C&&ny>=0&&ny<R&&!b[ny][nx]
- });
- if(dirs.length){
-  let [dx,dy]=dirs[Math.floor(Math.random()*dirs.length)];
-  b[ty+dy][tx+dx]=o;b[ty][tx]=null;render();
-  if(matches().length)resolve(1)
+
+ let o=b[ty][tx];if(!o)return;
+ if(o.virus){
+  held=o;b[ty][tx]=null;healer.classList.add("holdingVirus");render();return
  }
+ o.c=CS[(CS.indexOf(o.c)+1)%3];render();if(matches().length)resolve(1)
 }
 function step(){if(!run)return;
  let now=performance.now(),fallMs=mode==="healer"?650:650;
