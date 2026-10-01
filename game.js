@@ -989,15 +989,15 @@ function msg(t){let m=document.querySelector("#message");m.textContent=t;if(!gam
 function update(dt){
  for(const e of effects)if((e.type==="crescentProjectile"||e.type==="kiProjectile")&&!bossMode){
    e.travel=(e.travel||0)+(e.speed||.012)*dt;
-   let px=e.x+e.dx*e.travel,py=e.y+e.dy*e.travel,changed=false;
-   for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]){
+   let px=e.x+e.dx*e.travel,py=e.y+e.dy*e.travel,changed=false,shotRow=Math.max(0,Math.min(H-1,Math.floor(e.y)));
+   for(let x=0;x<W;x++)if(board[shotRow][x]){
      let ahead=e.dx>0?x+.5>=e.x:x+.5<=e.x;
-     if(ahead&&Math.hypot(x+.5-px,y+.5-py)<.62){hitEffect(x+.5,y+.5,e.color);board[y][x]=null;changed=true}
+     if(ahead&&Math.abs(x+.5-px)<.62){hitEffect(x+.5,shotRow+.5,e.color);board[shotRow][x]=null;changed=true}
    }
    for(const q of pairs)for(const part of [0,1]){
      if((part===0&&q.a==null)||(part===1&&q.b==null))continue;
      let z=pairPos(q,part),ahead=e.dx>0?z.x+.5>=e.x:z.x+.5<=e.x;
-     if(ahead&&Math.hypot(z.x+.5-px,z.y+.5-py)<.62){hitEffect(z.x+.5,z.y+.5,e.color);if(part===0)q.a=null;else q.b=null;changed=true}
+     if(ahead&&Math.floor(z.y)===shotRow&&Math.abs(z.x+.5-px)<.62){hitEffect(z.x+.5,z.y+.5,e.color);if(part===0)q.a=null;else q.b=null;changed=true}
    }
    if(changed){gravity();resolve()}
  }

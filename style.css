@@ -388,3 +388,21 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
  border-color:#263148!important;
  box-shadow:0 0 6px rgba(215,255,220,.9)!important;
 }
+
+/* v145: Jewel Mage polish — same silhouette, richer costume details */
+.mageHat{
+ background:linear-gradient(145deg,#4567c9 0 58%,#7653b8 59% 76%,#e7c85b 77% 84%,#344d9c 85%)!important;
+ border-color:#202c65!important;
+ box-shadow:inset 0 -4px 0 rgba(28,35,88,.28)!important;
+}
+.mageBody,.mageRobe{
+ background:linear-gradient(90deg,#3e59b5 0 17%,#5878d4 18% 72%,#7453ad 73% 88%,#34478f 89%)!important;
+ border-color:#202c65!important;
+}
+.mageBody:after,.mageRobe:after{
+ content:"✦"!important;color:#f4d96a!important;
+ text-shadow:0 1px 0 #493b75!important;
+}
+.mageCape{background:#5b3d8d!important;border-color:#2b245a!important}
+.mageStaff{background:#6d4930!important;box-shadow:0 0 0 1px #2d244f!important}
+.mageOrb,.mageStaffGem{color:#f4d96a!important;text-shadow:0 0 5px #fff2a5,0 0 9px #8e72dd!important}
