@@ -250,3 +250,13 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
  background:#fff;box-shadow:0 0 7px 4px #fff6a5,0 0 15px 8px rgba(255,232,85,.8);
  transform:translate(-50%,-50%);pointer-events:none;
 }
+
+/* v133: keep the movement stick truly circular on narrow phones */
+.healerControls{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important}
+.healerControls .stick,.healerControls .stickRing{
+ flex:0 0 132px!important;width:132px!important;height:132px!important;
+ min-width:132px!important;min-height:132px!important;max-width:132px!important;max-height:132px!important;
+ aspect-ratio:1/1!important;border-radius:50%!important
+}
+.healerActions{flex:0 0 auto!important;display:flex!important;gap:6px!important}
+.healerActions .jumpBtn,.healerActions .shotBtn{width:72px!important;height:68px!important;padding:4px!important}
