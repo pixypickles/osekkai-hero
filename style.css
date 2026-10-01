@@ -145,3 +145,14 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 
 .normalGameOver{position:absolute;inset:0;z-index:20;background:rgba(5,9,20,.88);flex-direction:column;align-items:center;justify-content:center;gap:10px;color:white}
 .normalGameOver b{font-size:28px}.normalGameOver small{font-size:12px;margin-bottom:6px}.normalGameOver button{width:150px;padding:10px;border-radius:12px;font-weight:800}
+
+/* v110 jewel mage controls / exact staff target */
+.jmControls{width:min(370px,100vw);height:142px;display:flex;align-items:center;justify-content:space-around;padding:5px 16px 8px;box-sizing:border-box}
+.jmStick{width:126px;height:126px;touch-action:none;position:relative;flex:0 0 126px}
+.jmStickRing{position:absolute;inset:3px;border-radius:50%;background:#4f5c7c;border:3px solid #8291b5;box-shadow:inset 0 0 0 3px rgba(0,0,0,.16),0 5px 0 rgba(0,0,0,.25)}
+.jmStickRing:before{content:"＋";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.28);font-size:76px;font-weight:300}
+.jmStickKnob{position:absolute;width:54px;height:54px;left:calc(50% - 27px);top:calc(50% - 27px);border-radius:50%;background:#dbe5ff;border:3px solid white;box-shadow:0 4px 0 rgba(0,0,0,.3);transition:transform .04s linear}
+.jmGrabBtn{width:105px;height:76px;border-radius:22px;font-size:30px;font-weight:900}.jmGrabBtn small{display:block;font-size:10px}
+#jmMage{margin-left:-34px;margin-top:24px}
+.jmStaff{position:absolute;height:5px;background:#d7a55b;border-radius:4px;transform-origin:right center;z-index:-1}
+.jmStaffGem{position:absolute;transform:translate(-50%,-50%);font-size:18px;color:#8ee8ff;text-shadow:0 0 8px white;z-index:9}

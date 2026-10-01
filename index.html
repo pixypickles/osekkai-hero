@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>転生したら落ちゲーの中でした。Prototype v109</title><link rel="stylesheet" href="style.css?v=109">
+<title>転生したら落ちゲーの中でした。Prototype v110</title><link rel="stylesheet" href="style.css?v=110">
 <script>
 window.pendingClass=null;
 window.CLASS_HELP_SAFE={
@@ -65,8 +65,11 @@ window.startSelectedJob=function(){
 </div></div>
 <div id="jewelMageScreen" style="display:none">
  <div class="jmTop"><b>🧙 宝石おせっかい</b><span>SCORE <strong id="jmScore">0</strong></span><span>CHAIN <strong id="jmChain">0</strong></span><button onclick="jewelMageToTitle()">タイトル</button></div>
- <div id="jmBoardWrap"><div id="jmBoard"></div><div id="jmMage"><span class="jmHat">▲</span><span class="jmFace">•ᴗ•</span><span class="jmBody"></span><span class="jmStaff">╱</span><span class="jmStaffGem">◆</span></div></div>
- <div class="jmControls"><button data-jm="left">◀</button><button data-jm="up">▲</button><button data-jm="grab">✦<small>ロック</small></button><button data-jm="down">▼</button><button data-jm="right">▶</button></div>
+ <div id="jmBoardWrap"><div id="jmBoard"></div><div id="jmMage"><span class="jmHat">▲</span><span class="jmFace">•ᴗ•</span><span class="jmBody"></span><span class="jmStaff"></span><span class="jmStaffGem">◆</span></div></div>
+ <div class="jmControls">
+ <div class="jmStick" id="jmStick"><div class="jmStickRing"><div class="jmStickKnob" id="jmStickKnob"></div></div></div>
+ <button class="jmGrabBtn" data-jm="grab">✦<small>ロック</small></button>
+</div>
  <div class="jmHint">✦で杖先の宝石をロック → 方向キーで隣と入れ替え → ✦でもう一度離す</div>
 </div>
 <div id="columnsScreen" style="display:none">
@@ -121,7 +124,7 @@ window.columnsToTitle=function(){location.reload()};
 <button id="continueBtn" class="startBtn" style="display:none">コンティニュー</button>
 <button id="titleBtn" class="classBtn">タイトルへ戻る</button>
 </div></div><main>
-<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v109</small></div>
+<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v110</small></div>
 <div class="hud"><span>STAGE <b id="stageText">1</b></span><span>連鎖P <b id="chainPoints">0</b>/<b id="goalPoints">12</b></span><span>SCORE <b id="score">0</b></span><span>必殺 <b id="specialText">0%</b></span><span id="bossHud" style="display:none">BOSS <b id="bossHpText">30</b></span><span id="bossHpGauge" style="display:inline-block;width:110px;height:9px;background:#2a2638;border-radius:8px;overflow:hidden;vertical-align:middle;margin-left:4px"><span id="bossHpBar" style="display:block;width:100%;height:100%;background:#e76565"></span></span><span id="modeText"></span><span id="modeTime"></span><button id="modeExitBtn" style="display:none">離脱</button></div>
 <div class="gauge"><div id="specialBar"></div></div>
 <canvas id="game" width="360" height="630"></canvas><div id="message"></div>
@@ -130,7 +133,7 @@ window.columnsToTitle=function(){location.reload()};
  <div class="actions"><button data-key="grab">掴</button><button data-key="jump">跳</button><button data-key="attack">剣</button><button data-key="kick" class="kick">蹴</button></div>
 </div>
 <p id="className">職業: -</p><p class="help">方向キー＋攻撃 / 跳 / 攻撃長押し=チャージ必殺 / 魔法使い: 剣=炎・蹴=氷・掴=風・跳=浮遊</p>
-<script src="game.js?v=109"></script></main><script>
+<script src="game.js?v=110"></script></main><script>
 (()=>{
 const el=document.getElementById("jmBoard"),mage=document.getElementById("jmMage");if(!el||!mage)return;
 const C=6,R=13,colors=["#ef5c66","#55b9ff","#ffd85b","#69d783","#b46df0","#ff9b4b"];
@@ -143,6 +146,10 @@ function render(){
  for(let y=0;y<R;y++)for(let x=0;x<C;x++){let d=cells[y*C+x];d.innerHTML=b[y][x]?gem(b[y][x]):"";d.classList.toggle("jmLocked",!!locked&&locked.x===x&&locked.y===y)}
  if(piece)for(let i=0;i<3;i++){let yy=piece.y+i;if(yy>=0&&yy<R)cells[yy*C+piece.x].innerHTML=gem(piece.g[i])}
  mage.style.left=((cx+.5)/C*100)+"%";mage.style.top=((cy+.5)/R*100)+"%";
+ const tip=mage.querySelector(".jmStaffGem"),staff=mage.querySelector(".jmStaff");
+ // Mage floats just in front/below-left of the target; staff endpoint is exactly the target cell center.
+ tip.style.left="50%";tip.style.top="50%";
+ if(staff){staff.style.left="-30px";staff.style.top="25px";staff.style.width="39px";staff.style.transform="rotate(-42deg)"}
 }
 function groups(){let seen=new Set(),out=[];for(let y=0;y<R;y++)for(let x=0;x<C;x++){let c=b[y][x],k=x+","+y;if(!c||seen.has(k))continue;let q=[[x,y]],g=[];seen.add(k);while(q.length){let [xx,yy]=q.pop();g.push([xx,yy]);for(const[d,e]of[[1,0],[-1,0],[0,1],[0,-1]]){let nx=xx+d,ny=yy+e,nk=nx+","+ny;if(nx>=0&&nx<C&&ny>=0&&ny<R&&!seen.has(nk)&&b[ny][nx]===c){seen.add(nk);q.push([nx,ny])}}}if(g.length>=3)out.push(g)}return out}
 function resolve(n=1){let gs=groups();if(!gs.length){chain=n-1;ce.textContent=chain;busy=false;render();setTimeout(cpuSpawn,260);return}busy=true;chain=n;score+=gs.flat().length*10*n;se.textContent=score;ce.textContent=chain;setTimeout(()=>{gs.flat().forEach(([x,y])=>b[y][x]=null);gravity();render();setTimeout(()=>resolve(n+1),150)},220)}
@@ -182,7 +189,18 @@ function reset(){
  se.textContent=ce.textContent=0;render();cpuTimer=setTimeout(cpuSpawn,500);fallTimer=setInterval(cpuFall,520)
 }
 window.startJewelMage=reset;
-document.querySelectorAll("[data-jm]").forEach(x=>x.addEventListener("pointerdown",e=>{e.preventDefault();let a=x.dataset.jm;if(a==="grab")grab();else if(a==="left")move(-1,0);else if(a==="right")move(1,0);else if(a==="up")move(0,-1);else move(0,1)}));
+document.querySelectorAll("[data-jm]").forEach(x=>x.addEventListener("pointerdown",e=>{e.preventDefault();if(x.dataset.jm==="grab")grab()}));
+const stick=document.getElementById("jmStick"),knob=document.getElementById("jmStickKnob");let stickId=null,lastDir="",lastMove=0;
+function stickMove(e){
+ if(stickId!==e.pointerId)return;let r=stick.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),m=Math.hypot(dx,dy),lim=r.width*.28;
+ if(m>lim){dx*=lim/m;dy*=lim/m}knob.style.transform="translate("+dx+"px,"+dy+"px)";
+ let dir=Math.hypot(dx,dy)<12?"":(Math.abs(dx)>Math.abs(dy)?(dx<0?"left":"right"):(dy<0?"up":"down"));
+ let now=performance.now();if(dir&&(dir!==lastDir||now-lastMove>180)){if(dir==="left")move(-1,0);else if(dir==="right")move(1,0);else if(dir==="up")move(0,-1);else move(0,1);lastMove=now}lastDir=dir
+}
+stick.addEventListener("pointerdown",e=>{e.preventDefault();stickId=e.pointerId;stick.setPointerCapture?.(e.pointerId);stickMove(e)});
+stick.addEventListener("pointermove",stickMove);
+function stickUp(e){if(stickId!==e.pointerId)return;stickId=null;lastDir="";knob.style.transform="translate(0,0)"}
+stick.addEventListener("pointerup",stickUp);stick.addEventListener("pointercancel",stickUp);stick.addEventListener("lostpointercapture",stickUp);
 })();
 </script>
 <script>
