@@ -162,3 +162,9 @@ main{background:linear-gradient(180deg,rgba(91,119,159,.38),rgba(31,45,70,.56));
 .jmHand{position:absolute;left:31px;top:27px;width:8px;height:8px;border-radius:50%;background:#ffe2c1;z-index:11}
 .jmStaff{position:absolute!important;left:35px!important;top:28px!important;width:23px!important;height:3px!important;background:#70482d!important;border-radius:3px!important;transform:rotate(-35deg)!important;transform-origin:left center!important;z-index:10!important;box-shadow:none!important}
 .jmStaffGem{position:absolute!important;left:53px!important;top:14px!important;transform:none!important;font-size:9px!important;color:#9cecff!important;text-shadow:0 0 4px white!important;z-index:12!important}
+
+/* v113 normal Puyo bottom mis-tap guard */
+#normalPuyoScreen{padding-bottom:env(safe-area-inset-bottom);box-sizing:border-box}
+.normalControls{position:relative;height:82px;padding:7px 8px 19px;flex:0 0 82px;touch-action:none;user-select:none}
+.normalControls:after{content:"";position:absolute;left:0;right:0;bottom:-28px;height:28px;background:#11192d;pointer-events:auto}
+.normalControls button{height:54px;touch-action:none}
