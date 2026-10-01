@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>転生したら落ちゲーの中でした。Prototype v116</title><link rel="stylesheet" href="style.css?v=116">
+<title>転生したら落ちゲーの中でした。Prototype v117</title><link rel="stylesheet" href="style.css?v=117">
 <script>
 window.pendingClass=null;
 window.CLASS_HELP_SAFE={
@@ -124,7 +124,7 @@ window.columnsToTitle=function(){location.reload()};
 <button id="continueBtn" class="startBtn" style="display:none">コンティニュー</button>
 <button id="titleBtn" class="classBtn">タイトルへ戻る</button>
 </div></div><main>
-<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v116</small></div>
+<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v117</small></div>
 <div class="hud"><span>STAGE <b id="stageText">1</b></span><span>連鎖P <b id="chainPoints">0</b>/<b id="goalPoints">12</b></span><span>SCORE <b id="score">0</b></span><span>必殺 <b id="specialText">0%</b></span><span id="bossHud" style="display:none">BOSS <b id="bossHpText">30</b></span><span id="bossHpGauge" style="display:inline-block;width:110px;height:9px;background:#2a2638;border-radius:8px;overflow:hidden;vertical-align:middle;margin-left:4px"><span id="bossHpBar" style="display:block;width:100%;height:100%;background:#e76565"></span></span><span id="modeText"></span><span id="modeTime"></span><button id="modeExitBtn" style="display:none">離脱</button></div>
 <div class="gauge"><div id="specialBar"></div></div>
 <canvas id="game" width="360" height="630"></canvas><div id="message"></div>
@@ -133,7 +133,7 @@ window.columnsToTitle=function(){location.reload()};
  <div class="actions"><button data-key="grab">掴</button><button data-key="jump">跳</button><button data-key="attack">剣</button><button data-key="kick" class="kick">蹴</button></div>
 </div>
 <p id="className">職業: -</p><p class="help">方向キー＋攻撃 / 跳 / 攻撃長押し=チャージ必殺 / 魔法使い: 剣=炎・蹴=氷・掴=風・跳=浮遊</p>
-<script src="game.js?v=116"></script></main><script>
+<script src="game.js?v=117"></script></main><script>
 function showChainFx(host,n){
  let old=host.querySelector(".chainBurst");if(old)old.remove();
  let d=document.createElement("div");d.className="chainBurst";d.textContent=n>1?n+" CHAIN!":"CLEAR!";
@@ -243,7 +243,17 @@ function groups(){let seen=new Set(),out=[];for(let y=0;y<R;y++)for(let x=0;x<C;
 function resolve(n){busy=true;let gs=groups();if(!gs.length){chain=n-1;ce.textContent=chain;busy=false;spawn();return}chain=n;score+=gs.flat().length*10*n;se.textContent=score;ce.textContent=chain;let pts=gs.flat();pts.forEach(([x,y])=>cells[y*C+x].classList.add("clearFx"));showChainFx(el,n);setTimeout(()=>{pts.forEach(([x,y])=>{b[y][x]=null;cells[y*C+x].classList.remove("clearFx")});gravity();render();setTimeout(()=>resolve(n+1),300)},520)}
 function lock(){parts(p).forEach(v=>b[v.y][v.x]=v.c);p=null;gravity();render();resolve(1)}
 function step(){if(!run||busy||!p)return;let q={...p,y:p.y+1};if(valid(q)){p=q;render()}else{if(rotateHeld||performance.now()<landGraceUntil)return;lock()}}
-function rotate(dir){if(!run||busy||!p)return;landGraceUntil=performance.now()+260;let nr=(p.r+(dir>0?1:3))%4;for(const kick of [0,-1,1]){let q={...p,x:p.x+kick,r:nr};if(valid(q)){p=q;render();return}}}
+function rotate(dir){
+ if(!run||busy||!p)return;landGraceUntil=performance.now()+260;
+ let nr=(p.r+(dir>0?1:3))%4;
+ for(const kick of [0,-1,1]){let q={...p,x:p.x+kick,r:nr};if(valid(q)){p=q;render();return}}
+ // Narrow vertical shaft: when there is no horizontal room to rotate,
+ // pressing either rotation button swaps the upper/lower slime instead.
+ if(p.r===0||p.r===2){
+  let q={...p,a:p.z,z:p.a};
+  if(valid(q)){p=q;render();return}
+ }
+}
 function act(a){if(!run||busy||!p)return;if(a==="left"||a==="right"){let q={...p,x:p.x+(a==="left"?-1:1)};if(valid(q))p=q}else if(a==="rotateL"){rotate(-1);return}else if(a==="rotateR"){rotate(1);return}else{let q={...p,y:p.y+1};while(valid(q)){p=q;q={...p,y:p.y+1}}lock();return}render()}
 window.startNormalPuyo=()=>{clearInterval(timer);rotateHeld=false;landGraceUntil=0;let o=document.getElementById("normalGameOver");if(o)o.style.display="none";b=Array.from({length:R},()=>Array(C).fill(null));score=chain=0;run=true;busy=false;se.textContent=ce.textContent=0;spawn();timer=setInterval(step,650)};
 document.querySelectorAll("[data-np]").forEach(x=>{
