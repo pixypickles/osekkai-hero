@@ -187,7 +187,7 @@ window.setGameSetting=(k,v)=>{if(k in gameSettings){gameSettings[k]=!!v;try{loca
 window.getGameSettings=()=>({...gameSettings});
 
 const heroDive={swordT:0,swordN:0,active:false,bossHit:false};
-const monkCombo={punchT:0,punchN:0,kickT:0,kickN:0,moveT:0,kind:"",vx:0,bossCd:0};
+const monkCombo={punchT:0,punchN:0,kickT:0,kickN:0,moveT:0,kind:"",vx:0,bossCd:0,airUpperUsed:false};
 const hero={x:3.5,y:H-1.55,vx:0,vy:0,w:.52,h:.92,onGround:false,grab:null,stun:0,charge:0,face:1,walk:0,attackT:0,attackDir:"right",attackPower:1,kickT:0,grabT:0,squashT:0,squeezeT:0,squeezeDir:0,carry:null,jumps:0,grabHold:0,grabColorTick:0,floating:false,liftRide:-1,liftPrevY:0,guard:false};
 let pairs=[],pairSeq=0,spawnClock=0,keys={},last=performance.now(),fallSpeed=.00075,effects=[];
 let fastFall=false; const FAST_FALL_MULT=4.2;
@@ -732,11 +732,12 @@ function heroDiveUpdate(dt){
  }
 }
 function attack(){
+ if(playerClass==="monk"&&monkCombo.moveT>0&&monkCombo.kind==="upper")return;
  if(playerClass==="hero"&&!hero.onGround){
   let now=performance.now();heroDive.swordN=now-heroDive.swordT<360?heroDive.swordN+1:1;heroDive.swordT=now;
   if(heroDive.swordN>=3){heroDive.swordN=0;if(heroDiveStart())return}
  }
- if(playerClass==="monk"){let now=performance.now();monkCombo.punchN=now-monkCombo.punchT<360?monkCombo.punchN+1:1;monkCombo.punchT=now;if(monkCombo.punchN>=3){monkCombo.punchN=0;monkComboStart("upper");return}}
+ if(playerClass==="monk"){let now=performance.now();monkCombo.punchN=now-monkCombo.punchT<360?monkCombo.punchN+1:1;monkCombo.punchT=now;if(monkCombo.punchN>=3){monkCombo.punchN=0;if(hero.onGround||!monkCombo.airUpperUsed){if(!hero.onGround)monkCombo.airUpperUsed=true;monkComboStart("upper");return}}}
  let charged=hero.charge>=75;hero.charge=0;
  if(charged&&(playerClass==="hero"||playerClass==="monk"||playerClass==="mage")){hero.attackT=180;chargedWave();return}
  if(playerClass==="hero"&&hero.grab){hero.attackDir=keys.up?"up":keys.down?"down":hero.face>0?"right":"left";hero.attackT=150;destroyHeroGrabbed();return}
@@ -1052,6 +1053,7 @@ function msg(t){let m=document.querySelector("#message");m.textContent=t;if(!gam
 function update(dt){
  heroDiveUpdate(dt);
  monkComboUpdate(dt);
+ if(playerClass==="monk"&&hero.onGround&&monkCombo.moveT<=0)monkCombo.airUpperUsed=false;
  for(const e of effects)if((e.type==="crescentProjectile"||e.type==="kiProjectile")&&!bossMode){
    e.travel=(e.travel||0)+(e.speed||.012)*dt;
    let px=e.x+e.dx*e.travel,py=e.y+e.dy*e.travel,changed=false,shotRow=Math.max(0,Math.min(H-1,Math.floor(e.y)));
@@ -1163,12 +1165,18 @@ function drawHero(){
    ctx.fillStyle="#49337d";ctx.beginPath();ctx.arc(-f*.23,-.08,.105,0,Math.PI*2);ctx.fill();
    ctx.fillStyle="#a96a37";for(let bi=0;bi<4;bi++){ctx.beginPath();ctx.arc(-.13+bi*.085,-.02,.035,0,Math.PI*2);ctx.fill()}
    ctx.fillStyle="#222";ctx.fillRect(f*.08-.025,-.4,.05,.055);
-   // Arms / directional punch
+   // Arms / directional punch. Uppercut has its own two-arm pose below.
+   let upperPose=monkCombo.moveT>0&&monkCombo.kind==="upper";
    let pdx=f,pdy=0;if(hero.attackDir==="up"){pdx=0;pdy=-1}else if(hero.attackDir==="down"){pdx=0;pdy=1}
    let punch=hero.attackT>0?Math.sin((1-hero.attackT/150)*Math.PI):0;
-   ctx.strokeStyle="#e6c09d";ctx.lineWidth=.13;ctx.beginPath();ctx.moveTo(f*.18,-.08);ctx.lineTo(f*.31,-.01);ctx.stroke();
-   ctx.beginPath();ctx.moveTo(-f*.18,-.08);ctx.lineTo(-f*.3,.03);ctx.stroke();
-   if(hero.attackT>0){ctx.strokeStyle="#e6c09d";ctx.lineWidth=.15;ctx.beginPath();ctx.moveTo(0,-.05);ctx.lineTo(pdx*(.32+.42*punch),-.05+pdy*(.48+.3*punch));ctx.stroke()}
+   if(!upperPose){
+    ctx.strokeStyle="#e6c09d";ctx.lineWidth=.13;ctx.beginPath();ctx.moveTo(f*.18,-.08);ctx.lineTo(f*.31,-.01);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-f*.18,-.08);ctx.lineTo(-f*.3,.03);ctx.stroke();
+    if(hero.attackT>0){ctx.strokeStyle="#e6c09d";ctx.lineWidth=.15;ctx.beginPath();ctx.moveTo(0,-.05);ctx.lineTo(pdx*(.32+.42*punch),-.05+pdy*(.48+.3*punch));ctx.stroke()}
+   }else{
+    // Rear arm stays tucked; striking arm is drawn raised with the aura overlay.
+    ctx.strokeStyle="#e6c09d";ctx.lineWidth=.13;ctx.beginPath();ctx.moveTo(-f*.18,-.08);ctx.lineTo(-f*.27,.02);ctx.stroke();
+   }
    if(hero.grabT>0&&!hero.grab&&!hero.carry){let gp=Math.sin((1-hero.grabT/220)*Math.PI),reach=.28+.28*gp;ctx.strokeStyle="#e6c09d";ctx.lineWidth=.115;ctx.beginPath();ctx.moveTo(f*.18,-.08);ctx.lineTo(f*reach,-.12);ctx.stroke();ctx.fillStyle="#e6c09d";ctx.beginPath();ctx.arc(f*(reach+.07),-.12,.085,0,Math.PI*2);ctx.fill()}
  }else if(playerClass==="mage"){
    ctx.fillStyle="#223a83";ctx.beginPath();ctx.moveTo(-.31,-.14);ctx.lineTo(.31,-.14);ctx.lineTo(.42,.5);ctx.lineTo(-.42,.5);ctx.closePath();ctx.fill();
@@ -1238,9 +1246,9 @@ function drawHero(){
  if(playerClass==="monk"&&monkCombo.moveT>0&&monkCombo.kind==="upper"){
   // Uppercut pose: fist clearly above the head, wrapped in a red aura.
   ctx.save();ctx.shadowColor="#ff394f";ctx.shadowBlur=14;ctx.fillStyle="rgba(255,55,70,.55)";
-  ctx.beginPath();ctx.arc(f*.08,-.78,.22,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle="#ff6475";ctx.lineWidth=.10;ctx.beginPath();ctx.moveTo(f*.04,-.30);ctx.lineTo(f*.08,-.72);ctx.stroke();
-  ctx.fillStyle="#ffd0aa";ctx.beginPath();ctx.arc(f*.08,-.78,.105,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(f*.20,-.80,.22,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#ff6475";ctx.lineWidth=.10;ctx.beginPath();ctx.moveTo(f*.16,-.18);ctx.lineTo(f*.20,-.74);ctx.stroke();
+  ctx.fillStyle="#ffd0aa";ctx.beginPath();ctx.arc(f*.20,-.80,.105,0,Math.PI*2);ctx.fill();
   ctx.restore()
  }
 ctx.restore();

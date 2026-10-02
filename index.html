@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>転生したら落ちゲーの中でした。Prototype v149</title><link rel="stylesheet" href="style.css?v=149">
+<title>転生したら落ちゲーの中でした。Prototype v150</title><link rel="stylesheet" href="style.css?v=150">
 <script>
 window.pendingClass=null;
 window.CLASS_HELP_SAFE={
@@ -149,7 +149,7 @@ window.columnsToTitle=function(){location.reload()};
 <button id="continueBtn" class="startBtn" style="display:none">コンティニュー</button>
 <button id="titleBtn" class="classBtn">タイトルへ戻る</button>
 </div></div><main>
-<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v149</small></div>
+<div class="title">転生したら落ちゲーの中でした。<small>おせっかい勇者 Prototype v150</small></div>
 <div class="hud"><span>STAGE <b id="stageText">1</b></span><span>連鎖P <b id="chainPoints">0</b>/<b id="goalPoints">12</b></span><span>SCORE <b id="score">0</b></span><span>必殺 <b id="specialText">0%</b></span><span id="bossHud" style="display:none">BOSS <b id="bossHpText">30</b></span><span id="bossHpGauge" style="display:inline-block;width:110px;height:9px;background:#2a2638;border-radius:8px;overflow:hidden;vertical-align:middle;margin-left:4px"><span id="bossHpBar" style="display:block;width:100%;height:100%;background:#e76565"></span></span><span id="modeText"></span><span id="modeTime"></span><button id="modeExitBtn" style="display:none">離脱</button></div>
 <div class="gauge"><div id="specialBar"></div></div>
 <canvas id="game" width="360" height="630"></canvas><div id="message"></div>
@@ -158,7 +158,7 @@ window.columnsToTitle=function(){location.reload()};
  <div class="actions"><button data-key="grab">掴</button><button data-key="jump">跳</button><button data-key="attack">剣</button><button data-key="kick" class="kick">蹴</button></div>
 </div>
 <p id="className">職業: -</p><p class="help">方向キー＋攻撃 / 跳 / 攻撃長押し=チャージ必殺 / 魔法使い: 剣=炎・蹴=氷・掴=風・跳=浮遊</p>
-<script src="game.js?v=149"></script></main><script>
+<script src="game.js?v=150"></script></main><script>
 function showChainFx(host,n){
  let old=host.querySelector(".chainBurst");if(old)old.remove();
  let d=document.createElement("div");d.className="chainBurst";d.textContent=n>1?n+" CHAIN!":"CLEAR!";
@@ -207,7 +207,7 @@ function gravity(){
   }
  }
 }
-function matches(){let hit=new Set();for(let y=0;y<R;y++)for(let x=0;x<C;x++){let o=b[y][x];if(!o)continue;for(const[dx,dy]of[[1,0],[0,1]]){let a=[];for(let nx=x,ny=y;nx<C&&ny<R&&b[ny][nx]&&b[ny][nx].c===o.c;nx+=dx,ny+=dy)a.push([nx,ny]);if(a.length>=4)a.forEach(q=>hit.add(q.join(",")))}}return[...hit].map(k=>k.split(",").map(Number))}
+function matches(){let hit=new Set();for(let y=0;y<R;y++)for(let x=0;x<C;x++){let o=b[y][x];if(!o)continue;for(const[dx,dy]of[[1,0],[0,1]]){let a=[];for(let nx=x,ny=y;nx<C&&ny<R&&b[ny][nx]&&b[ny][nx].c===o.c;nx+=dx,ny+=dy)a.push([nx,ny]);if(a.length>=4&&a.some(([ax,ay])=>b[ay][ax]&&!b[ay][ax].virus))a.forEach(q=>hit.add(q.join(",")))}}return[...hit].map(k=>k.split(",").map(Number))}
 function virusClearCheck(){let n=0;for(let y=0;y<R;y++)for(let x=0;x<C;x++)if(b[y][x]&&b[y][x].virus)n++;if(held&&held.virus)n++;if(n===0){run=false;clearInterval(timer);clearInterval(cpu);setTimeout(()=>{virusStage++;alert("STAGE CLEAR!\n次は STAGE "+virusStage);reset(mode)},220);return true}return false}
 function resolve(n=1){let m=matches();if(!m.length){busy=false;chain=n-1;cc.textContent=chain;if(virusClearCheck())return;spawn();return}busy=true;chain=n;cc.textContent=n;m.forEach(([x,y])=>cells[y*C+x].classList.add("clearFx"));showChainFx(el,n);setTimeout(()=>{let cp=new Set();m.forEach(([x,y])=>{if(b[y][x]&&!b[y][x].virus&&b[y][x].pair)cp.add(b[y][x].pair)});m.forEach(([x,y])=>b[y][x]=null);for(let y=0;y<R;y++)for(let x=0;x<C;x++)if(b[y][x]&&!b[y][x].virus&&cp.has(b[y][x].pair))b[y][x].pair=0;gravity();render();setTimeout(()=>resolve(n+1),300)},520)}
 function lock(){let id=pairSeq++;parts(p).forEach(q=>b[q.y][q.x]={c:q.c,virus:false,pair:id});p=null;render();resolve(1)}
@@ -299,7 +299,7 @@ function cpuPlan(){
  if(p.x>best.x){act("left");return}
  act("down");
 }
-function reset(m){mode=m;clearInterval(timer);clearInterval(cpu);b=Array.from({length:R},()=>Array(C).fill(null));p=null;busy=false;run=true;held=null;chain=0;hx=m==="healer"?-1:3;hy=m==="healer"?7:8;hvy=0;hface=1;healer.classList.remove("faceLeft");let virusN=Math.min(28,10+virusStage*2),virusTop=Math.max(4,7-Math.floor((virusStage-1)/2));
+function reset(m){mode=m;clearInterval(timer);clearInterval(cpu);b=Array.from({length:R},()=>Array(C).fill(null));p=null;busy=false;run=true;held=null;chain=0;hx=m==="healer"?0:3;hy=m==="healer"?7:8;hvy=0;hface=1;healer.classList.remove("faceLeft");let virusN=Math.min(28,10+virusStage*2),virusTop=Math.max(4,7-Math.floor((virusStage-1)/2));
 for(let i=0;i<virusN;i++){let x,y;do{x=Math.floor(Math.random()*C);y=virusTop+Math.floor(Math.random()*(R-virusTop))}while(b[y][x]);b[y][x]={c:rnd(),virus:true}}
 document.getElementById("virusStage").textContent=virusStage;document.getElementById("virusTitle").textContent=m==="healer"?"✨ おせっかいヒーラー":"🦠 ウィルス";document.getElementById("virusNormalControls").style.display=m==="normal"?"grid":"none";document.getElementById("healerControls").style.display=m==="healer"?"flex":"none";if(m==="healer"&&healer.parentElement!==overlay)overlay.appendChild(healer);
 
