@@ -680,13 +680,13 @@ function chargedWave(){
 function monkComboStart(kind){
  monkCombo.moveT=kind==="upper"?430:390;monkCombo.kind=kind;monkCombo.bossCd=0;
  if(kind==="upper"){hero.vy=-.012;msg("昇龍アッパー！")}
- else{monkCombo.vx=hero.face*.0095;hero.vy=Math.min(hero.vy,-.002);msg("飛び蹴り！")}
+ else{monkCombo.vx=hero.face*.014;hero.vy=0;msg("飛び蹴り！")}
 }
 function monkComboUpdate(dt){
  if(playerClass!=="monk"||monkCombo.moveT<=0)return;
  monkCombo.moveT-=dt;monkCombo.bossCd=Math.max(0,monkCombo.bossCd-dt);
  if(monkCombo.kind==="upper")hero.vy=Math.min(hero.vy,-.0055);
- else hero.x=Math.max(.3,Math.min(W-.3,hero.x+monkCombo.vx*dt));
+ else{hero.x=Math.max(.3,Math.min(W-.3,hero.x+monkCombo.vx*dt));hero.vy=0}
  let changed=false,rad=.7;
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]&&Math.hypot(x+.5-hero.x,y+.5-hero.y)<rad){hitEffect(x+.5,y+.5,"#b78cff");board[y][x]=null;changed=true}
  for(const p of pairs)for(const part of [0,1]){
@@ -709,16 +709,16 @@ function heroDiveUpdate(dt){
  if(playerClass!=="hero"||!heroDive.active)return;
  hero.vx=0;hero.vy=Math.max(hero.vy,.020);
  let changed=false;
- // Sword points straight down: narrow vertical hitbox under the hero.
+ // Lightning sword pierces the whole shaft below the hero all the way to the floor.
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]){
-  if(Math.abs(x+.5-hero.x)<.48 && y+.5>=hero.y-.05 && y+.5<=hero.y+1.05){
+  if(Math.abs(x+.5-hero.x)<.48 && y+.5>=hero.y-.05){
    hitEffect(x+.5,y+.5,"#ffe45c");board[y][x]=null;changed=true
   }
  }
  for(const p of pairs)for(const part of [0,1]){
   if((part===0&&p.a==null)||(part===1&&p.b==null))continue;
   let z=pairPos(p,part);
-  if(Math.abs(z.x+.5-hero.x)<.48 && z.y+.5>=hero.y-.05 && z.y+.5<=hero.y+1.05){
+  if(Math.abs(z.x+.5-hero.x)<.48 && z.y+.5>=hero.y-.05){
    hitEffect(z.x+.5,z.y+.5,"#ffe45c");if(part===0)p.a=null;else p.b=null;changed=true
   }
  }
@@ -1224,8 +1224,23 @@ function drawHero(){
  if(hero.charge>0){ctx.strokeStyle=playerClass==="monk"?"#8f72d8":"#5c91ee";ctx.lineWidth=.045;ctx.beginPath();ctx.arc(0,0,.57,0,Math.PI*2*hero.charge/100);ctx.stroke()}
  
  if(heroDive.active){
-  ctx.save();ctx.strokeStyle="#ffe45c";ctx.lineWidth=.07;ctx.shadowColor="#fff3a0";ctx.shadowBlur=10;
-  for(let i=0;i<3;i++){let ox=(i-1)*.13;ctx.beginPath();ctx.moveTo(ox,-.05);ctx.lineTo(ox+.09,.18);ctx.lineTo(ox-.05,.40);ctx.lineTo(ox+.06,.68);ctx.stroke()}
+  // Bright lightning-charged sword: blade points down during the dive.
+  ctx.save();ctx.shadowColor="#fff06a";ctx.shadowBlur=15;
+  ctx.strokeStyle="#fff36b";ctx.lineWidth=.12;ctx.beginPath();ctx.moveTo(f*.18,.02);ctx.lineTo(f*.12,.82);ctx.stroke();
+  ctx.strokeStyle="#fffbd0";ctx.lineWidth=.045;ctx.beginPath();ctx.moveTo(f*.18,.02);ctx.lineTo(f*.12,.82);ctx.stroke();
+  // A thin bolt falls from above and feeds the blade.
+  ctx.strokeStyle="#fff06a";ctx.lineWidth=.045;ctx.beginPath();ctx.moveTo(.02,-1.35);ctx.lineTo(-.08,-1.02);ctx.lineTo(.08,-.78);ctx.lineTo(-.02,-.52);ctx.lineTo(f*.18,.02);ctx.stroke();
+  // Small forks hugging the charged sword.
+  ctx.lineWidth=.035;
+  for(let i=0;i<3;i++){let oy=.15+i*.20;ctx.beginPath();ctx.moveTo(f*.12,oy);ctx.lineTo(f*.30,oy+.08);ctx.lineTo(f*.14,oy+.15);ctx.stroke()}
+  ctx.restore()
+ }
+ if(playerClass==="monk"&&monkCombo.moveT>0&&monkCombo.kind==="upper"){
+  // Uppercut pose: fist clearly above the head, wrapped in a red aura.
+  ctx.save();ctx.shadowColor="#ff394f";ctx.shadowBlur=14;ctx.fillStyle="rgba(255,55,70,.55)";
+  ctx.beginPath();ctx.arc(f*.08,-.78,.22,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#ff6475";ctx.lineWidth=.10;ctx.beginPath();ctx.moveTo(f*.04,-.30);ctx.lineTo(f*.08,-.72);ctx.stroke();
+  ctx.fillStyle="#ffd0aa";ctx.beginPath();ctx.arc(f*.08,-.78,.105,0,Math.PI*2);ctx.fill();
   ctx.restore()
  }
 ctx.restore();
