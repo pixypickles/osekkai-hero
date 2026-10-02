@@ -992,11 +992,21 @@ function spawnBossSingle(){
  let neutral=bossTier===2||Math.random()<.22;
  let type=neutral?-1:Math.floor(Math.random()*COLORS.length);
  let spawnX;
- if(bossTier===1||bossTier===2){
-  // Keep lift columns clear of falling slimes.
-  const liftCols=new Set(strongLiftRects().map(r=>Math.floor(r.x)));
-  const cols=[];for(let x=0;x<Math.max(1,W-2);x++)if(!liftCols.has(x))cols.push(x);
-  spawnX=cols[Math.floor(Math.random()*cols.length)]??0;
+ if(bossTier===1){
+  // Boss 1: slimes only fall at the far-left lane and one middle lane.
+  const cols=[0,Math.max(1,Math.floor(W/2)-1)];
+  spawnX=cols[Math.floor(Math.random()*cols.length)];
+ }else if(bossTier===2){
+  // Boss 2: far-left + one middle-ish lane that is not occupied by a lift.
+  const liftCols=new Set();
+  for(const r of strongLiftRects()){
+   for(let x=Math.floor(r.x);x<=Math.floor(r.x+r.w-.001);x++)liftCols.add(x);
+  }
+  const midOrder=[Math.floor(W/2),Math.floor(W/2)-1,Math.floor(W/2)+1,2,3,4];
+  let mid=midOrder.find(x=>x>0&&x<W-2&&!liftCols.has(x));
+  if(mid==null)mid=0;
+  const cols=mid===0?[0]:[0,mid];
+  spawnX=cols[Math.floor(Math.random()*cols.length)];
  }else spawnX=Math.floor(Math.random()*Math.max(1,W-2));
  let p={id:(Date.now()+Math.random()),x:spawnX,y:-1,a:type,b:null,hpA:neutral?3:2,hpB:0,rot:0,targetX:0,targetRot:0,aiT:999};
  p.targetX=p.x;pairs.push(p);
