@@ -948,7 +948,7 @@ function startNormalStage(n){
 function strongLiftRects(){if(!bossMode)return [];let t=performance.now()*.001;
  if(bossTier===1)return [{x:1.25,y:H-2.15,w:1.35,h:.28,moving:false,safe:true}];
  if(bossTier===3)return [{x:2,y:H*.82+Math.sin(t*.62)*.28,w:1,h:.28,moving:true},{x:5,y:H*.74+Math.sin(t*.52+2)*.30,w:1,h:.28,moving:true}];
- if(bossTier===2)return [{x:1,y:H*.64+Math.sin(t*.72)*.55,w:1,h:.28,moving:true},{x:6,y:H*.55+Math.sin(t*.58+2.1)*.55,w:1,h:.28,moving:true},{x:4,y:H*.68,w:1,h:.28,moving:false}];
+ if(bossTier===2)return [{x:1,y:H*.82+Math.sin(t*.72)*.20,w:1,h:.28,moving:true},{x:6,y:H*.74+Math.sin(t*.58+2.1)*.24,w:1,h:.28,moving:true},{x:4,y:H*.84,w:1,h:.28,moving:false}];
  return []}
 function bossPlatformAt(x,y){
  if(!bossMode)return false;
