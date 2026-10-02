@@ -6,7 +6,7 @@ const cv=document.querySelector("#game"),ctx=cv.getContext("2d");
 const W=8,H=14,S=45,COLORS=["#59dc76","#ff5f78","#43aef5","#ffd85c"];
 let board=Array.from({length:H},()=>Array(W).fill(null)),score=0,special=0,chain=0,chainPoints=0,GOAL=300,gameOver=false,cleared=false,playerClass=null;
 let stage=1,bossMode=false,bossHp=30,bossMaxHp=30,bossHitT=0,bossSpawnT=0,bossLeftT=0,bossFireT=1200,bossFireballs=[]; let bossOnlyRun=false;
-let enemies=[],enemySpawnT=0,demonSwordT=0,demonSwordFx=0,demonPhase=0,bossX=W-.62;
+let enemies=[],enemySpawnT=0,demonSwordT=0,demonSwordFx=0,demonPhase=0,demonNearT=0,bossX=W-.62;
 let gameMode="campaign",modeElapsed=0,bossChargeShotT=0;
 let cloudMode=false,cloudY=0,cloudGoal=220,cloudPlatforms=[],cloudCannons=[],cloudShots=[],cloudSpawn=0,cloudCam=0,cloudGrip=null;
 const cloudKinds=[
@@ -966,7 +966,7 @@ function seedBossPlatforms(){
 function startBossStage(tier=1){
  try{localStorage.setItem("osekkaiBossUnlocked","1")}catch(e){}
  let bb=document.querySelector("#bossOnlyBtn");if(bb)bb.style.display="block";
- bossMode=true;bossTier=tier;bossMaxHp=tier===3?64:tier===2?48:30;bossHp=bossMaxHp;bossLeftT=450;enemies=[];demonPhase=0;demonSwordT=900;demonSwordFx=0;
+ bossMode=true;bossTier=tier;bossMaxHp=tier===3?64:tier===2?48:30;bossHp=bossMaxHp;bossLeftT=450;enemies=[];demonPhase=0;demonNearT=0;demonSwordT=900;demonSwordFx=0;
  bossSpawnT=0;bossFireT=tier===3?1100:tier===2?650:900;bossFireballs=[];bossDir=1;
  resetStageBoard();
  hero.floating=playerClass==="mage";
@@ -1006,8 +1006,12 @@ function updateBoss(dt){
  if(bossTier===3){
   demonPhase+=dt*.00072;bossX=W*.5+Math.cos(demonPhase)*2.35;bossY=H*.68+Math.sin(demonPhase)*1.05;
   demonSwordT-=dt;demonSwordFx=Math.max(0,demonSwordFx-dt);
-  if(demonSwordT<=0&&Math.hypot(hero.x-bossX,hero.y-bossY)<1.55){
-   demonSwordT=1250;demonSwordFx=300;
+  // The sword is no longer an instant proximity punish. The player gets about
+  // two seconds in melee range to attack and retreat.
+  let demonClose=Math.hypot(hero.x-bossX,hero.y-bossY)<1.55;
+  if(demonClose&&demonSwordT<=0)demonNearT+=dt;else if(!demonClose)demonNearT=0;
+  if(demonSwordT<=0&&demonNearT>=2000){
+   demonNearT=0;demonSwordT=1250;demonSwordFx=300;
    if(hero.guard&&(playerClass==="hero"||playerClass==="monk"))msg("魔王の剣をガード！");
    else knockHero(hero.x<bossX?-1:1,"魔王の剣！ 2秒ダウン！");
   }
