@@ -287,7 +287,7 @@ function gravity(){
 }
 function solidAt(x,y){let ix=Math.floor(x),iy=Math.floor(y);return ix<0||ix>=W||iy>=H||bossPlatformAt(x,y)||(iy>=0&&board[iy][ix])}
 function updateLiftRide(){
- if(!bossMode||bossTier!==2){hero.liftRide=-1;return}
+ if(!bossMode||(bossTier!==1&&bossTier!==2&&bossTier!==3)){hero.liftRide=-1;return}
  const lifts=strongLiftRects();
  // Continue riding the same lift while horizontally over it.
  if(hero.liftRide>=0&&lifts[hero.liftRide]){
@@ -308,7 +308,7 @@ function updateLiftRide(){
  }
 }
 function heroSolidAt(x,y,prevY=null){
- if(bossMode&&(bossTier===2||bossTier===3)){
+ if(bossMode&&(bossTier===1||bossTier===2||bossTier===3)){
   for(const r of strongLiftRects()){
    if(x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18){
     // Moving lifts are one-way: rising through from below is allowed.
@@ -945,7 +945,11 @@ function startNormalStage(n){
  spawnClock=0;
  updateStageHud();
 }
-function strongLiftRects(){if(!bossMode||(bossTier!==2&&bossTier!==3))return [];if(bossTier===3){let t=performance.now()*.001;return [{x:2,y:H*.72+Math.sin(t*.62)*.75,w:1,h:.28,moving:true},{x:5,y:H*.63+Math.sin(t*.52+2.0)*.7,w:1,h:.28,moving:true}]}let t=performance.now()*.001;return [{x:1,y:2.2+(Math.sin(t*.72)+1)*(H-4.0)/2,w:1,h:.28,moving:true},{x:6,y:2.8+(Math.sin(t*.58+2.1)+1)*(H-4.6)/2,w:1,h:.28,moving:true},{x:4,y:H*.56,w:1,h:.28,moving:false}]}
+function strongLiftRects(){if(!bossMode)return [];let t=performance.now()*.001;
+ if(bossTier===1)return [{x:1.25,y:H-2.15,w:1.35,h:.28,moving:false,safe:true}];
+ if(bossTier===3)return [{x:2,y:H*.82+Math.sin(t*.62)*.28,w:1,h:.28,moving:true},{x:5,y:H*.74+Math.sin(t*.52+2)*.30,w:1,h:.28,moving:true}];
+ if(bossTier===2)return [{x:1,y:H*.64+Math.sin(t*.72)*.55,w:1,h:.28,moving:true},{x:6,y:H*.55+Math.sin(t*.58+2.1)*.55,w:1,h:.28,moving:true},{x:4,y:H*.68,w:1,h:.28,moving:false}];
+ return []}
 function bossPlatformAt(x,y){
  if(!bossMode)return false;
  if(bossTier===1){
@@ -954,6 +958,7 @@ function bossPlatformAt(x,y){
    let bx=W-1-step,h=3-step;
    if(x>=bx&&x<bx+1&&y>=H-h&&y<H)return true
   }
+  if(strongLiftRects().some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18))return true;
   return false
  }
  if(bossTier===2||bossTier===3)return strongLiftRects().some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18);
@@ -987,8 +992,8 @@ function spawnBossSingle(){
  let neutral=bossTier===2||Math.random()<.22;
  let type=neutral?-1:Math.floor(Math.random()*COLORS.length);
  let spawnX;
- if(bossTier===2){
-  // Keep all lift columns (moving and fixed) completely clear of falling slimes.
+ if(bossTier===1||bossTier===2){
+  // Keep lift columns clear of falling slimes.
   const liftCols=new Set(strongLiftRects().map(r=>Math.floor(r.x)));
   const cols=[];for(let x=0;x<Math.max(1,W-2);x++)if(!liftCols.has(x))cols.push(x);
   spawnX=cols[Math.floor(Math.random()*cols.length)]??0;
@@ -1004,7 +1009,7 @@ function spawnBossLeftNeutral(){
 function updateBoss(dt){
  if(!bossMode)return;
  if(bossTier===3){
-  demonPhase+=dt*.00072;bossX=W*.5+Math.cos(demonPhase)*2.35;bossY=H*.68+Math.sin(demonPhase)*1.05;
+  demonPhase+=dt*.00072;bossX=W*.5+Math.cos(demonPhase)*2.35;bossY=H*.78+Math.sin(demonPhase)*.55;
   demonSwordT-=dt;demonSwordFx=Math.max(0,demonSwordFx-dt);
   // The sword is no longer an instant proximity punish. The player gets about
   // two seconds in melee range to attack and retreat.
@@ -1018,7 +1023,7 @@ function updateBoss(dt){
  }else if(bossTier===2){
   bossY+=bossDir*.00115*dt;
   if(bossY>H-2.2){bossY=H-2.2;bossDir=-1}
-  if(bossY<2.0){bossY=2.0;bossDir=1}
+  if(bossY<H*.42){bossY=H*.42;bossDir=1}
  }
  bossSpawnT-=dt;
 if(bossSpawnT<=0){
@@ -1133,7 +1138,7 @@ function slime(x,y,s){if(y<-1)return;ctx.fillStyle="rgba(0,0,0,.18)";ctx.beginPa
 
 function drawBoss(){
  if(!bossMode)return;
- if(bossTier===2||bossTier===3){for(const r of strongLiftRects()){ctx.save();ctx.fillStyle="#536579";ctx.fillRect(r.x,r.y,r.w,r.h);ctx.fillStyle="#91a9bd";ctx.fillRect(r.x+.08,r.y+.05,r.w-.16,.08);ctx.strokeStyle="#b9e8ff";ctx.lineWidth=.035;ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.restore();}}
+ if(bossTier===1||bossTier===2||bossTier===3){for(const r of strongLiftRects()){ctx.save();ctx.fillStyle="#536579";ctx.fillRect(r.x,r.y,r.w,r.h);ctx.fillStyle="#91a9bd";ctx.fillRect(r.x+.08,r.y+.05,r.w-.16,.08);ctx.strokeStyle="#b9e8ff";ctx.lineWidth=.035;ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.restore();}}
  let x=bossTier===3?bossX:W-.62,y=bossY;
  // Permanent three-step stone pedestal: terrain, not slime data.
  if(bossTier===1){ctx.save();for(let step=0;step<3;step++){let bx=W-1-step,h=3-step;for(let yy=H-h;yy<H;yy++){ctx.fillStyle="#596372";ctx.fillRect(bx+.04,yy+.04,.92,.92);ctx.fillStyle="#7c8796";ctx.fillRect(bx+.09,yy+.09,.82,.16);ctx.strokeStyle="#3f4753";ctx.lineWidth=.035;ctx.strokeRect(bx+.04,yy+.04,.92,.92);}}ctx.restore();}
