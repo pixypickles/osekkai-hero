@@ -446,6 +446,10 @@ function updateHero(dt){
  if(!solidAt(nx,hero.y)&&!heroHitsPair(nx,hero.y))hero.x=nx;
 
  hero.vy+=.000027*dt;let ny=hero.y+hero.vy*dt;hero.onGround=false;
+ let piercingUpper=playerClass==="monk"&&monkCombo.moveT>0&&monkCombo.kind==="upper"&&hero.vy<0;
+ if(piercingUpper){
+   hero.y=Math.max(.42,ny);
+ }else{
  let ph=heroHitsPair(hero.x,ny);
  if(ph){
    // If a falling slime hits the hero from above, don't teleport the hero onto it.
@@ -483,6 +487,7 @@ function updateHero(dt){
  }else if(hero.vy>=0&&solidAt(hero.x,ny+hero.h/2)){
    hero.vy=0;hero.y=Math.floor(ny+hero.h/2)-hero.h/2;hero.onGround=true;if(playerClass==="monk")hero.jumps=0;
  }else if(hero.vy<0&&solidAt(hero.x,ny-hero.h/2)){hero.vy=.002}else hero.y=ny;
+ }
  if(hero.y>H){hero.y=H-1.5;hero.vy=0}
  if(keys.attack)hero.charge=Math.min(100,hero.charge+dt*.09);
 }
@@ -688,6 +693,16 @@ function monkComboUpdate(dt){
  if(monkCombo.kind==="upper")hero.vy=Math.min(hero.vy,-.0055);
  else{hero.x=Math.max(.3,Math.min(W-.3,hero.x+monkCombo.vx*dt));hero.vy=0}
  let changed=false,rad=.7;
+ if(monkCombo.kind==="upper"){
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]&&Math.abs(x+.5-hero.x)<.62&&y+.5<=hero.y+.45){
+   hitEffect(x+.5,y+.5,"#ff4d62");board[y][x]=null;changed=true
+  }
+  for(const p of pairs)for(const part of [0,1]){
+   if((part===0&&p.a==null)||(part===1&&p.b==null))continue;
+   let z=pairPos(p,part);
+   if(Math.abs(z.x+.5-hero.x)<.62&&z.y+.5<=hero.y+.45){hitEffect(z.x+.5,z.y+.5,"#ff4d62");if(part===0)p.a=null;else p.b=null;changed=true}
+  }
+ }
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]&&Math.hypot(x+.5-hero.x,y+.5-hero.y)<rad){hitEffect(x+.5,y+.5,"#b78cff");board[y][x]=null;changed=true}
  for(const p of pairs)for(const part of [0,1]){
   if((part===0&&p.a==null)||(part===1&&p.b==null))continue;
@@ -931,7 +946,19 @@ function startNormalStage(n){
  updateStageHud();
 }
 function strongLiftRects(){if(!bossMode||(bossTier!==2&&bossTier!==3))return [];if(bossTier===3){let t=performance.now()*.001;return [{x:2,y:H*.72+Math.sin(t*.62)*.75,w:1,h:.28,moving:true},{x:5,y:H*.63+Math.sin(t*.52+2.0)*.7,w:1,h:.28,moving:true}]}let t=performance.now()*.001;return [{x:1,y:2.2+(Math.sin(t*.72)+1)*(H-4.0)/2,w:1,h:.28,moving:true},{x:6,y:2.8+(Math.sin(t*.58+2.1)+1)*(H-4.6)/2,w:1,h:.28,moving:true},{x:4,y:H*.56,w:1,h:.28,moving:false}]}
-function bossPlatformAt(x,y){if(!bossMode)return false;if(bossTier===2||bossTier===3)return strongLiftRects().some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18);return false}
+function bossPlatformAt(x,y){
+ if(!bossMode)return false;
+ if(bossTier===1){
+  // Match the permanent three-step stone pedestal drawn in drawBoss().
+  for(let step=0;step<3;step++){
+   let bx=W-1-step,h=3-step;
+   if(x>=bx&&x<bx+1&&y>=H-h&&y<H)return true
+  }
+  return false
+ }
+ if(bossTier===2||bossTier===3)return strongLiftRects().some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y-.18&&y<r.y+r.h+.18);
+ return false
+}
 function seedBossPlatforms(){
  let cells=[[1,H-1],[2,H-1],[4,H-1],[6,H-1],[6,H-2]];
  for(const [x,y] of cells)if(x>=0&&x<W&&y>=0&&y<H&&!board[y][x])board[y][x]=makeSlime(-1);
